@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\Category; // <-- WAJIB ADA BIAR BISA NGAMBIL DATA KE DATABASE
 
 class CategoryController extends Controller
 {
@@ -12,7 +13,11 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        //
+        // Ambil semua kategori, urutkan dari yang terbaru
+        $categories = Category::latest()->get();
+
+        // Panggil file view dan bawa datanya
+        return view('admin.categories.index', compact('categories'));
     }
 
     /**

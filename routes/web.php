@@ -23,12 +23,21 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth', 'role:super-admin'])->group(function () {
-    Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+// JALUR KHUSUS ADMIN
+Route::middleware(['auth', 'role:super-admin'])
+    ->prefix('admin') // <-- Semua URL otomatis diawali /admin
+    ->name('admin.')  // <-- Semua nama rute otomatis diawali admin.
+    ->group(function () {
 
-    Route::resource('/admin/categories', CategoryController::class, ['as' => 'admin']);
-    Route::resource('/admin/products', ProductController::class, ['as' => 'admin']);
-});
+        // Menjadi: /admin/dashboard | route('admin.dashboard')
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        // Menjadi: /admin/categories | route('admin.categories.index'), dll.
+        Route::resource('categories', CategoryController::class);
+
+        // Menjadi: /admin/products | route('admin.products.index'), dll.
+        Route::resource('products', ProductController::class);
+    });
 
 // 5. INI YANG LO HAPUS SEBELUMNYA (Jantung Auth Laravel Breeze)
 require __DIR__ . '/auth.php';

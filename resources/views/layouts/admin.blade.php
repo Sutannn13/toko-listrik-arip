@@ -25,12 +25,16 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#"
-                            class="block px-6 py-3 text-gray-400 hover:bg-gray-800 hover:text-white">Kategori Produk</a>
+                        <a href="{{ route('admin.categories.index') }}"
+                            class="block px-6 py-3 hover:bg-gray-800 {{ request()->routeIs('admin.categories.*') ? 'bg-gray-800 text-white border-l-4 border-blue-500' : 'text-gray-400 hover:text-white' }}">
+                            Kategori Produk
+                        </a>
                     </li>
                     <li>
-                        <a href="#"
-                            class="block px-6 py-3 text-gray-400 hover:bg-gray-800 hover:text-white">Barang Listrik</a>
+                        <a href="{{ route('admin.products.index') }}"
+                            class="block px-6 py-3 hover:bg-gray-800 {{ request()->routeIs('admin.products.*') ? 'bg-gray-800 text-white border-l-4 border-blue-500' : 'text-gray-400 hover:text-white' }}">
+                            Barang Listrik
+                        </a>
                     </li>
                     <li>
                         <a href="#"

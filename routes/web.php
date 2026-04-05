@@ -3,6 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController; // <-- Ini controller admin lo
+use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\ProductController;
 
 // 1. HALAMAN DEPAN (Publik)
 Route::get('/', function () {
@@ -21,9 +23,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// 4. JALUR KHUSUS ADMIN LO
 Route::middleware(['auth', 'role:super-admin'])->group(function () {
     Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+
+    Route::resource('/admin/categories', CategoryController::class, ['as' => 'admin']);
+    Route::resource('/admin/products', ProductController::class, ['as' => 'admin']);
 });
 
 // 5. INI YANG LO HAPUS SEBELUMNYA (Jantung Auth Laravel Breeze)

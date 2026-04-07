@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -28,7 +29,22 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $user = $request->user();
+        $intendedUrl = $request->session()->pull('url.intended');
+
+        if ($user && $user->hasAnyRole(['super-admin', 'admin'])) {
+            if ($intendedUrl) {
+                return redirect()->to($intendedUrl);
+            }
+
+            return redirect()->route('admin.dashboard');
+        }
+
+        if ($intendedUrl && !Str::contains($intendedUrl, '/admin')) {
+            return redirect()->to($intendedUrl);
+        }
+
+        return redirect()->route('home');
     }
 
     /**
@@ -42,6 +58,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect()->route('home')->with('success', 'Anda berhasil logout.');
     }
 }

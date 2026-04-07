@@ -4,36 +4,38 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Category; // <-- WAJIB ADA BIAR BISA NGAMBIL DATA KE DATABASE
+use App\Models\Category;
+use Illuminate\Support\Str; // <-- WAJIB ADA BIAR BISA NGAMBIL DATA KE DATABASE
 
 class CategoryController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        // Ambil semua kategori, urutkan dari yang terbaru
         $categories = Category::latest()->get();
-
-        // Panggil file view dan bawa datanya
         return view('admin.categories.index', compact('categories'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        // Tampilkan halaman form
+        return view('admin.categories.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        // 1. Validasi: Nama wajib diisi dan nggak boleh kembar
+        $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name',
+        ]);
+
+        // 2. Simpan ke database
+        Category::create([
+            'name' => $request->name,
+            'slug' => Str::slug($request->name), // Otomatis ubah "Kabel Listrik" jadi "kabel-listrik"
+        ]);
+
+        // 3. Tendang balik ke halaman tabel dengan pesan sukses
+        return redirect()->route('admin.categories.index')->with('success', 'Kategori berhasil ditambahkan!');
     }
 
     /**

@@ -9,73 +9,84 @@
     <title>Reset Password - Toko Listrik Arip</title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="min-h-screen bg-slate-950 font-sans text-slate-100 antialiased">
+<body class="min-h-screen bg-slate-50 font-sans text-gray-900 antialiased">
     <div class="pointer-events-none fixed inset-0 overflow-hidden">
-        <div class="absolute -top-36 left-0 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl"></div>
-        <div class="absolute top-1/3 -right-28 h-[24rem] w-[24rem] rounded-full bg-blue-600/20 blur-3xl"></div>
-        <div class="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-teal-500/15 blur-3xl"></div>
+        <div class="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary-100/60 blur-3xl"></div>
+        <div class="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-primary-50/80 blur-3xl"></div>
     </div>
 
-    <main
-        class="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center gap-8 px-4 py-10 sm:px-6 lg:grid lg:grid-cols-[1.2fr,1fr] lg:px-8 lg:py-16">
-        <section
-            class="rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900/95 via-slate-900/85 to-cyan-950/40 p-6 shadow-2xl shadow-slate-950/50 sm:p-8">
-            <p
-                class="mb-3 inline-flex rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-1 text-xs font-bold tracking-[0.16em] text-cyan-200">
-                RESET AKUN
-            </p>
-            <h1 class="text-3xl font-extrabold leading-tight text-white sm:text-4xl">
-                Lupa Password? Kami Bantu Reset Dengan Cepat
+    <main class="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center gap-8 px-4 py-10 sm:px-6 lg:grid lg:grid-cols-[1.2fr,1fr] lg:items-center lg:gap-16 lg:px-8 lg:py-16">
+        {{-- Left — Brand Panel --}}
+        <section class="hidden lg:block">
+            <span class="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-700">
+                Reset Akun
+            </span>
+            <h1 class="text-4xl font-extrabold leading-tight tracking-tight text-gray-900">
+                Lupa Password? Kami Bantu Reset
             </h1>
-            <p class="mt-4 text-sm leading-relaxed text-slate-300 sm:text-base">
-                Masukkan email akun kamu, sistem akan kirim link reset password untuk membuat password baru.
+            <p class="mt-4 max-w-md text-base leading-relaxed text-gray-600">
+                Masukkan email akun Anda, dan kami akan mengirimkan tautan reset password dalam hitungan detik.
             </p>
 
-            <div class="mt-6 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-                <p class="text-xs uppercase tracking-[0.12em] text-slate-400">Tips Keamanan</p>
-                <p class="mt-2 text-sm text-slate-200">Gunakan password kuat dan jangan bagikan kode reset ke siapa pun.
-                </p>
+            <div class="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+                <p class="text-xs font-bold uppercase tracking-wider text-gray-500">Tips Keamanan</p>
+                <p class="mt-1 text-sm text-gray-700">Gunakan password kuat (min 8 karakter, campuran huruf & angka) dan jangan bagikan tautan reset ke siapapun.</p>
             </div>
 
-            <a href="{{ route('login') }}"
-                class="mt-6 inline-flex rounded-xl border border-cyan-400/40 px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-300 hover:bg-cyan-400/10">
-                &larr; Kembali ke Login
+            <a href="{{ route('login') }}" class="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-primary-600 transition hover:text-primary-700">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Kembali ke Login
             </a>
         </section>
 
-        <section
-            class="rounded-3xl border border-slate-800/80 bg-slate-900/90 p-6 shadow-2xl shadow-slate-950/50 sm:p-8">
-            <h2 class="text-2xl font-bold text-white">Minta Link Reset</h2>
-            <p class="mt-1 text-sm text-slate-400">Link reset akan dikirim ke email terdaftar.</p>
+        {{-- Right — Reset Form Card --}}
+        <section class="w-full max-w-md mx-auto lg:mx-0">
+            <div class="mb-6 text-center lg:hidden">
+                <a href="{{ route('landing') }}" class="inline-flex items-center gap-2.5">
+                    <span class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-extrabold text-white shadow-md shadow-primary-500/30">TA</span>
+                    <span class="text-lg font-bold text-gray-900">Toko Listrik Arip</span>
+                </a>
+            </div>
 
-            <x-auth-session-status
-                class="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200"
-                :status="session('status')" />
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg shadow-gray-200/50 sm:p-8">
+                <h2 class="text-2xl font-bold text-gray-900">Minta Link Reset</h2>
+                <p class="mt-1 text-sm text-gray-500">Tautan reset akan dikirim ke email terdaftar.</p>
 
-            <form method="POST" action="{{ route('password.email') }}" class="mt-5 space-y-4">
-                @csrf
+                <x-auth-session-status
+                    class="mt-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700"
+                    :status="session('status')" />
 
-                <div>
-                    <label for="email"
-                        class="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                        Email
-                    </label>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus
-                        class="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
-                        placeholder="contoh@email.com">
-                    <x-input-error :messages="$errors->get('email')" class="mt-1 text-xs text-rose-300" />
+                <form method="POST" action="{{ route('password.email') }}" class="mt-6 space-y-5">
+                    @csrf
+
+                    <div>
+                        <label for="email" class="mb-1.5 block text-sm font-semibold text-gray-700">Email</label>
+                        <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus
+                            class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition"
+                            placeholder="contoh@email.com">
+                        <x-input-error :messages="$errors->get('email')" class="mt-1.5 text-xs text-red-600" />
+                    </div>
+
+                    <button type="submit"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-primary-600 px-4 py-3 text-sm font-bold text-white shadow-md shadow-primary-500/20 transition hover:bg-primary-700 focus:outline-none focus:ring-4 focus:ring-primary-500/30">
+                        Kirim Link Reset Password
+                    </button>
+                </form>
+
+                <div class="mt-5 border-t border-gray-100 pt-5 text-center text-sm lg:hidden">
+                    <a href="{{ route('login') }}" class="font-medium text-gray-600 hover:text-gray-900 transition">
+                        Kembali ke <span class="font-semibold text-primary-600">Login</span>
+                    </a>
                 </div>
-
-                <button type="submit"
-                    class="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-cyan-900/30 transition hover:brightness-110">
-                    Kirim Link Reset Password
-                </button>
-            </form>
+            </div>
         </section>
     </main>
 </body>

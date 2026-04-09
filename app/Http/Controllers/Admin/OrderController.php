@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class OrderController extends Controller
@@ -63,49 +64,100 @@ class OrderController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'in:pending,processing,shipped,completed,cancelled'],
             'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
-            'tracking_number' => ['nullable', 'string', 'max:50'],
+            'tracking_number' => ['nullable', 'string', 'max:50', 'required_if:status,shipped'],
         ]);
 
-        $oldStatus = $order->status;
-        $order->status = $validated['status'];
-        $order->payment_status = $validated['payment_status'];
-        
-        if (isset($validated['tracking_number'])) {
-            $order->tracking_number = $validated['tracking_number'];
+        if ($order->status === 'cancelled' && $validated['status'] !== 'cancelled') {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Pesanan yang sudah cancelled tidak dapat diaktifkan kembali.');
         }
 
-        if ($order->status === 'completed' && (!$order->completed_at)) {
-            $order->completed_at = now();
-            $order->warranty_status = 'active';
+        if ($validated['status'] === 'completed' && $validated['payment_status'] !== 'paid') {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Status completed hanya boleh untuk pesanan yang sudah paid.');
         }
 
-        if ($order->status === 'cancelled') {
-            $order->warranty_status = 'void';
+        if ($validated['status'] === 'cancelled' && $validated['payment_status'] === 'paid') {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Pesanan cancelled tidak boleh memiliki payment status paid.');
         }
 
-        // 1. TAMBAL BUG PENGEMBALIAN STOK (Prioritas 1)
-        if ($oldStatus !== 'cancelled' && $order->status === 'cancelled') {
-            foreach ($order->items as $item) {
-                if ($item->product) {
-                    $item->product->increment('stock', $item->quantity);
+        $transitionBlocked = false;
+
+        DB::transaction(function () use ($order, $validated, &$transitionBlocked) {
+            $lockedOrder = Order::query()
+                ->whereKey($order->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$lockedOrder) {
+                return;
+            }
+
+            if ($lockedOrder->status === 'cancelled' && $validated['status'] !== 'cancelled') {
+                $transitionBlocked = true;
+                return;
+            }
+
+            $oldStatus = $lockedOrder->status;
+            $lockedOrder->status = $validated['status'];
+            $lockedOrder->payment_status = $validated['payment_status'];
+
+            if (array_key_exists('tracking_number', $validated)) {
+                $lockedOrder->tracking_number = $validated['tracking_number'] !== ''
+                    ? $validated['tracking_number']
+                    : null;
+            }
+
+            if ($lockedOrder->status === 'completed' && !$lockedOrder->completed_at) {
+                $lockedOrder->completed_at = now();
+                $lockedOrder->warranty_status = 'active';
+            }
+
+            if ($lockedOrder->status === 'cancelled') {
+                $lockedOrder->warranty_status = 'void';
+            }
+
+            if ($oldStatus !== 'cancelled' && $lockedOrder->status === 'cancelled') {
+                $lockedOrder->load('items');
+
+                foreach ($lockedOrder->items as $item) {
+                    if (!$item->product_id) {
+                        continue;
+                    }
+
+                    $lockedProduct = $item->product()->lockForUpdate()->first();
+                    if ($lockedProduct) {
+                        $lockedProduct->increment('stock', $item->quantity);
+                    }
                 }
             }
-        }
 
-        if ($order->payment_status === 'paid' && !$order->paid_at) {
-            $order->paid_at = now();
-        }
+            if ($lockedOrder->payment_status === 'paid') {
+                $lockedOrder->paid_at = $lockedOrder->paid_at ?: now();
+            } else {
+                $lockedOrder->paid_at = null;
+            }
 
-        $order->save();
+            $lockedOrder->save();
 
-        $latestPayment = $order->payments()->latest()->first();
+            $latestPayment = $lockedOrder->payments()
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
 
-        if ($latestPayment) {
-            $latestPayment->update([
-                'status' => $validated['payment_status'],
-                'paid_at' => $validated['payment_status'] === 'paid' ? ($latestPayment->paid_at ?: now()) : null,
-                'notes' => 'Status diperbarui oleh admin.',
-            ]);
+            if ($latestPayment) {
+                $latestPayment->update([
+                    'status' => $validated['payment_status'],
+                    'paid_at' => $validated['payment_status'] === 'paid' ? ($latestPayment->paid_at ?: now()) : null,
+                    'notes' => 'Status diperbarui oleh admin.',
+                ]);
+            }
+        }, 3);
+
+        if ($transitionBlocked) {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Pesanan sudah dibatalkan oleh proses lain dan tidak dapat diaktifkan kembali.');
         }
 
         return redirect()->route('admin.orders.show', $order)

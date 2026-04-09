@@ -14,14 +14,25 @@ use App\Http\Controllers\ProfileAddressController;
 Route::get('/', [HomeController::class, 'landing'])->name('landing');
 Route::get('/katalog', [HomeController::class, 'index'])->name('home');
 Route::get('/produk/{slug}', [HomeController::class, 'show'])->name('home.products.show');
-Route::post('/produk/{slug}/buy', [HomeController::class, 'buy'])->name('home.products.buy');
-Route::get('/keranjang', [HomeController::class, 'cart'])->name('home.cart');
-Route::patch('/keranjang/{productId}', [HomeController::class, 'updateCart'])->name('home.cart.update');
-Route::delete('/keranjang/{productId}', [HomeController::class, 'removeFromCart'])->name('home.cart.remove');
-Route::post('/keranjang/checkout', [HomeController::class, 'checkout'])->middleware('throttle:3,10')->name('home.cart.checkout');
-Route::get('/cek-pesanan', [HomeController::class, 'tracking'])->name('home.tracking');
-Route::post('/cek-pesanan', [HomeController::class, 'checkTracking'])->name('home.tracking.check');
-Route::post('/cek-pesanan/{orderCode}/payment-proof', [HomeController::class, 'uploadPaymentProof'])->name('home.tracking.proof');
+
+Route::middleware('auth')->group(function () {
+    Route::post('/produk/{slug}/buy', [HomeController::class, 'buy'])->name('home.products.buy');
+    Route::get('/keranjang', [HomeController::class, 'cart'])->name('home.cart');
+    Route::patch('/keranjang/{productId}', [HomeController::class, 'updateCart'])->name('home.cart.update');
+    Route::delete('/keranjang/{productId}', [HomeController::class, 'removeFromCart'])->name('home.cart.remove');
+    Route::post('/keranjang/checkout', [HomeController::class, 'checkout'])
+        ->middleware('throttle:3,10')
+        ->name('home.cart.checkout');
+
+    Route::get('/cek-pesanan', [HomeController::class, 'tracking'])->name('home.tracking');
+    Route::post('/cek-pesanan', [HomeController::class, 'checkTracking'])
+        ->middleware('throttle:10,1')
+        ->name('home.tracking.check');
+    Route::post('/cek-pesanan/{orderCode}/payment-proof', [HomeController::class, 'uploadPaymentProof'])
+        ->middleware('throttle:6,1')
+        ->name('home.tracking.proof');
+});
+
 // 2. DASHBOARD USER BIASA (Bawaan Breeze)
 Route::get('/dashboard', function () {
     return view('dashboard');

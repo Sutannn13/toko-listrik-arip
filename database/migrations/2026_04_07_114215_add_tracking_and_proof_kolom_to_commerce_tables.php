@@ -11,13 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->string('tracking_number')->nullable()->after('status');
-        });
-
-        Schema::table('payments', function (Blueprint $table) {
-            $table->string('payment_proof_path')->nullable()->after('payment_code');
-        });
+        if (!Schema::hasColumn('orders', 'tracking_number')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->string('tracking_number')->nullable()->after('status');
+            });
+        }
     }
 
     /**
@@ -25,8 +23,16 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('commerce_tables', function (Blueprint $table) {
-            //
-        });
+        if (Schema::hasColumn('orders', 'tracking_number')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->dropColumn('tracking_number');
+            });
+        }
+
+        if (Schema::hasColumn('payments', 'payment_proof_path')) {
+            Schema::table('payments', function (Blueprint $table) {
+                $table->dropColumn('payment_proof_path');
+            });
+        }
     }
 };

@@ -47,7 +47,7 @@
                     <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                 </div>
                 <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Lacak Pesanan Anda</h1>
-                <p class="mt-3 text-base text-gray-500 max-w-sm mx-auto">Masukkan kode pesanan dan alamat email yang Anda gunakan saat checkout untuk melihat status pesanan terkini.</p>
+                <p class="mt-3 text-base text-gray-500 max-w-sm mx-auto">Masukkan kode pesanan untuk melihat status terkini pesanan milik akun Anda.</p>
             </div>
 
             <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl shadow-gray-200/50 sm:p-8">
@@ -77,16 +77,6 @@
                                 <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
                             </div>
                             <input type="text" name="order_code" id="order_code" value="{{ old('order_code') }}" class="block w-full rounded-xl border-gray-300 pl-10 focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-3 transition shadow-sm" placeholder="Contoh: ORD-17ABC98XYZ" required>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="email" class="mb-1.5 block text-sm font-semibold text-gray-700">Email Utama (Saat Checkout)</label>
-                        <div class="relative">
-                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                            </div>
-                            <input type="email" name="email" id="email" value="{{ old('email') }}" class="block w-full rounded-xl border-gray-300 pl-10 focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-3 transition shadow-sm" placeholder="Contoh: pelanggan@email.com" required>
                         </div>
                     </div>
 

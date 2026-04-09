@@ -33,10 +33,11 @@
                 </a>
 
                 <div class="flex flex-1 items-center justify-end gap-3 sm:gap-4">
+                    @auth
                     <a href="{{ route('home.tracking') }}" class="hidden rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-primary-500 hover:text-primary-600 sm:block">
                         Cek Pesanan
                     </a>
-                    
+
                     <a href="{{ route('home.cart') }}" class="relative rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-primary-600">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -47,6 +48,7 @@
                     </a>
 
                     <div class="h-6 w-px bg-gray-200 hidden sm:block"></div>
+                    @endauth
 
                     @guest
                         <a href="{{ route('login') }}" class="rounded-lg border border-primary-500 px-4 py-2 text-sm font-semibold text-primary-600 transition hover:bg-primary-50">
@@ -207,6 +209,7 @@
                                     Detail
                                 </a>
 
+                                @auth
                                 <form method="POST" action="{{ route('home.products.buy', $product->slug) }}" class="w-2/3">
                                     @csrf
                                     <button type="submit" {{ $product->stock < 1 ? 'disabled' : '' }} class="inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition {{ $product->stock < 1 ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400' : 'bg-primary-600 text-white shadow-md shadow-primary-500/20 hover:bg-primary-700' }}">
@@ -218,6 +221,16 @@
                                         @endif
                                     </button>
                                 </form>
+                                @else
+                                <button type="button" onclick="alert('Silakan login ke akun Anda terlebih dahulu untuk menambah barang ke keranjang dan melakukan pembayaran.')" class="w-2/3 inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition {{ $product->stock < 1 ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400' : 'bg-primary-600 text-white shadow-md shadow-primary-500/20 hover:bg-primary-700' }}">
+                                     @if($product->stock < 1)
+                                        Stok Habis
+                                     @else
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        Keranjang
+                                     @endif
+                                </button>
+                                @endauth
                             </div>
                         </div>
                     </article>

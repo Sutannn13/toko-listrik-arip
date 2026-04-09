@@ -27,9 +27,11 @@
                 </a>
 
                 <div class="flex flex-1 items-center justify-end gap-3 sm:gap-4">
+                    @auth
                     <a href="{{ route('home.tracking') }}" class="hidden rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-primary-500 hover:text-primary-600 sm:block">
                         Cek Pesanan
                     </a>
+                    @endauth
                     
                     <a href="{{ route('home.cart') }}" class="relative rounded-lg p-2 transition {{ $cartQuantity > 0 ? 'bg-primary-50 text-primary-600' : 'text-gray-500 hover:bg-gray-100 hover:text-primary-600' }}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

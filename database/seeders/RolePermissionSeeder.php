@@ -11,17 +11,20 @@ class RolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        // Bikin Role
-        Role::create(['name' => 'super-admin']);
-        Role::create(['name' => 'admin']);
-        Role::create(['name' => 'user']);
+        Role::findOrCreate('super-admin', 'web');
+        Role::findOrCreate('admin', 'web');
+        Role::findOrCreate('user', 'web');
 
-        $superAdmin = User::create([
-            'name' => 'Super Admin Arip',
-            'email' => 'arip@tokolistrik.com',
-            'password' => Hash::make('password123'), // Ganti ini nanti di production
-        ]);
+        $superAdmin = User::query()->updateOrCreate(
+            ['email' => 'arip@tokolistrik.com'],
+            [
+                'name' => 'Super Admin Arip',
+                'password' => Hash::make('password123'),
+            ],
+        );
 
-        $superAdmin->assignRole('super-admin');
+        if (!$superAdmin->hasRole('super-admin')) {
+            $superAdmin->assignRole('super-admin');
+        }
     }
 }

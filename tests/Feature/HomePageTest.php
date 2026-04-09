@@ -59,7 +59,7 @@ class HomePageTest extends TestCase
         $response = $this->actingAs($user)->get(route('home'));
 
         $response->assertOk();
-        $response->assertSee('Pelanggan Arip (User)');
+        $response->assertSee('Pelanggan Arip');
         $response->assertSee('Logout');
     }
 
@@ -129,11 +129,15 @@ class HomePageTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Saklar Ganda');
-        $response->assertSee('Beli Sekarang');
+        $response->assertSee('Tambah ke Keranjang');
     }
 
     public function test_buy_button_adds_product_to_simple_cart_session(): void
     {
+        Role::findOrCreate('user', 'web');
+        $user = User::factory()->create();
+        $user->assignRole('user');
+
         $category = Category::create([
             'name' => 'MCB',
             'slug' => 'mcb',
@@ -151,6 +155,7 @@ class HomePageTest extends TestCase
         ]);
 
         $response = $this
+            ->actingAs($user)
             ->from(route('home.products.show', $product->slug))
             ->post(route('home.products.buy', $product->slug), [
                 'qty' => 2,
@@ -163,6 +168,10 @@ class HomePageTest extends TestCase
 
     public function test_cart_page_displays_items_from_session_simple_cart(): void
     {
+        Role::findOrCreate('user', 'web');
+        $user = User::factory()->create();
+        $user->assignRole('user');
+
         $category = Category::create([
             'name' => 'Stop Kontak',
             'slug' => 'stop-kontak',
@@ -180,6 +189,7 @@ class HomePageTest extends TestCase
         ]);
 
         $response = $this
+            ->actingAs($user)
             ->withSession([
                 'simple_cart' => [
                     $product->id => [
@@ -196,11 +206,15 @@ class HomePageTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Stop Kontak 4 Lubang');
-        $response->assertSee('Checkout & Simpan Pesanan', false);
+        $response->assertSee('Checkout & Bayar', false);
     }
 
     public function test_user_can_update_cart_quantity(): void
     {
+        Role::findOrCreate('user', 'web');
+        $user = User::factory()->create();
+        $user->assignRole('user');
+
         $category = Category::create([
             'name' => 'Fitting',
             'slug' => 'fitting',
@@ -218,6 +232,7 @@ class HomePageTest extends TestCase
         ]);
 
         $response = $this
+            ->actingAs($user)
             ->withSession([
                 'simple_cart' => [
                     $product->id => [
@@ -240,6 +255,13 @@ class HomePageTest extends TestCase
 
     public function test_checkout_persists_order_and_clears_simple_cart(): void
     {
+        Role::findOrCreate('user', 'web');
+        $user = User::factory()->create([
+            'name' => 'Pelanggan Checkout',
+            'email' => 'checkout-user@example.com',
+        ]);
+        $user->assignRole('user');
+
         $category = Category::create([
             'name' => 'Saklar',
             'slug' => 'saklar',
@@ -257,6 +279,7 @@ class HomePageTest extends TestCase
         ]);
 
         $response = $this
+            ->actingAs($user)
             ->withSession([
                 'simple_cart' => [
                     $product->id => [
@@ -269,7 +292,20 @@ class HomePageTest extends TestCase
                     ],
                 ],
             ])
-            ->post(route('home.cart.checkout'));
+            ->post(route('home.cart.checkout'), [
+                'customer_name' => 'Pelanggan Checkout',
+                'customer_email' => 'checkout-user@example.com',
+                'customer_phone' => '081234567890',
+                'address_label' => 'Rumah',
+                'recipient_name' => 'Pelanggan Checkout',
+                'address_phone' => '081234567890',
+                'address_line' => 'Jl. Mawar No. 12',
+                'city' => 'Bandung',
+                'province' => 'Jawa Barat',
+                'postal_code' => '40123',
+                'address_notes' => 'Pagar hitam',
+                'set_as_default' => '1',
+            ]);
 
         $response->assertRedirect(route('home.cart'));
         $response->assertSessionHas('success');
@@ -280,8 +316,9 @@ class HomePageTest extends TestCase
         $this->assertDatabaseCount('payments', 1);
 
         $this->assertDatabaseHas('orders', [
-            'customer_name' => 'Guest Customer',
-            'customer_email' => 'guest@tokolistrik-arip.local',
+            'user_id' => $user->id,
+            'customer_name' => 'Pelanggan Checkout',
+            'customer_email' => 'checkout-user@example.com',
             'status' => 'pending',
             'payment_status' => 'pending',
             'subtotal' => 36000,
@@ -303,7 +340,5 @@ class HomePageTest extends TestCase
 
         $product->refresh();
         $this->assertSame(27, (int) $product->stock);
-
-        $response->assertSessionHas('guest_recent_order_codes.0');
     }
 }

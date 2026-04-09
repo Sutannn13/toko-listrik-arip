@@ -75,9 +75,9 @@
             @endif
 
             <!-- Payment Proof Form -->
-            @if($order->payment_status !== 'paid')
+            @if($order->status !== 'cancelled' && $order->payment_status !== 'paid')
                 @php
-                    $latestPayment = $order->payments->first();
+                    $latestPayment = $order->payments->sortByDesc('created_at')->first();
                 @endphp
                 @if($latestPayment && !$latestPayment->proof_url)
                     <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
@@ -165,7 +165,7 @@
                             </div>
                             <div>
                                 <p class="text-xs text-gray-500 mb-0.5">Alamat Lengkap</p>
-                                <p class="text-sm font-medium text-gray-900 leading-relaxed">{{ $order->shipping_address }}</p>
+                                <p class="text-sm font-medium text-gray-900 leading-relaxed">{{ $shippingAddress }}</p>
                             </div>
                         </div>
                     </div>

@@ -254,9 +254,9 @@ class HomeController extends Controller
 
         $validated = $request->validate([
             'address_id' => ['nullable', 'integer'],
-            'customer_name' => ['nullable', 'string', 'max:255'],
-            'customer_email' => ['nullable', 'email', 'max:255'],
-            'customer_phone' => ['nullable', 'string', 'max:30'],
+            'customer_name' => ['required', 'string', 'max:255'],
+            'customer_email' => ['required', 'email', 'max:255'],
+            'customer_phone' => ['required', 'string', 'max:30'],
             'address_label' => ['nullable', 'string', 'max:100'],
             'recipient_name' => ['nullable', 'string', 'max:255'],
             'address_phone' => ['nullable', 'string', 'max:30'],
@@ -317,75 +317,23 @@ class HomeController extends Controller
         $totalAmount = $subtotal + $shippingCost - $discountAmount;
 
         $user = $request->user();
+        if (!$user) {
+            abort(403);
+        }
+
         $address = null;
 
-        if ($user) {
-            if (!empty($validated['address_id'])) {
-                $address = $user->addresses()->whereKey((int) $validated['address_id'])->first();
-
-                if (!$address) {
-                    return redirect()->route('home.cart')
-                        ->withInput()
-                        ->with('error', 'Alamat yang dipilih tidak valid.');
-                }
-            }
-
-            if (!$address && $this->hasAddressFormInput($validated)) {
-                $requiredAddressFields = [
-                    'recipient_name',
-                    'address_phone',
-                    'address_line',
-                    'city',
-                    'province',
-                    'postal_code',
-                ];
-
-                $missingAddressFields = collect($requiredAddressFields)
-                    ->filter(fn($field) => blank($validated[$field] ?? null));
-
-                if ($missingAddressFields->isNotEmpty()) {
-                    return redirect()->route('home.cart')
-                        ->withInput()
-                        ->with('error', 'Lengkapi data alamat baru sebelum checkout.');
-                }
-
-                $shouldDefault = (bool) ($validated['set_as_default'] ?? false) || !$user->addresses()->exists();
-
-                if ($shouldDefault) {
-                    $user->addresses()->update(['is_default' => false]);
-                }
-
-                $address = Address::create([
-                    'user_id' => $user->id,
-                    'label' => $validated['address_label'] ?? 'Alamat Baru',
-                    'recipient_name' => $validated['recipient_name'],
-                    'phone' => $validated['address_phone'],
-                    'address_line' => $validated['address_line'],
-                    'city' => $validated['city'],
-                    'province' => $validated['province'],
-                    'postal_code' => $validated['postal_code'],
-                    'notes' => $validated['address_notes'] ?? null,
-                    'is_default' => $shouldDefault,
-                ]);
-            }
-
-            if (!$address) {
-                $address = $user->addresses()->where('is_default', true)->first()
-                    ?? $user->addresses()->latest()->first();
-            }
+        if (!empty($validated['address_id'])) {
+            $address = $user->addresses()->whereKey((int) $validated['address_id'])->first();
 
             if (!$address) {
                 return redirect()->route('home.cart')
                     ->withInput()
-                    ->with('error', 'Pilih alamat default atau isi alamat baru sebelum checkout.');
+                    ->with('error', 'Alamat yang dipilih tidak valid.');
             }
+        }
 
-            if ((bool) ($validated['set_as_default'] ?? false) && !$address->is_default) {
-                $user->addresses()->update(['is_default' => false]);
-                $address->is_default = true;
-                $address->save();
-            }
-        } else {
+        if (!$address && $this->hasAddressFormInput($validated)) {
             $requiredAddressFields = [
                 'recipient_name',
                 'address_phone',
@@ -401,13 +349,49 @@ class HomeController extends Controller
             if ($missingAddressFields->isNotEmpty()) {
                 return redirect()->route('home.cart')
                     ->withInput()
-                    ->with('error', 'Mohon lengkapi semua data alamat pengiriman sebelum checkout.');
+                    ->with('error', 'Lengkapi data alamat baru sebelum checkout.');
             }
+
+            $shouldDefault = (bool) ($validated['set_as_default'] ?? false) || !$user->addresses()->exists();
+
+            if ($shouldDefault) {
+                $user->addresses()->update(['is_default' => false]);
+            }
+
+            $address = Address::create([
+                'user_id' => $user->id,
+                'label' => $validated['address_label'] ?? 'Alamat Baru',
+                'recipient_name' => $validated['recipient_name'],
+                'phone' => $validated['address_phone'],
+                'address_line' => $validated['address_line'],
+                'city' => $validated['city'],
+                'province' => $validated['province'],
+                'postal_code' => $validated['postal_code'],
+                'notes' => $validated['address_notes'] ?? null,
+                'is_default' => $shouldDefault,
+            ]);
         }
 
-        $customerName = (string) ($validated['customer_name'] ?? $user?->name ?? $address?->recipient_name ?? $validated['recipient_name'] ?? 'Guest Customer');
-        $customerEmail = (string) ($validated['customer_email'] ?? $user?->email ?? 'guest@tokolistrik-arip.local');
-        $customerPhone = (string) ($validated['customer_phone'] ?? $address?->phone ?? $validated['address_phone'] ?? '');
+        if (!$address) {
+            $address = $user->addresses()->where('is_default', true)->first()
+                ?? $user->addresses()->latest()->first();
+        }
+
+        if (!$address) {
+            return redirect()->route('home.cart')
+                ->withInput()
+                ->with('error', 'Pilih alamat default atau isi alamat baru sebelum checkout.');
+        }
+
+        if ((bool) ($validated['set_as_default'] ?? false) && !$address->is_default) {
+            $user->addresses()->update(['is_default' => false]);
+            $address->is_default = true;
+            $address->save();
+        }
+
+        $customerName = (string) ($validated['customer_name'] ?? $user->name ?? $address->recipient_name);
+        $customerEmail = (string) ($validated['customer_email'] ?? $user->email);
+        $customerPhone = (string) ($validated['customer_phone'] ?? $address->phone ?? '');
 
         $addressSnapshot = $address
             ? implode(', ', array_filter([
@@ -514,13 +498,6 @@ class HomeController extends Controller
 
         $request->session()->forget('simple_cart');
 
-        if (!$user) {
-            $guestRecentOrderCodes = $request->session()->get('guest_recent_order_codes', []);
-            array_unshift($guestRecentOrderCodes, $order->order_code);
-            $guestRecentOrderCodes = array_slice(array_values(array_unique($guestRecentOrderCodes)), 0, 10);
-            $request->session()->put('guest_recent_order_codes', $guestRecentOrderCodes);
-        }
-
         return redirect()->route('home.cart')->with(
             'success',
             'Checkout berhasil. Kode pesanan: ' . $order->order_code . '. Garansi Toko Arip 7 hari aktif untuk item pesanan.',
@@ -556,34 +533,74 @@ class HomeController extends Controller
             'reason' => ['required', 'string', 'min:10', 'max:1000'],
         ]);
 
-        $hasOpenClaim = WarrantyClaim::query()
-            ->where('order_item_id', $orderItem->id)
-            ->whereIn('status', ['submitted', 'reviewing', 'approved'])
-            ->exists();
+        $claim = null;
 
-        if ($hasOpenClaim) {
+        try {
+            $claim = DB::transaction(function () use ($order, $orderItem, $user, $validated) {
+                $lockedItem = OrderItem::query()
+                    ->where('id', $orderItem->id)
+                    ->where('order_id', $order->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$lockedItem) {
+                    throw new \RuntimeException('ORDER_ITEM_NOT_FOUND');
+                }
+
+                if (!$lockedItem->warranty_expires_at || $lockedItem->warranty_expires_at->isPast()) {
+                    throw new \RuntimeException('WARRANTY_EXPIRED');
+                }
+
+                $hasOpenClaim = WarrantyClaim::query()
+                    ->where('order_item_id', $lockedItem->id)
+                    ->whereIn('status', ['submitted', 'reviewing', 'approved'])
+                    ->lockForUpdate()
+                    ->exists();
+
+                if ($hasOpenClaim) {
+                    throw new \RuntimeException('ACTIVE_CLAIM_EXISTS');
+                }
+
+                $claim = WarrantyClaim::create([
+                    'claim_code' => $this->generateWarrantyClaimCode(),
+                    'order_id' => $order->id,
+                    'order_item_id' => $lockedItem->id,
+                    'user_id' => $user?->id,
+                    'reason' => $validated['reason'],
+                    'status' => 'submitted',
+                    'requested_at' => now(),
+                ]);
+
+                $claim->activities()->create([
+                    'actor_id' => $user?->id,
+                    'actor_name' => $user?->name,
+                    'action' => 'submitted',
+                    'from_status' => null,
+                    'to_status' => 'submitted',
+                    'note' => $validated['reason'],
+                ]);
+
+                return $claim;
+            }, 3);
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() === 'ACTIVE_CLAIM_EXISTS') {
+                return redirect()->route('home.cart')
+                    ->with('error', 'Item ini sudah memiliki klaim garansi aktif.');
+            }
+
+            if ($e->getMessage() === 'WARRANTY_EXPIRED') {
+                return redirect()->route('home.cart')
+                    ->with('error', 'Masa garansi item ini sudah berakhir.');
+            }
+
             return redirect()->route('home.cart')
-                ->with('error', 'Item ini sudah memiliki klaim garansi aktif.');
+                ->with('error', 'Item pesanan tidak ditemukan atau tidak valid untuk klaim.');
         }
 
-        $claim = WarrantyClaim::create([
-            'claim_code' => $this->generateWarrantyClaimCode(),
-            'order_id' => $order->id,
-            'order_item_id' => $orderItem->id,
-            'user_id' => $user?->id,
-            'reason' => $validated['reason'],
-            'status' => 'submitted',
-            'requested_at' => now(),
-        ]);
-
-        $claim->activities()->create([
-            'actor_id' => $user?->id,
-            'actor_name' => $user?->name,
-            'action' => 'submitted',
-            'from_status' => null,
-            'to_status' => 'submitted',
-            'note' => $validated['reason'],
-        ]);
+        if (!$claim) {
+            return redirect()->route('home.cart')
+                ->with('error', 'Klaim garansi gagal diproses. Silakan coba lagi.');
+        }
 
         return redirect()->route('home.cart')->with('success', 'Klaim garansi berhasil diajukan. Tim admin akan meninjau klaim Anda.');
     }
@@ -594,44 +611,73 @@ class HomeController extends Controller
             'payment_proof' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ]);
 
-        $order = Order::with('payments')->where('order_code', $orderCode)->firstOrFail();
+        $user = $request->user();
+        if (!$user) {
+            abort(403);
+        }
+
+        $normalizedOrderCode = strtoupper(trim($orderCode));
+
+        $order = Order::with('payments')
+            ->where('order_code', $normalizedOrderCode)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        if ($order->status === 'cancelled') {
+            return back()->with('error', 'Pesanan sudah dibatalkan, bukti pembayaran tidak dapat diunggah.');
+        }
+
+        if ($order->payment_status === 'paid') {
+            return back()->with('error', 'Pesanan ini sudah lunas. Tidak perlu unggah ulang bukti pembayaran.');
+        }
+
         $payment = $order->payments()->latest()->first();
 
         if (!$payment) {
             return back()->with('error', 'Data pembayaran tidak ditemukan.');
         }
 
-        $path = $request->file('payment_proof')->store('payments', 'public');
+        if (in_array($payment->status, ['paid', 'refunded'], true)) {
+            return back()->with('error', 'Status pembayaran saat ini tidak mengizinkan unggah bukti baru.');
+        }
+
+        if ($payment->status === 'pending' && !empty($payment->proof_url)) {
+            return back()->with('error', 'Bukti pembayaran sudah diunggah. Silakan tunggu verifikasi admin.');
+        }
+
+        $path = $request->file('payment_proof')->store('payments/' . $order->order_code, 'public');
 
         $payment->update([
             'proof_url' => $path,
-            'notes' => 'Bukti pembayaran telah diunggah oleh user, menunggu verifikasi admin.',
+            'status' => 'pending',
+            'paid_at' => null,
+            'notes' => 'Bukti pembayaran diunggah ulang oleh pelanggan, menunggu verifikasi admin.',
         ]);
+
+        if ($order->payment_status === 'failed') {
+            $order->payment_status = 'pending';
+            $order->save();
+        }
 
         return back()->with('success', 'Bukti pembayaran berhasil diunggah. Silakan tunggu konfirmasi admin.');
     }
 
     private function recentOrdersForCart(Request $request)
     {
-        $query = Order::query()
+        $user = $request->user();
+        if (!$user) {
+            return collect();
+        }
+
+        return Order::query()
             ->with([
                 'items.warrantyClaims' => fn($claimQuery) => $claimQuery->latest(),
                 'payments' => fn($paymentQuery) => $paymentQuery->latest(),
-            ]);
-
-        if ($request->user()) {
-            $query->where('user_id', $request->user()->id);
-        } else {
-            $guestRecentOrderCodes = $request->session()->get('guest_recent_order_codes', []);
-
-            if (count($guestRecentOrderCodes) === 0) {
-                return collect();
-            }
-
-            $query->whereIn('order_code', $guestRecentOrderCodes);
-        }
-
-        return $query->latest()->limit(5)->get();
+            ])
+            ->where('user_id', $user->id)
+            ->latest()
+            ->limit(5)
+            ->get();
     }
 
     private function generateOrderCode(): string
@@ -704,22 +750,38 @@ class HomeController extends Controller
     {
         $validated = $request->validate([
             'order_code' => ['required', 'string', 'max:255'],
-            'customer_email' => ['required', 'email', 'max:255'],
         ]);
 
-        $order = Order::with(['items', 'payments'])
-            ->where('order_code', $validated['order_code'])
-            ->where('customer_email', $validated['customer_email'])
+        $user = $request->user();
+        if (!$user) {
+            abort(403);
+        }
+
+        $normalizedOrderCode = strtoupper(trim($validated['order_code']));
+
+        $order = Order::with(['items', 'payments', 'address'])
+            ->where('order_code', $normalizedOrderCode)
+            ->where('user_id', $user->id)
             ->first();
 
         if (!$order) {
             return redirect()->route('home.tracking')
                 ->withInput()
-                ->with('error', 'Pesanan tidak ditemukan. Pastikan Kode Pesanan dan Email Anda benar.');
+                ->with('error', 'Pesanan tidak ditemukan di akun Anda. Pastikan kode pesanan benar.');
         }
+
+        $shippingAddress = $order->address
+            ? implode(', ', array_filter([
+                $order->address->address_line,
+                $order->address->city,
+                $order->address->province,
+                $order->address->postal_code,
+            ]))
+            : '-';
 
         return view('home.tracking_result', [
             'order' => $order,
+            'shippingAddress' => $shippingAddress,
             ...$this->cartSummary($request),
         ]);
     }

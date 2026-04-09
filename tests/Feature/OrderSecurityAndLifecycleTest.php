@@ -8,10 +8,12 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\WarrantyClaim;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class OrderSecurityAndLifecycleTest extends TestCase
@@ -144,7 +146,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
             'stock' => 4,
         ]);
 
-        [$order, , $orderItem] = $this->createPendingOrder($user, $product, 1, now()->subMinutes(30));
+        [$order,, $orderItem] = $this->createPendingOrder($user, $product, 1, now()->subMinutes(30));
 
         $firstResponse = $this->actingAs($user)
             ->post(route('home.warranty-claims.store', [$order, $orderItem]), [
@@ -163,6 +165,112 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $secondResponse->assertRedirect(route('home.cart'));
         $secondResponse->assertSessionHas('error');
         $this->assertDatabaseCount('warranty_claims', 1);
+    }
+
+    public function test_user_cannot_submit_more_than_two_warranty_claims_for_same_order_item(): void
+    {
+        $user = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'MCB Limit Klaim',
+            'slug' => 'mcb-limit-klaim',
+            'price' => 99000,
+            'stock' => 5,
+        ]);
+
+        [$order,, $orderItem] = $this->createPendingOrder($user, $product, 1, now()->subMinutes(30));
+
+        WarrantyClaim::create([
+            'claim_code' => 'WRN-ARIP-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
+            'order_id' => $order->id,
+            'order_item_id' => $orderItem->id,
+            'user_id' => $user->id,
+            'reason' => 'Klaim pertama selesai diproses.',
+            'status' => 'resolved',
+            'requested_at' => now()->subDays(2),
+            'resolved_at' => now()->subDay(),
+        ]);
+
+        WarrantyClaim::create([
+            'claim_code' => 'WRN-ARIP-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
+            'order_id' => $order->id,
+            'order_item_id' => $orderItem->id,
+            'user_id' => $user->id,
+            'reason' => 'Klaim kedua selesai diproses.',
+            'status' => 'rejected',
+            'requested_at' => now()->subDay(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from(route('home.cart'))
+            ->post(route('home.warranty-claims.store', [$order, $orderItem]), [
+                'reason' => 'Percobaan klaim ketiga harus ditolak oleh sistem.',
+            ]);
+
+        $response->assertRedirect(route('home.cart'));
+        $response->assertSessionHas('error');
+        $this->assertDatabaseCount('warranty_claims', 2);
+    }
+
+    public function test_admin_can_update_order_item_warranty_date_within_7_to_30_day_window(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Stop Kontak Admin Garansi',
+            'slug' => 'stop-kontak-admin-garansi',
+            'price' => 77000,
+            'stock' => 6,
+        ]);
+
+        [$order,, $orderItem] = $this->createPendingOrder($customer, $product, 1, now()->subHours(2));
+
+        $warrantyStart = ($order->completed_at ?? $order->placed_at ?? $order->created_at)->copy()->startOfDay();
+        $newExpiryDate = $warrantyStart->copy()->addDays(21)->toDateString();
+
+        $response = $this->actingAs($admin)
+            ->from(route('admin.orders.show', $order))
+            ->patch(route('admin.orders.items.update-warranty', [$order, $orderItem]), [
+                'warranty_expires_at' => $newExpiryDate,
+            ]);
+
+        $response->assertRedirect(route('admin.orders.show', $order));
+        $response->assertSessionHas('success');
+
+        $orderItem->refresh();
+        $this->assertSame(21, (int) $orderItem->warranty_days);
+        $this->assertSame($newExpiryDate, $orderItem->warranty_expires_at?->toDateString());
+    }
+
+    public function test_admin_cannot_set_order_item_warranty_date_more_than_one_month(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Kabel Admin Garansi',
+            'slug' => 'kabel-admin-garansi',
+            'price' => 38000,
+            'stock' => 7,
+        ]);
+
+        [$order,, $orderItem] = $this->createPendingOrder($customer, $product, 1, now()->subHours(1));
+
+        $warrantyStart = ($order->completed_at ?? $order->placed_at ?? $order->created_at)->copy()->startOfDay();
+        $invalidExpiryDate = $warrantyStart->copy()->addDays(31)->toDateString();
+
+        $response = $this->actingAs($admin)
+            ->from(route('admin.orders.show', $order))
+            ->patch(route('admin.orders.items.update-warranty', [$order, $orderItem]), [
+                'warranty_expires_at' => $invalidExpiryDate,
+            ]);
+
+        $response->assertRedirect(route('admin.orders.show', $order));
+        $response->assertSessionHas('error');
+
+        $orderItem->refresh();
+        $this->assertSame(7, (int) $orderItem->warranty_days);
     }
 
     private function createProduct(array $overrides = []): Product
@@ -232,5 +340,15 @@ class OrderSecurityAndLifecycleTest extends TestCase
         ]);
 
         return [$order, $payment, $orderItem];
+    }
+
+    private function createAdminUser(): User
+    {
+        Role::findOrCreate('admin', 'web');
+
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        return $admin;
     }
 }

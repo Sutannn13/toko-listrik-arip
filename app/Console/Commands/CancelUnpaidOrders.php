@@ -50,62 +50,64 @@ class CancelUnpaidOrders extends Command
 
         $expiredOrderQuery
             ->orderBy('id')
-            ->chunkById(50, function ($orders) use (&$cancelledCount) {
-                foreach ($orders as $order) {
-                    DB::transaction(function () use ($order, &$cancelledCount) {
-                        $lockedOrder = Order::query()
-                            ->whereKey($order->id)
-                            ->lockForUpdate()
-                            ->first();
-
-                        if (!$lockedOrder || $lockedOrder->status !== 'pending' || $lockedOrder->payment_status !== 'pending') {
-                            return;
-                        }
-
-                        $lockedOrder->load(['items', 'payments']);
-
-                        foreach ($lockedOrder->items as $item) {
-                            if (!$item->product_id) {
-                                continue;
-                            }
-
-                            $lockedProduct = Product::query()
-                                ->whereKey($item->product_id)
+            ->chunkById(
+                50,
+                function ($orders) use (&$cancelledCount) {
+                    foreach ($orders as $order) {
+                        DB::transaction(function () use ($order, &$cancelledCount) {
+                            $lockedOrder = Order::query()
+                                ->whereKey($order->id)
                                 ->lockForUpdate()
                                 ->first();
 
-                            if ($lockedProduct) {
-                                $lockedProduct->increment('stock', $item->quantity);
+                            if (!$lockedOrder || $lockedOrder->status !== 'pending' || $lockedOrder->payment_status !== 'pending') {
+                                return;
                             }
-                        }
 
-                        $autoCancelNote = 'Auto-cancel sistem: dibatalkan otomatis karena belum dibayar selama lebih dari 1 jam.';
-                        $lockedOrder->status = 'cancelled';
-                        $lockedOrder->payment_status = 'failed';
-                        $lockedOrder->warranty_status = 'void';
-                        $lockedOrder->notes = implode(' | ', array_filter([
-                            $lockedOrder->notes,
-                            $autoCancelNote,
-                        ]));
-                        $lockedOrder->save();
+                            $lockedOrder->load(['items', 'payments']);
 
-                        $latestPayment = $lockedOrder->payments()
-                            ->latest('id')
-                            ->first();
+                            foreach ($lockedOrder->items as $item) {
+                                if (!$item->product_id) {
+                                    continue;
+                                }
 
-                        if ($latestPayment && $latestPayment->status === 'pending') {
-                            $latestPayment->update([
-                                'status' => 'failed',
-                                'paid_at' => null,
-                                'notes' => 'Auto-cancel sistem: batas waktu pembayaran 1 jam telah terlewati.',
-                            ]);
-                        }
+                                $lockedProduct = Product::query()
+                                    ->whereKey($item->product_id)
+                                    ->lockForUpdate()
+                                    ->first();
 
-                        $cancelledCount++;
-                    }, 3);
+                                if ($lockedProduct) {
+                                    $lockedProduct->increment('stock', $item->quantity);
+                                }
+                            }
+
+                            $autoCancelNote = 'Auto-cancel sistem: dibatalkan otomatis karena belum dibayar selama lebih dari 1 jam.';
+                            $lockedOrder->status = 'cancelled';
+                            $lockedOrder->payment_status = 'failed';
+                            $lockedOrder->warranty_status = 'void';
+                            $lockedOrder->notes = implode(' | ', array_filter([
+                                $lockedOrder->notes,
+                                $autoCancelNote,
+                            ]));
+                            $lockedOrder->save();
+
+                            $latestPayment = $lockedOrder->payments()
+                                ->latest('id')
+                                ->first();
+
+                            if ($latestPayment && $latestPayment->status === 'pending') {
+                                $latestPayment->update([
+                                    'status' => 'failed',
+                                    'paid_at' => null,
+                                    'notes' => 'Auto-cancel sistem: batas waktu pembayaran 1 jam telah terlewati.',
+                                ]);
+                            }
+
+                            $cancelledCount++;
+                        }, 3);
+                    }
                 }
-            }
-        );
+            );
 
         $this->info("Berhasil auto-cancel {$cancelledCount} order pending yang melewati batas 1 jam.");
 

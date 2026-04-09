@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -162,5 +164,56 @@ class OrderController extends Controller
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Status pesanan berhasil diperbarui.');
+    }
+
+    public function updateItemWarranty(Request $request, Order $order, OrderItem $orderItem): RedirectResponse
+    {
+        if ($orderItem->order_id !== $order->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'warranty_expires_at' => ['required', 'date'],
+        ]);
+
+        $warrantyStart = ($order->completed_at ?? $order->placed_at ?? $order->created_at ?? now())
+            ->copy()
+            ->startOfDay();
+
+        $minWarrantyDate = $warrantyStart->copy()->addDays(7)->startOfDay();
+        $maxWarrantyDate = $warrantyStart->copy()->addDays(30)->endOfDay();
+        $requestedWarrantyExpiry = Carbon::parse($validated['warranty_expires_at'])->endOfDay();
+
+        if ($requestedWarrantyExpiry->lt($minWarrantyDate) || $requestedWarrantyExpiry->gt($maxWarrantyDate)) {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Tanggal garansi harus di rentang 1 minggu sampai maksimal 1 bulan dari tanggal pesanan.');
+        }
+
+        try {
+            DB::transaction(function () use ($order, $orderItem, $warrantyStart, $requestedWarrantyExpiry) {
+                $lockedOrderItem = OrderItem::query()
+                    ->whereKey($orderItem->id)
+                    ->where('order_id', $order->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$lockedOrderItem) {
+                    throw new \RuntimeException('ORDER_ITEM_NOT_FOUND');
+                }
+
+                $warrantyDays = (int) $warrantyStart->diffInDays($requestedWarrantyExpiry->copy()->startOfDay());
+
+                $lockedOrderItem->update([
+                    'warranty_days' => $warrantyDays,
+                    'warranty_expires_at' => $requestedWarrantyExpiry,
+                ]);
+            }, 3);
+        } catch (\RuntimeException $e) {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Item pesanan tidak ditemukan untuk pembaruan garansi.');
+        }
+
+        return redirect()->route('admin.orders.show', $order)
+            ->with('success', 'Tanggal garansi item berhasil diperbarui.');
     }
 }

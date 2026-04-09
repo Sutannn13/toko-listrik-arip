@@ -66,7 +66,10 @@
 
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-gray-500">Nomor Resi Pengiriman</label>
-                    <input type="text" name="tracking_number" value="{{ old('tracking_number', $order->tracking_number) }}" class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Masukkan nomor resi jika sudah dikirim">
+                    <input type="text" name="tracking_number"
+                        value="{{ old('tracking_number', $order->tracking_number) }}"
+                        class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Masukkan nomor resi jika sudah dikirim">
                 </div>
 
                 <button type="submit"
@@ -92,7 +95,26 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @php
+                        $warrantyStartAt = (
+                            $order->completed_at ??
+                            ($order->placed_at ?? ($order->created_at ?? now()))
+                        )
+                            ->copy()
+                            ->startOfDay();
+                        $warrantyMinDate = $warrantyStartAt->copy()->addDays(7)->toDateString();
+                        $warrantyMaxDate = $warrantyStartAt->copy()->addDays(30)->toDateString();
+                    @endphp
+
                     @foreach ($order->items as $item)
+                        @php
+                            $defaultWarrantyDate =
+                                optional($item->warranty_expires_at)->toDateString() ??
+                                $warrantyStartAt
+                                    ->copy()
+                                    ->addDays(max(7, min(30, (int) $item->warranty_days)))
+                                    ->toDateString();
+                        @endphp
                         <tr class="border-t">
                             <td class="p-3">
                                 <p class="font-semibold text-gray-900">{{ $item->product_name }}</p>
@@ -104,6 +126,25 @@
                             <td class="p-3 text-xs text-gray-600">
                                 {{ $item->warranty_days }} hari<br>
                                 Exp: {{ optional($item->warranty_expires_at)->format('d M Y') ?? '-' }}
+
+                                <form action="{{ route('admin.orders.items.update-warranty', [$order, $item]) }}"
+                                    method="POST" class="mt-2 space-y-2">
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <label class="block text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                        Atur Tanggal Garansi (7-30 hari)
+                                    </label>
+                                    <input type="date" name="warranty_expires_at"
+                                        value="{{ old('warranty_expires_at', $defaultWarrantyDate) }}"
+                                        min="{{ $warrantyMinDate }}" max="{{ $warrantyMaxDate }}"
+                                        class="w-full rounded border-gray-300 text-xs focus:border-blue-500 focus:ring-blue-500"
+                                        required>
+                                    <button type="submit"
+                                        class="rounded bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-gray-800">
+                                        Simpan Garansi
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     @endforeach
@@ -123,11 +164,12 @@
                     </p>
                     <p class="text-sm text-gray-600">Amount: Rp {{ number_format($payment->amount, 0, ',', '.') }}</p>
                     <p class="text-xs uppercase text-gray-500 mb-2">Status: {{ $payment->status }}</p>
-                    @if($payment->proof_url)
+                    @if ($payment->proof_url)
                         <div class="mt-2 border-t pt-2">
                             <p class="text-xs font-bold text-gray-700 mb-1">Bukti Transfer:</p>
                             <a href="{{ Storage::url($payment->proof_url) }}" target="_blank" class="block w-fit">
-                                <img src="{{ Storage::url($payment->proof_url) }}" alt="Bukti Transfer" class="w-24 h-auto rounded border shadow-sm hover:opacity-80 transition">
+                                <img src="{{ Storage::url($payment->proof_url) }}" alt="Bukti Transfer"
+                                    class="w-24 h-auto rounded border shadow-sm hover:opacity-80 transition">
                             </a>
                         </div>
                     @endif

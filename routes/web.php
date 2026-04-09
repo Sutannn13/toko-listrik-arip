@@ -74,6 +74,8 @@ Route::middleware(['auth', 'admin.access', 'role:super-admin|admin'])
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
+        Route::patch('/orders/{order}/items/{orderItem}/warranty', [OrderController::class, 'updateItemWarranty'])
+            ->name('orders.items.update-warranty');
 
         // Warranty claim management minimal
         Route::get('/warranty-claims', [WarrantyClaimController::class, 'index'])->name('warranty-claims.index');

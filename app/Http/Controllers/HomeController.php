@@ -561,6 +561,15 @@ class HomeController extends Controller
                     throw new \RuntimeException('ACTIVE_CLAIM_EXISTS');
                 }
 
+                $totalClaims = WarrantyClaim::query()
+                    ->where('order_item_id', $lockedItem->id)
+                    ->lockForUpdate()
+                    ->count();
+
+                if ($totalClaims >= 2) {
+                    throw new \RuntimeException('CLAIM_LIMIT_REACHED');
+                }
+
                 $claim = WarrantyClaim::create([
                     'claim_code' => $this->generateWarrantyClaimCode(),
                     'order_id' => $order->id,
@@ -591,6 +600,11 @@ class HomeController extends Controller
             if ($e->getMessage() === 'WARRANTY_EXPIRED') {
                 return redirect()->route('home.cart')
                     ->with('error', 'Masa garansi item ini sudah berakhir.');
+            }
+
+            if ($e->getMessage() === 'CLAIM_LIMIT_REACHED') {
+                return redirect()->route('home.cart')
+                    ->with('error', 'Item ini sudah mencapai batas maksimal 2 kali klaim garansi.');
             }
 
             return redirect()->route('home.cart')

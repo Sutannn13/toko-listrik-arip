@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Category;
 use App\Models\Product;
-use App\Models\Category; // <-- Wajib dipanggil biar bisa milih kategori
-use Illuminate\Support\Str;
+use App\Support\UniqueSlugGenerator;
+use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
@@ -27,25 +27,27 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         // 1. Validasi super ketat buat inputan angka dan pilihan satuan
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255|unique:products,name',
             'category_id' => 'required|exists:categories,id',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|numeric|min:0',
             'unit' => 'required|in:pcs,meter,roll,box',
             'description' => 'nullable|string',
+            'is_electronic' => 'nullable|boolean',
         ]);
 
         // 2. Simpan ke database
         Product::create([
-            'category_id' => $request->category_id,
-            'name' => $request->name,
-            'slug' => Str::slug($request->name),
-            'description' => $request->description,
-            'price' => $request->price,
-            'stock' => $request->stock,
-            'unit' => $request->unit,
+            'category_id' => $validated['category_id'],
+            'name' => $validated['name'],
+            'slug' => UniqueSlugGenerator::make(Product::class, $validated['name']),
+            'description' => $validated['description'] ?? null,
+            'price' => $validated['price'],
+            'stock' => $validated['stock'],
+            'unit' => $validated['unit'],
             'is_active' => true,
+            'is_electronic' => (bool) ($validated['is_electronic'] ?? false),
             // (Spesifikasi kita skip dulu untuk form V1 biar lo paham flow dasarnya)
         ]);
 

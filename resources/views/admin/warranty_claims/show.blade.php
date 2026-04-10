@@ -21,10 +21,27 @@
             <p class="mt-1 inline-flex rounded-full bg-cyan-100 px-2 py-1 text-xs font-bold uppercase text-cyan-700">
                 {{ $warrantyClaim->status }}
             </p>
+
+            @if ($warrantyClaim->is_sla_overdue)
+                <p class="mt-2 inline-flex rounded bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">
+                    Melewati SLA 2x24 jam
+                </p>
+            @else
+                <p class="mt-2 inline-flex rounded bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">
+                    Dalam SLA
+                </p>
+            @endif
+
             <p class="mt-3 text-sm text-gray-600">Diajukan:</p>
             <p class="text-sm font-semibold text-gray-800">
                 {{ optional($warrantyClaim->requested_at)->format('d M Y H:i') ?? $warrantyClaim->created_at->format('d M Y H:i') }}
             </p>
+
+            <p class="mt-3 text-sm text-gray-600">Batas SLA:</p>
+            <p class="text-sm font-semibold text-gray-800">
+                {{ optional($warrantyClaim->sla_deadline)->format('d M Y H:i') ?? '-' }}
+            </p>
+
             <p class="mt-3 text-sm text-gray-600">Resolved:</p>
             <p class="text-sm font-semibold text-gray-800">
                 {{ optional($warrantyClaim->resolved_at)->format('d M Y H:i') ?? '-' }}
@@ -46,11 +63,32 @@
             <p class="mt-3 text-sm text-gray-600">Produk:</p>
             <p class="text-sm font-semibold text-gray-800">{{ $warrantyClaim->orderItem->product_name ?? '-' }}</p>
             <p class="text-xs text-gray-500">Qty: {{ $warrantyClaim->orderItem->quantity ?? '-' }}</p>
+            <p class="text-xs text-gray-500 mt-1">
+                Jenis: {{ $warrantyClaim->orderItem?->product?->is_electronic ? 'Elektronik' : 'Non-elektronik' }}
+            </p>
 
             <p class="mt-3 text-sm text-gray-600">Masa garansi sampai:</p>
             <p class="text-sm font-semibold text-gray-800">
                 {{ optional($warrantyClaim->orderItem?->warranty_expires_at)->format('d M Y H:i') ?? '-' }}
             </p>
+
+            <p class="mt-3 text-sm text-gray-600">Bukti kerusakan:</p>
+            @if ($warrantyClaim->damage_proof_url)
+                @if (str_starts_with((string) $warrantyClaim->damage_proof_mime, 'image/'))
+                    <a href="{{ Storage::url($warrantyClaim->damage_proof_url) }}" target="_blank"
+                        class="block mt-1 w-fit">
+                        <img src="{{ Storage::url($warrantyClaim->damage_proof_url) }}" alt="Bukti Kerusakan"
+                            class="h-24 rounded border shadow-sm hover:opacity-80 transition">
+                    </a>
+                @endif
+
+                <a href="{{ Storage::url($warrantyClaim->damage_proof_url) }}" target="_blank"
+                    class="mt-1 inline-flex text-xs font-semibold text-blue-600 hover:underline">
+                    Buka file bukti
+                </a>
+            @else
+                <p class="text-sm text-gray-500">Tidak ada bukti terlampir.</p>
+            @endif
         </div>
 
         <div class="rounded-lg bg-white p-5 shadow">
@@ -76,7 +114,8 @@
                     <label class="mb-1 block text-xs font-semibold text-gray-500">Catatan Admin</label>
                     <textarea name="admin_notes" rows="4"
                         class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
-                        placeholder="Contoh: Bukti diterima, item akan diganti.">{{ $warrantyClaim->admin_notes }}</textarea>
+                        placeholder="Contoh: Bukti tidak valid karena ... (wajib isi saat status rejected).">{{ $warrantyClaim->admin_notes }}</textarea>
+                    <p class="mt-1 text-[11px] text-gray-500">Alasan wajib saat status klaim diubah menjadi rejected.</p>
                 </div>
 
                 <button type="submit"

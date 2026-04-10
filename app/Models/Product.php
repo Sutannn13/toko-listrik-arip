@@ -17,12 +17,14 @@ class Product extends Model
         'stock',
         'unit',
         'specifications',
-        'is_active'
+        'is_active',
+        'is_electronic',
     ];
 
     protected $casts = [
         'specifications' => 'array', // Biar JSON otomatis jadi array di PHP
         'is_active' => 'boolean',
+        'is_electronic' => 'boolean',
     ];
 
     public function category(): BelongsTo

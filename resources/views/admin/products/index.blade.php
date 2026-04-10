@@ -22,6 +22,7 @@
                     <th class="p-4 font-medium">Kategori</th>
                     <th class="p-4 font-medium">Harga</th>
                     <th class="p-4 font-medium">Stok & Satuan</th>
+                    <th class="p-4 font-medium">Garansi</th>
                     <th class="p-4 font-medium text-right">Aksi</th>
                 </tr>
             </thead>
@@ -36,6 +37,17 @@
                                 class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">{{ $product->stock }}</span>
                             <span class="text-gray-500 uppercase text-xs ml-1">{{ $product->unit }}</span>
                         </td>
+                        <td class="p-4">
+                            @if ($product->is_electronic)
+                                <span class="inline-flex rounded bg-blue-100 px-2 py-1 text-xs font-bold text-blue-700">
+                                    Elektronik (Maks. 7 hari)
+                                </span>
+                            @else
+                                <span class="inline-flex rounded bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
+                                    Non-elektronik
+                                </span>
+                            @endif
+                        </td>
                         <td class="p-4 text-right">
                             <button class="text-blue-600 hover:underline mr-2">Edit</button>
                             <button class="text-red-600 hover:underline">Hapus</button>
@@ -43,7 +55,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="p-6 text-center text-gray-500 italic">
+                        <td colspan="6" class="p-6 text-center text-gray-500 italic">
                             Belum ada barang listrik yang ditambahkan.
                         </td>
                     </tr>

@@ -25,6 +25,15 @@
         ? route('admin.warranty-claims.index')
         : url('/admin/warranty-claims');
 
+    $adminNotificationsUrl = \Illuminate\Support\Facades\Route::has('admin.notifications.index')
+        ? route('admin.notifications.index')
+        : url('/admin/notifications');
+
+    $notificationsTableExists = \Illuminate\Support\Facades\Schema::hasTable('notifications');
+
+    $adminUnreadNotificationCount =
+        $notificationsTableExists && $authUser ? $authUser->unreadNotifications()->count() : 0;
+
     $userManagementUrl = \Illuminate\Support\Facades\Route::has('admin.users.index')
         ? route('admin.users.index')
         : url('/admin/users');
@@ -39,11 +48,13 @@
      * - Idle: muted text, subtle hover lift
      * - Active: soft colored backlight glow via shadow + ring — acts as a premium indicator
      *   without being obnoxious. Think: high-end gaming peripheral's status LED.
-     */
-    $navBaseClasses =
-        'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ease-out';
-    $navIdleClasses = 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 hover:shadow-[0_0_12px_rgba(148,163,184,0.08)]';
-    $navActiveClasses = 'bg-slate-800/80 text-cyan-300 ring-1 ring-cyan-400/30 shadow-[0_0_20px_rgba(34,211,238,0.12)] backdrop-blur-sm';
+ */
+$navBaseClasses =
+    'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ease-out';
+$navIdleClasses =
+    'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 hover:shadow-[0_0_12px_rgba(148,163,184,0.08)]';
+$navActiveClasses =
+    'bg-slate-800/80 text-cyan-300 ring-1 ring-cyan-400/30 shadow-[0_0_20px_rgba(34,211,238,0.12)] backdrop-blur-sm';
 @endphp
 
 <!DOCTYPE html>
@@ -160,6 +171,22 @@
                             </svg>
                             <span>Klaim Garansi</span>
                         </a>
+
+                        <a href="{{ $adminNotificationsUrl }}"
+                            class="{{ $navBaseClasses }} {{ request()->routeIs('admin.notifications.*') ? $navActiveClasses : $navIdleClasses }}">
+                            <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                            <span>Notifikasi</span>
+                            @if ($adminUnreadNotificationCount > 0)
+                                <span
+                                    class="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-cyan-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                    {{ $adminUnreadNotificationCount }}
+                                </span>
+                            @endif
+                        </a>
                     @endhasanyrole
 
                     @role('super-admin')
@@ -195,7 +222,8 @@
                 <div class="mt-auto space-y-3 border-t border-slate-800/50 pt-4">
                     {{-- Quick info card --}}
                     <div class="flex items-center gap-3 rounded-xl bg-slate-800/40 px-3 py-3">
-                        <div class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 text-sm font-bold text-white">
+                        <div
+                            class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 text-sm font-bold text-white">
                             {{ strtoupper(substr($authUser->name, 0, 1)) }}
                         </div>
                         <div class="min-w-0 flex-1">
@@ -206,7 +234,8 @@
 
                     {{-- Storefront link --}}
                     <a href="{{ route('landing') }}" class="{{ $navBaseClasses }} {{ $navIdleClasses }} w-full">
-                        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
@@ -216,7 +245,8 @@
                     {{-- Logout --}}
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="{{ $navBaseClasses }} text-red-400/70 hover:bg-red-950/30 hover:text-red-400 w-full text-left">
+                        <button type="submit"
+                            class="{{ $navBaseClasses }} text-red-400/70 hover:bg-red-950/30 hover:text-red-400 w-full text-left">
                             <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                 aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -248,13 +278,16 @@
                         </button>
 
                         <div>
-                            <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Admin Workspace</p>
+                            <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Admin Workspace
+                            </p>
                             <h1 class="text-base font-bold text-slate-900 sm:text-lg">@yield('header', 'Dashboard')</h1>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-sm">
-                        <div class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-bold text-white">
+                    <div
+                        class="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-sm">
+                        <div
+                            class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-bold text-white">
                             {{ strtoupper(substr($authUser->name, 0, 1)) }}
                         </div>
                         <div class="hidden pr-2 sm:block">

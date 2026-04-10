@@ -16,6 +16,8 @@ class WarrantyClaim extends Model
         'reason',
         'status',
         'admin_notes',
+        'damage_proof_url',
+        'damage_proof_mime',
         'requested_at',
         'resolved_at',
     ];

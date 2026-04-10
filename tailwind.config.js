@@ -12,21 +12,21 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['"Plus Jakarta Sans"', 'Inter', ...defaultTheme.fontFamily.sans],
             },
             colors: {
                 primary: {
-                    50: '#f0fdf4',
-                    100: '#dcfce7',
-                    200: '#bbf7d0',
-                    300: '#86efac',
-                    400: '#4ade80',
-                    500: '#22c55e',
-                    600: '#16a34a',
-                    700: '#15803d',
-                    800: '#166534',
-                    900: '#14532d',
-                    950: '#052e16',
+                    50: '#f2fdf4',
+                    100: '#dcfce4',
+                    200: '#baf7c8',
+                    300: '#84ee98',
+                    400: '#43de67',
+                    500: '#03ac0e',
+                    600: '#028f0c',
+                    700: '#02730b',
+                    800: '#055c0f',
+                    900: '#064b10',
+                    950: '#022909',
                 },
             }
         },

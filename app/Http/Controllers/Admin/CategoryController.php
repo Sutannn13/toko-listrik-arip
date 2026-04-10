@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Category;
-use Illuminate\Support\Str; // <-- WAJIB ADA BIAR BISA NGAMBIL DATA KE DATABASE
+use App\Support\UniqueSlugGenerator;
+use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
@@ -24,14 +24,14 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         // 1. Validasi: Nama wajib diisi dan nggak boleh kembar
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name',
         ]);
 
         // 2. Simpan ke database
         Category::create([
-            'name' => $request->name,
-            'slug' => Str::slug($request->name), // Otomatis ubah "Kabel Listrik" jadi "kabel-listrik"
+            'name' => $validated['name'],
+            'slug' => UniqueSlugGenerator::make(Category::class, $validated['name']),
         ]);
 
         // 3. Tendang balik ke halaman tabel dengan pesan sukses

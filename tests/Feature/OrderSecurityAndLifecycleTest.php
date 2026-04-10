@@ -137,6 +137,8 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
     public function test_user_cannot_submit_second_active_warranty_claim_for_same_order_item(): void
     {
+        Storage::fake('public');
+
         $user = User::factory()->create();
 
         $product = $this->createProduct([
@@ -151,6 +153,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $firstResponse = $this->actingAs($user)
             ->post(route('home.warranty-claims.store', [$order, $orderItem]), [
                 'reason' => 'Produk mati total setelah dipakai beberapa hari.',
+                'damage_proof' => UploadedFile::fake()->image('rusak-1.jpg'),
             ]);
 
         $firstResponse->assertRedirect(route('home.cart'));
@@ -160,6 +163,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $secondResponse = $this->actingAs($user)
             ->post(route('home.warranty-claims.store', [$order, $orderItem]), [
                 'reason' => 'Klaim kedua, produk masih tidak menyala sama sekali.',
+                'damage_proof' => UploadedFile::fake()->image('rusak-2.jpg'),
             ]);
 
         $secondResponse->assertRedirect(route('home.cart'));
@@ -167,8 +171,10 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $this->assertDatabaseCount('warranty_claims', 1);
     }
 
-    public function test_user_cannot_submit_more_than_two_warranty_claims_for_same_order_item(): void
+    public function test_user_can_submit_warranty_claim_again_after_previous_claims_are_closed(): void
     {
+        Storage::fake('public');
+
         $user = User::factory()->create();
 
         $product = $this->createProduct([
@@ -204,15 +210,76 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $response = $this->actingAs($user)
             ->from(route('home.cart'))
             ->post(route('home.warranty-claims.store', [$order, $orderItem]), [
-                'reason' => 'Percobaan klaim ketiga harus ditolak oleh sistem.',
+                'reason' => 'Klaim diajukan kembali setelah dua klaim sebelumnya ditutup.',
+                'damage_proof' => UploadedFile::fake()->image('rusak-ulang.jpg'),
+            ]);
+
+        $response->assertRedirect(route('home.cart'));
+        $response->assertSessionHas('success');
+        $this->assertDatabaseCount('warranty_claims', 3);
+    }
+
+    public function test_user_cannot_submit_warranty_claim_for_non_electronic_item(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Terminal Non Elektronik',
+            'slug' => 'terminal-non-elektronik',
+            'price' => 27000,
+            'stock' => 10,
+            'is_electronic' => false,
+        ]);
+
+        [$order,, $orderItem] = $this->createPendingOrder($user, $product, 1, now()->subMinutes(40));
+
+        $response = $this->actingAs($user)
+            ->from(route('home.cart'))
+            ->post(route('home.warranty-claims.store', [$order, $orderItem]), [
+                'reason' => 'Mengajukan klaim untuk produk non-elektronik.',
+                'damage_proof' => UploadedFile::fake()->image('non-electronic.jpg'),
             ]);
 
         $response->assertRedirect(route('home.cart'));
         $response->assertSessionHas('error');
-        $this->assertDatabaseCount('warranty_claims', 2);
+        $this->assertDatabaseCount('warranty_claims', 0);
     }
 
-    public function test_admin_can_update_order_item_warranty_date_within_7_to_30_day_window(): void
+    public function test_claim_submission_stores_damage_proof_file(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Kipas Angin Test Bukti',
+            'slug' => 'kipas-angin-test-bukti',
+            'price' => 180000,
+            'stock' => 3,
+            'is_electronic' => true,
+        ]);
+
+        [$order,, $orderItem] = $this->createPendingOrder($user, $product, 1, now()->subMinutes(20));
+
+        $response = $this->actingAs($user)
+            ->from(route('home.cart'))
+            ->post(route('home.warranty-claims.store', [$order, $orderItem]), [
+                'reason' => 'Kipas berputar sangat lambat meski setelan sudah maksimal.',
+                'damage_proof' => UploadedFile::fake()->image('bukti-kerusakan.jpg'),
+            ]);
+
+        $response->assertRedirect(route('home.cart'));
+        $response->assertSessionHas('success');
+
+        $claim = WarrantyClaim::query()->latest('id')->first();
+        $this->assertNotNull($claim);
+        $this->assertNotNull($claim?->damage_proof_url);
+        $this->assertTrue(Storage::disk('public')->exists((string) $claim?->damage_proof_url));
+    }
+
+    public function test_admin_can_update_order_item_warranty_date_within_1_to_7_day_window(): void
     {
         $admin = $this->createAdminUser();
         $customer = User::factory()->create();
@@ -227,7 +294,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
         [$order,, $orderItem] = $this->createPendingOrder($customer, $product, 1, now()->subHours(2));
 
         $warrantyStart = ($order->completed_at ?? $order->placed_at ?? $order->created_at)->copy()->startOfDay();
-        $newExpiryDate = $warrantyStart->copy()->addDays(21)->toDateString();
+        $newExpiryDate = $warrantyStart->copy()->addDays(5)->toDateString();
 
         $response = $this->actingAs($admin)
             ->from(route('admin.orders.show', $order))
@@ -239,11 +306,11 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $response->assertSessionHas('success');
 
         $orderItem->refresh();
-        $this->assertSame(21, (int) $orderItem->warranty_days);
+        $this->assertSame(5, (int) $orderItem->warranty_days);
         $this->assertSame($newExpiryDate, $orderItem->warranty_expires_at?->toDateString());
     }
 
-    public function test_admin_cannot_set_order_item_warranty_date_more_than_one_month(): void
+    public function test_admin_cannot_set_order_item_warranty_date_more_than_seven_days(): void
     {
         $admin = $this->createAdminUser();
         $customer = User::factory()->create();
@@ -258,7 +325,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
         [$order,, $orderItem] = $this->createPendingOrder($customer, $product, 1, now()->subHours(1));
 
         $warrantyStart = ($order->completed_at ?? $order->placed_at ?? $order->created_at)->copy()->startOfDay();
-        $invalidExpiryDate = $warrantyStart->copy()->addDays(31)->toDateString();
+        $invalidExpiryDate = $warrantyStart->copy()->addDays(8)->toDateString();
 
         $response = $this->actingAs($admin)
             ->from(route('admin.orders.show', $order))
@@ -271,6 +338,179 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
         $orderItem->refresh();
         $this->assertSame(7, (int) $orderItem->warranty_days);
+    }
+
+    public function test_admin_cannot_update_warranty_for_non_electronic_item(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Pipa PVC',
+            'slug' => 'pipa-pvc',
+            'price' => 23000,
+            'stock' => 12,
+            'is_electronic' => false,
+        ]);
+
+        [$order,, $orderItem] = $this->createPendingOrder($customer, $product, 1, now()->subHours(2));
+
+        $warrantyStart = ($order->completed_at ?? $order->placed_at ?? $order->created_at)->copy()->startOfDay();
+        $requestedExpiryDate = $warrantyStart->copy()->addDays(3)->toDateString();
+
+        $response = $this->actingAs($admin)
+            ->from(route('admin.orders.show', $order))
+            ->patch(route('admin.orders.items.update-warranty', [$order, $orderItem]), [
+                'warranty_expires_at' => $requestedExpiryDate,
+            ]);
+
+        $response->assertRedirect(route('admin.orders.show', $order));
+        $response->assertSessionHas('error');
+
+        $orderItem->refresh();
+        $this->assertSame(0, (int) $orderItem->warranty_days);
+        $this->assertNull($orderItem->warranty_expires_at);
+    }
+
+    public function test_user_can_view_warranty_claim_history_with_admin_note_and_update_time(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Blender Rumah',
+            'slug' => 'blender-rumah',
+            'price' => 240000,
+            'stock' => 6,
+            'is_electronic' => true,
+        ]);
+
+        [$order,, $orderItem] = $this->createPendingOrder($user, $product, 1, now()->subHours(4));
+
+        $this->actingAs($user)
+            ->post(route('home.warranty-claims.store', [$order, $orderItem]), [
+                'reason' => 'Blender mati total saat pertama kali dipakai.',
+                'damage_proof' => UploadedFile::fake()->image('blender-rusak.jpg'),
+            ]);
+
+        $claim = WarrantyClaim::query()->latest('id')->firstOrFail();
+        $claim->update([
+            'status' => 'reviewing',
+            'admin_notes' => 'Tim admin sedang verifikasi kerusakan perangkat.',
+        ]);
+
+        $claim->activities()->create([
+            'actor_id' => null,
+            'actor_name' => 'Admin QA',
+            'action' => 'status_reviewing',
+            'from_status' => 'submitted',
+            'to_status' => 'reviewing',
+            'note' => 'Masuk antrian review teknisi.',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('home.warranty-claims.index'));
+
+        $response->assertOk();
+        $response->assertSee($claim->claim_code);
+        $response->assertSee('Tim admin sedang verifikasi kerusakan perangkat.');
+        $response->assertSee($order->order_code);
+    }
+
+    public function test_admin_must_provide_reason_when_rejecting_claim(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Mesin Pompa Air',
+            'slug' => 'mesin-pompa-air',
+            'price' => 350000,
+            'stock' => 4,
+            'is_electronic' => true,
+        ]);
+
+        [$order,, $orderItem] = $this->createPendingOrder($customer, $product, 1, now()->subHours(3));
+
+        $claim = WarrantyClaim::create([
+            'claim_code' => 'WRN-ARIP-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
+            'order_id' => $order->id,
+            'order_item_id' => $orderItem->id,
+            'user_id' => $customer->id,
+            'reason' => 'Pompa tidak menyedot air sama sekali.',
+            'status' => 'submitted',
+            'requested_at' => now()->subHours(2),
+            'damage_proof_url' => 'warranty-claims/mock/proof.jpg',
+            'damage_proof_mime' => 'image/jpeg',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->from(route('admin.warranty-claims.index'))
+            ->patch(route('admin.warranty-claims.update-status', $claim), [
+                'status' => 'rejected',
+                'admin_notes' => '',
+            ]);
+
+        $response->assertRedirect(route('admin.warranty-claims.index'));
+        $response->assertSessionHasErrors('admin_notes');
+
+        $claim->refresh();
+        $this->assertSame('submitted', $claim->status);
+    }
+
+    public function test_admin_can_filter_warranty_claim_by_electronic_and_age_bucket(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+
+        $electronicProduct = $this->createProduct([
+            'name' => 'Kipas Filter',
+            'slug' => 'kipas-filter',
+            'price' => 130000,
+            'stock' => 8,
+            'is_electronic' => true,
+        ]);
+
+        $nonElectronicProduct = $this->createProduct([
+            'name' => 'Pipa Filter',
+            'slug' => 'pipa-filter',
+            'price' => 12000,
+            'stock' => 20,
+            'is_electronic' => false,
+        ]);
+
+        [$oldOrder,, $oldItem] = $this->createPendingOrder($customer, $electronicProduct, 1, now()->subDays(4));
+        [$newOrder,, $newItem] = $this->createPendingOrder($customer, $nonElectronicProduct, 1, now()->subHours(10));
+
+        $oldClaim = WarrantyClaim::create([
+            'claim_code' => 'WRN-ARIP-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
+            'order_id' => $oldOrder->id,
+            'order_item_id' => $oldItem->id,
+            'user_id' => $customer->id,
+            'reason' => 'Kipas berisik dan tidak stabil.',
+            'status' => 'submitted',
+            'requested_at' => now()->subDays(4),
+        ]);
+
+        $newClaim = WarrantyClaim::create([
+            'claim_code' => 'WRN-ARIP-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
+            'order_id' => $newOrder->id,
+            'order_item_id' => $newItem->id,
+            'user_id' => $customer->id,
+            'reason' => 'Pipa retak.',
+            'status' => 'submitted',
+            'requested_at' => now()->subHours(10),
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.warranty-claims.index', [
+                'electronic' => 'electronic',
+                'age_bucket' => '3_7d',
+            ]));
+
+        $response->assertOk();
+        $response->assertSee($oldClaim->claim_code);
+        $response->assertDontSee($newClaim->claim_code);
     }
 
     private function createProduct(array $overrides = []): Product
@@ -289,6 +529,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
             'stock' => $overrides['stock'] ?? 10,
             'unit' => $overrides['unit'] ?? 'pcs',
             'is_active' => $overrides['is_active'] ?? true,
+            'is_electronic' => $overrides['is_electronic'] ?? true,
         ]);
     }
 
@@ -298,6 +539,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
     private function createPendingOrder(User $user, Product $product, int $quantity, \DateTimeInterface $placedAt): array
     {
         $subtotal = (int) $product->price * $quantity;
+        $warrantyDays = $product->is_electronic ? 7 : 0;
 
         $order = Order::create([
             'order_code' => 'ORD-ARIP-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
@@ -326,8 +568,8 @@ class OrderSecurityAndLifecycleTest extends TestCase
             'price' => (int) $product->price,
             'quantity' => $quantity,
             'subtotal' => $subtotal,
-            'warranty_days' => 7,
-            'warranty_expires_at' => now()->addDays(7),
+            'warranty_days' => $warrantyDays,
+            'warranty_expires_at' => $warrantyDays > 0 ? now()->addDays($warrantyDays) : null,
         ]);
 
         $payment = Payment::create([

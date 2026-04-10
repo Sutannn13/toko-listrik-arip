@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -315,6 +316,10 @@ class HomePageTest extends TestCase
         $this->assertDatabaseCount('order_items', 1);
         $this->assertDatabaseCount('payments', 1);
 
+        $order = Order::query()->first();
+        $this->assertNotNull($order);
+        $response->assertSessionHas('checkout_order_code', $order?->order_code);
+
         $this->assertDatabaseHas('orders', [
             'user_id' => $user->id,
             'customer_name' => 'Pelanggan Checkout',
@@ -340,5 +345,21 @@ class HomePageTest extends TestCase
 
         $product->refresh();
         $this->assertSame(27, (int) $product->stock);
+    }
+
+    public function test_tracking_page_prefills_order_code_from_query_param(): void
+    {
+        Role::findOrCreate('user', 'web');
+
+        $user = User::factory()->create();
+        $user->assignRole('user');
+
+        $orderCode = 'ORD-ARIP-20260410-ABC123';
+
+        $response = $this->actingAs($user)
+            ->get(route('home.tracking', ['order_code' => $orderCode]));
+
+        $response->assertOk();
+        $response->assertSee('value="' . $orderCode . '"', false);
     }
 }

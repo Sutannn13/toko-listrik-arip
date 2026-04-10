@@ -8,10 +8,16 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\User;
 use App\Models\WarrantyClaim;
+use App\Notifications\WarrantyClaimSubmittedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -467,6 +473,8 @@ class HomeController extends Controller
                         throw new \Exception('Stok untuk produk ' . $product->name . ' tidak mencukupi (tersisa: ' . ($freshProduct->stock ?? 0) . ').');
                     }
 
+                    $warrantyDays = $freshProduct->is_electronic ? 7 : 0;
+
                     $order->items()->create([
                         'product_id' => $product->id,
                         'product_name' => $product->name,
@@ -475,8 +483,8 @@ class HomeController extends Controller
                         'price' => $payload['price'],
                         'quantity' => $payload['qty'],
                         'subtotal' => $payload['subtotal'],
-                        'warranty_days' => 7,
-                        'warranty_expires_at' => now()->addDays(7),
+                        'warranty_days' => $warrantyDays,
+                        'warranty_expires_at' => $warrantyDays > 0 ? now()->addDays($warrantyDays) : null,
                     ]);
 
                     $freshProduct->decrement('stock', $payload['qty']);
@@ -498,10 +506,9 @@ class HomeController extends Controller
 
         $request->session()->forget('simple_cart');
 
-        return redirect()->route('home.cart')->with(
-            'success',
-            'Checkout berhasil. Kode pesanan: ' . $order->order_code . '. Garansi Toko Arip 7 hari aktif untuk item pesanan.',
-        );
+        return redirect()->route('home.cart')
+            ->with('success', 'Checkout berhasil. Kode pesanan: ' . $order->order_code . '. Garansi klaim hanya untuk produk elektronik dengan masa maksimal 7 hari.')
+            ->with('checkout_order_code', $order->order_code);
     }
 
     public function submitWarrantyClaim(Request $request, Order $order, OrderItem $orderItem): RedirectResponse
@@ -524,6 +531,11 @@ class HomeController extends Controller
             }
         }
 
+        if ((int) $orderItem->warranty_days < 1) {
+            return redirect()->route('home.cart')
+                ->with('error', 'Garansi klaim hanya berlaku untuk produk elektronik.');
+        }
+
         if (!$orderItem->warranty_expires_at || $orderItem->warranty_expires_at->isPast()) {
             return redirect()->route('home.cart')
                 ->with('error', 'Masa garansi item ini sudah berakhir.');
@@ -531,12 +543,14 @@ class HomeController extends Controller
 
         $validated = $request->validate([
             'reason' => ['required', 'string', 'min:10', 'max:1000'],
+            'damage_proof' => ['required', 'file', 'mimes:jpg,jpeg,png,mp4,mov,webm', 'max:20480'],
         ]);
 
         $claim = null;
+        $storedProofPath = null;
 
         try {
-            $claim = DB::transaction(function () use ($order, $orderItem, $user, $validated) {
+            $claim = DB::transaction(function () use ($order, $orderItem, $user, $validated, &$storedProofPath) {
                 $lockedItem = OrderItem::query()
                     ->where('id', $orderItem->id)
                     ->where('order_id', $order->id)
@@ -545,6 +559,10 @@ class HomeController extends Controller
 
                 if (!$lockedItem) {
                     throw new \RuntimeException('ORDER_ITEM_NOT_FOUND');
+                }
+
+                if ((int) $lockedItem->warranty_days < 1) {
+                    throw new \RuntimeException('NON_ELECTRONIC_ITEM');
                 }
 
                 if (!$lockedItem->warranty_expires_at || $lockedItem->warranty_expires_at->isPast()) {
@@ -561,22 +579,18 @@ class HomeController extends Controller
                     throw new \RuntimeException('ACTIVE_CLAIM_EXISTS');
                 }
 
-                $totalClaims = WarrantyClaim::query()
-                    ->where('order_item_id', $lockedItem->id)
-                    ->lockForUpdate()
-                    ->count();
-
-                if ($totalClaims >= 2) {
-                    throw new \RuntimeException('CLAIM_LIMIT_REACHED');
-                }
+                $claimCode = $this->generateWarrantyClaimCode();
+                $storedProofPath = $validated['damage_proof']->store('warranty-claims/' . $claimCode, 'public');
 
                 $claim = WarrantyClaim::create([
-                    'claim_code' => $this->generateWarrantyClaimCode(),
+                    'claim_code' => $claimCode,
                     'order_id' => $order->id,
                     'order_item_id' => $lockedItem->id,
                     'user_id' => $user?->id,
                     'reason' => $validated['reason'],
                     'status' => 'submitted',
+                    'damage_proof_url' => $storedProofPath,
+                    'damage_proof_mime' => $validated['damage_proof']->getMimeType(),
                     'requested_at' => now(),
                 ]);
 
@@ -586,12 +600,16 @@ class HomeController extends Controller
                     'action' => 'submitted',
                     'from_status' => null,
                     'to_status' => 'submitted',
-                    'note' => $validated['reason'],
+                    'note' => 'Klaim diajukan user dengan bukti kerusakan terlampir.',
                 ]);
 
                 return $claim;
             }, 3);
         } catch (\RuntimeException $e) {
+            if ($storedProofPath) {
+                Storage::disk('public')->delete($storedProofPath);
+            }
+
             if ($e->getMessage() === 'ACTIVE_CLAIM_EXISTS') {
                 return redirect()->route('home.cart')
                     ->with('error', 'Item ini sudah memiliki klaim garansi aktif.');
@@ -602,13 +620,20 @@ class HomeController extends Controller
                     ->with('error', 'Masa garansi item ini sudah berakhir.');
             }
 
-            if ($e->getMessage() === 'CLAIM_LIMIT_REACHED') {
+            if ($e->getMessage() === 'NON_ELECTRONIC_ITEM') {
                 return redirect()->route('home.cart')
-                    ->with('error', 'Item ini sudah mencapai batas maksimal 2 kali klaim garansi.');
+                    ->with('error', 'Garansi klaim hanya berlaku untuk produk elektronik.');
             }
 
             return redirect()->route('home.cart')
                 ->with('error', 'Item pesanan tidak ditemukan atau tidak valid untuk klaim.');
+        } catch (\Throwable $e) {
+            if ($storedProofPath) {
+                Storage::disk('public')->delete($storedProofPath);
+            }
+
+            return redirect()->route('home.cart')
+                ->with('error', 'Upload bukti kerusakan gagal diproses. Coba lagi dengan file lain.');
         }
 
         if (!$claim) {
@@ -616,7 +641,189 @@ class HomeController extends Controller
                 ->with('error', 'Klaim garansi gagal diproses. Silakan coba lagi.');
         }
 
+        $adminRecipients = User::query()
+            ->whereHas('roles', fn($query) => $query
+                ->where('guard_name', 'web')
+                ->whereIn('name', ['super-admin', 'admin']))
+            ->get();
+        if ($adminRecipients->isNotEmpty()) {
+            Notification::send($adminRecipients, new WarrantyClaimSubmittedNotification($claim));
+        }
+
         return redirect()->route('home.cart')->with('success', 'Klaim garansi berhasil diajukan. Tim admin akan meninjau klaim Anda.');
+    }
+
+    public function warrantyCenter(Request $request): View
+    {
+        $filters = $request->validate([
+            'status' => ['nullable', 'in:all,active,expired'],
+            'q' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $user = $request->user();
+        if (!$user) {
+            abort(403);
+        }
+
+        $status = $filters['status'] ?? 'all';
+
+        $warrantyItems = OrderItem::query()
+            ->with([
+                'order:id,order_code,user_id,status,payment_status,placed_at,created_at',
+                'warrantyClaims' => fn($query) => $query->latest(),
+            ])
+            ->where('warranty_days', '>', 0)
+            ->whereHas('order', fn($query) => $query->where('user_id', $user->id))
+            ->when($filters['q'] ?? null, function ($query, $keyword) {
+                $query->where(function ($searchQuery) use ($keyword) {
+                    $searchQuery
+                        ->where('product_name', 'like', '%' . $keyword . '%')
+                        ->orWhereHas('order', fn($orderQuery) => $orderQuery->where('order_code', 'like', '%' . $keyword . '%'));
+                });
+            })
+            ->when($status === 'active', fn($query) => $query->whereNotNull('warranty_expires_at')->where('warranty_expires_at', '>', now()))
+            ->when($status === 'expired', fn($query) => $query->where(function ($subQuery) {
+                $subQuery
+                    ->whereNull('warranty_expires_at')
+                    ->orWhere('warranty_expires_at', '<=', now());
+            }))
+            ->latest('id')
+            ->paginate(12)
+            ->withQueryString();
+
+        return view('home.warranty', [
+            'warrantyItems' => $warrantyItems,
+            'filters' => $filters,
+            ...$this->cartSummary($request),
+        ]);
+    }
+
+    public function warrantyClaims(Request $request): View
+    {
+        $filters = $request->validate([
+            'status' => ['nullable', 'in:submitted,reviewing,approved,rejected,resolved'],
+            'q' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $user = $request->user();
+        if (!$user) {
+            abort(403);
+        }
+
+        $claims = WarrantyClaim::query()
+            ->with([
+                'order:id,order_code,payment_status,status',
+                'orderItem:id,order_id,product_name,quantity,warranty_days,warranty_expires_at',
+                'activities' => fn($query) => $query->latest(),
+            ])
+            ->where('user_id', $user->id)
+            ->when($filters['status'] ?? null, fn($query, $status) => $query->where('status', $status))
+            ->when($filters['q'] ?? null, function ($query, $keyword) {
+                $query->where(function ($searchQuery) use ($keyword) {
+                    $searchQuery
+                        ->where('claim_code', 'like', '%' . $keyword . '%')
+                        ->orWhereHas('order', fn($orderQuery) => $orderQuery->where('order_code', 'like', '%' . $keyword . '%'))
+                        ->orWhereHas('orderItem', fn($itemQuery) => $itemQuery->where('product_name', 'like', '%' . $keyword . '%'));
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('home.warranty_claims', [
+            'claims' => $claims,
+            'filters' => $filters,
+            ...$this->cartSummary($request),
+        ]);
+    }
+
+    public function transactionHistory(Request $request): View
+    {
+        $filters = $request->validate([
+            'status' => ['nullable', 'in:all,completed,cancelled,processing,shipped,pending'],
+            'q' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $user = $request->user();
+        if (!$user) {
+            abort(403);
+        }
+
+        $status = $filters['status'] ?? 'completed';
+
+        $orders = Order::query()
+            ->with([
+                'items',
+                'payments' => fn($query) => $query->latest(),
+                'address',
+            ])
+            ->where('user_id', $user->id)
+            ->when($status !== 'all', fn($query) => $query->where('status', $status))
+            ->when($filters['q'] ?? null, function ($query, $keyword) {
+                $query->where(function ($searchQuery) use ($keyword) {
+                    $searchQuery
+                        ->where('order_code', 'like', '%' . $keyword . '%')
+                        ->orWhere('customer_name', 'like', '%' . $keyword . '%')
+                        ->orWhere('customer_email', 'like', '%' . $keyword . '%');
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('home.transactions', [
+            'orders' => $orders,
+            'filters' => $filters,
+            ...$this->cartSummary($request),
+        ]);
+    }
+
+    public function notifications(Request $request): View
+    {
+        $user = $request->user();
+        if (!$user) {
+            abort(403);
+        }
+
+        if (!Schema::hasTable('notifications')) {
+            $notifications = new LengthAwarePaginator([], 0, 20, 1, [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]);
+
+            return view('home.notifications', [
+                'notifications' => $notifications,
+                ...$this->cartSummary($request),
+            ]);
+        }
+
+        $notifications = $user->notifications()
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('home.notifications', [
+            'notifications' => $notifications,
+            ...$this->cartSummary($request),
+        ]);
+    }
+
+    public function markAllNotificationsRead(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            abort(403);
+        }
+
+        if (!Schema::hasTable('notifications')) {
+            return redirect()->route('home.notifications.index')
+                ->with('error', 'Tabel notifikasi belum tersedia. Jalankan migrasi database terlebih dahulu.');
+        }
+
+        $user->unreadNotifications->markAsRead();
+
+        return redirect()->route('home.notifications.index')
+            ->with('success', 'Semua notifikasi sudah ditandai dibaca.');
     }
 
     public function uploadPaymentProof(Request $request, string $orderCode): RedirectResponse

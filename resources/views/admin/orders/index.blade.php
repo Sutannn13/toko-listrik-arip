@@ -16,7 +16,7 @@
     </div>
 
     <form method="GET" action="{{ route('admin.orders.index') }}" class="mb-6 rounded-lg bg-white p-4 shadow">
-        <div class="grid gap-3 md:grid-cols-5">
+        <div class="grid gap-3 md:grid-cols-6">
             <div>
                 <label class="mb-1 block text-xs font-semibold text-gray-500">Cari Kode / Customer / Payment</label>
                 <input type="text" name="q" value="{{ $filters['q'] ?? '' }}"
@@ -47,6 +47,16 @@
                             {{ ucfirst($paymentStatus) }}
                         </option>
                     @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="mb-1 block text-xs font-semibold text-gray-500">Bukti Pembayaran</label>
+                <select name="proof"
+                    class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="all" @selected(($filters['proof'] ?? 'all') === 'all')>Semua</option>
+                    <option value="uploaded" @selected(($filters['proof'] ?? '') === 'uploaded')>Sudah Upload</option>
+                    <option value="missing" @selected(($filters['proof'] ?? '') === 'missing')>Belum Upload</option>
                 </select>
             </div>
 
@@ -90,6 +100,10 @@
             </thead>
             <tbody class="text-gray-700">
                 @forelse($orders as $order)
+                    @php
+                        $latestPayment = $order->latestPayment;
+                        $hasLatestProof = filled($latestPayment?->proof_url);
+                    @endphp
                     <tr class="border-b border-gray-200 hover:bg-gray-50">
                         <td class="p-4 font-semibold text-gray-900">{{ $order->order_code }}</td>
                         <td class="p-4">
@@ -103,6 +117,10 @@
                                 class="rounded-full px-2 py-1 text-xs font-bold uppercase {{ $order->payment_status === 'paid' ? 'bg-emerald-100 text-emerald-700' : ($order->payment_status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">
                                 {{ $order->payment_status }}
                             </span>
+                            <p
+                                class="mt-1 text-[11px] font-semibold {{ $hasLatestProof ? 'text-cyan-700' : 'text-gray-500' }}">
+                                Proof terbaru: {{ $hasLatestProof ? 'uploaded' : 'missing' }}
+                            </p>
                         </td>
                         <td class="p-4">
                             <span

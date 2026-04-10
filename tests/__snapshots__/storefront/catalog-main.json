@@ -1,0 +1,22 @@
+{
+    "title": "Toko Listrik Arip - Katalog Produk",
+    "brand": "Toko Listrik Arip",
+    "headings": [
+        "Pusat Kebutuhan Listrik",
+        "Pencarian & Filter",
+        "Produk Tersedia",
+        "Kipas Meja Turbo",
+        "Kipas Dinding Pro"
+    ],
+    "primary_actions": [
+        "Cari Produk",
+        "Keranjang",
+        "Keranjang"
+    ],
+    "structure": {
+        "section_count": 3,
+        "article_count": 2,
+        "form_count": 1
+    },
+    "main_text_hash": "bf6a3185bd8a5426a82035edd9ee729d87cf67a1300581637881d0dbc032bee3"
+}

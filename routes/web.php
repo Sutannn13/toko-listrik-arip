@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\WarrantyClaimController;
+use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileAddressController;
 
@@ -53,6 +54,17 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/orders/{order}/items/{orderItem}/warranty-claim', [HomeController::class, 'submitWarrantyClaim'])
         ->name('home.warranty-claims.store');
+    Route::get('/klaim-garansi', [HomeController::class, 'warrantyClaims'])
+        ->name('home.warranty-claims.index');
+
+    Route::get('/garansi', [HomeController::class, 'warrantyCenter'])
+        ->name('home.warranty');
+    Route::get('/riwayat-transaksi', [HomeController::class, 'transactionHistory'])
+        ->name('home.transactions');
+    Route::get('/notifikasi', [HomeController::class, 'notifications'])
+        ->name('home.notifications.index');
+    Route::post('/notifikasi/baca-semua', [HomeController::class, 'markAllNotificationsRead'])
+        ->name('home.notifications.read-all');
 });
 
 // JALUR KHUSUS ADMIN
@@ -83,6 +95,11 @@ Route::middleware(['auth', 'admin.access', 'role:super-admin|admin'])
             ->name('warranty-claims.show');
         Route::patch('/warranty-claims/{warrantyClaim}/status', [WarrantyClaimController::class, 'updateStatus'])
             ->name('warranty-claims.update-status');
+
+        Route::get('/notifications', [AdminNotificationController::class, 'index'])
+            ->name('notifications.index');
+        Route::post('/notifications/read-all', [AdminNotificationController::class, 'markAllRead'])
+            ->name('notifications.read-all');
     });
 
 // 5. INI YANG LO HAPUS SEBELUMNYA (Jantung Auth Laravel Breeze)

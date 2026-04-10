@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Notifications\OrderCompletedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -19,12 +20,13 @@ class OrderController extends Controller
             'q' => ['nullable', 'string', 'max:120'],
             'status' => ['nullable', 'in:pending,processing,shipped,completed,cancelled'],
             'payment_status' => ['nullable', 'in:pending,paid,failed,refunded'],
+            'proof' => ['nullable', 'in:all,uploaded,missing'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ]);
 
         $orders = Order::query()
-            ->with(['user:id,name,email', 'payments'])
+            ->with(['user:id,name,email', 'payments', 'latestPayment'])
             ->when($filters['q'] ?? null, function ($query, $keyword) {
                 $query->where(function ($searchQuery) use ($keyword) {
                     $searchQuery
@@ -36,6 +38,23 @@ class OrderController extends Controller
             })
             ->when($filters['status'] ?? null, fn($query, $status) => $query->where('status', $status))
             ->when($filters['payment_status'] ?? null, fn($query, $paymentStatus) => $query->where('payment_status', $paymentStatus))
+            ->when(($filters['proof'] ?? null) === 'uploaded', function ($query) {
+                $query->whereHas('latestPayment', fn($paymentQuery) => $paymentQuery
+                    ->whereNotNull('proof_url')
+                    ->where('proof_url', '!=', ''));
+            })
+            ->when(($filters['proof'] ?? null) === 'missing', function ($query) {
+                $query->where(function ($proofQuery) {
+                    $proofQuery
+                        ->whereDoesntHave('latestPayment')
+                        ->orWhereHas('latestPayment', fn($paymentQuery) => $paymentQuery
+                            ->where(function ($missingProofQuery) {
+                                $missingProofQuery
+                                    ->whereNull('proof_url')
+                                    ->orWhere('proof_url', '');
+                            }));
+                });
+            })
             ->when($filters['date_from'] ?? null, fn($query, $dateFrom) => $query->whereDate('created_at', '>=', $dateFrom))
             ->when($filters['date_to'] ?? null, fn($query, $dateTo) => $query->whereDate('created_at', '<=', $dateTo))
             ->latest()
@@ -63,6 +82,8 @@ class OrderController extends Controller
 
     public function updateStatus(Request $request, Order $order): RedirectResponse
     {
+        $previousStatus = $order->status;
+
         $validated = $request->validate([
             'status' => ['required', 'in:pending,processing,shipped,completed,cancelled'],
             'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
@@ -162,6 +183,11 @@ class OrderController extends Controller
                 ->with('error', 'Pesanan sudah dibatalkan oleh proses lain dan tidak dapat diaktifkan kembali.');
         }
 
+        $order->refresh();
+        if ($previousStatus !== 'completed' && $order->status === 'completed' && $order->user) {
+            $order->user->notify(new OrderCompletedNotification($order));
+        }
+
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Status pesanan berhasil diperbarui.');
     }
@@ -180,18 +206,19 @@ class OrderController extends Controller
             ->copy()
             ->startOfDay();
 
-        $minWarrantyDate = $warrantyStart->copy()->addDays(7)->startOfDay();
-        $maxWarrantyDate = $warrantyStart->copy()->addDays(30)->endOfDay();
+        $minWarrantyDate = $warrantyStart->copy()->addDay()->startOfDay();
+        $maxWarrantyDate = $warrantyStart->copy()->addDays(7)->endOfDay();
         $requestedWarrantyExpiry = Carbon::parse($validated['warranty_expires_at'])->endOfDay();
 
         if ($requestedWarrantyExpiry->lt($minWarrantyDate) || $requestedWarrantyExpiry->gt($maxWarrantyDate)) {
             return redirect()->route('admin.orders.show', $order)
-                ->with('error', 'Tanggal garansi harus di rentang 1 minggu sampai maksimal 1 bulan dari tanggal pesanan.');
+                ->with('error', 'Tanggal garansi harus di rentang 1 sampai maksimal 7 hari dari tanggal pesanan.');
         }
 
         try {
             DB::transaction(function () use ($order, $orderItem, $warrantyStart, $requestedWarrantyExpiry) {
                 $lockedOrderItem = OrderItem::query()
+                    ->with('product:id,is_electronic')
                     ->whereKey($orderItem->id)
                     ->where('order_id', $order->id)
                     ->lockForUpdate()
@@ -199,6 +226,12 @@ class OrderController extends Controller
 
                 if (!$lockedOrderItem) {
                     throw new \RuntimeException('ORDER_ITEM_NOT_FOUND');
+                }
+
+                $isElectronicProduct = (bool) ($lockedOrderItem->product?->is_electronic);
+                $isWarrantyEligible = $isElectronicProduct || (int) $lockedOrderItem->warranty_days > 0;
+                if (!$isWarrantyEligible) {
+                    throw new \RuntimeException('NON_ELECTRONIC_PRODUCT');
                 }
 
                 $warrantyDays = (int) $warrantyStart->diffInDays($requestedWarrantyExpiry->copy()->startOfDay());
@@ -209,6 +242,11 @@ class OrderController extends Controller
                 ]);
             }, 3);
         } catch (\RuntimeException $e) {
+            if ($e->getMessage() === 'NON_ELECTRONIC_PRODUCT') {
+                return redirect()->route('admin.orders.show', $order)
+                    ->with('error', 'Produk non-elektronik tidak dapat diberi garansi klaim.');
+            }
+
             return redirect()->route('admin.orders.show', $order)
                 ->with('error', 'Item pesanan tidak ditemukan untuk pembaruan garansi.');
         }

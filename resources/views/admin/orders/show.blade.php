@@ -102,17 +102,19 @@
                         )
                             ->copy()
                             ->startOfDay();
-                        $warrantyMinDate = $warrantyStartAt->copy()->addDays(7)->toDateString();
-                        $warrantyMaxDate = $warrantyStartAt->copy()->addDays(30)->toDateString();
+                        $warrantyMinDate = $warrantyStartAt->copy()->addDay()->toDateString();
+                        $warrantyMaxDate = $warrantyStartAt->copy()->addDays(7)->toDateString();
                     @endphp
 
                     @foreach ($order->items as $item)
                         @php
+                            $isWarrantyEligible =
+                                (int) $item->warranty_days > 0 || !is_null($item->warranty_expires_at);
                             $defaultWarrantyDate =
                                 optional($item->warranty_expires_at)->toDateString() ??
                                 $warrantyStartAt
                                     ->copy()
-                                    ->addDays(max(7, min(30, (int) $item->warranty_days)))
+                                    ->addDays(max(1, min(7, (int) $item->warranty_days)))
                                     ->toDateString();
                         @endphp
                         <tr class="border-t">
@@ -127,24 +129,31 @@
                                 {{ $item->warranty_days }} hari<br>
                                 Exp: {{ optional($item->warranty_expires_at)->format('d M Y') ?? '-' }}
 
-                                <form action="{{ route('admin.orders.items.update-warranty', [$order, $item]) }}"
-                                    method="POST" class="mt-2 space-y-2">
-                                    @csrf
-                                    @method('PATCH')
+                                @if ($isWarrantyEligible)
+                                    <form action="{{ route('admin.orders.items.update-warranty', [$order, $item]) }}"
+                                        method="POST" class="mt-2 space-y-2">
+                                        @csrf
+                                        @method('PATCH')
 
-                                    <label class="block text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                                        Atur Tanggal Garansi (7-30 hari)
-                                    </label>
-                                    <input type="date" name="warranty_expires_at"
-                                        value="{{ old('warranty_expires_at', $defaultWarrantyDate) }}"
-                                        min="{{ $warrantyMinDate }}" max="{{ $warrantyMaxDate }}"
-                                        class="w-full rounded border-gray-300 text-xs focus:border-blue-500 focus:ring-blue-500"
-                                        required>
-                                    <button type="submit"
-                                        class="rounded bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-gray-800">
-                                        Simpan Garansi
-                                    </button>
-                                </form>
+                                        <label
+                                            class="block text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                            Atur Tanggal Garansi (1-7 hari)
+                                        </label>
+                                        <input type="date" name="warranty_expires_at"
+                                            value="{{ old('warranty_expires_at', $defaultWarrantyDate) }}"
+                                            min="{{ $warrantyMinDate }}" max="{{ $warrantyMaxDate }}"
+                                            class="w-full rounded border-gray-300 text-xs focus:border-blue-500 focus:ring-blue-500"
+                                            required>
+                                        <button type="submit"
+                                            class="rounded bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-gray-800">
+                                            Simpan Garansi
+                                        </button>
+                                    </form>
+                                @else
+                                    <p class="mt-2 rounded bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600">
+                                        Non-elektronik: tidak ada garansi klaim.
+                                    </p>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

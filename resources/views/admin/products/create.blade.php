@@ -70,6 +70,19 @@
                     placeholder="Contoh: Kabel ukuran 2x1.5mm, warna putih, SNI..."></textarea>
             </div>
 
+            <div class="mb-6 rounded-lg border border-blue-100 bg-blue-50 p-4">
+                <label class="inline-flex items-start gap-3 text-sm text-gray-700 cursor-pointer">
+                    <input type="checkbox" name="is_electronic" value="1" @checked(old('is_electronic'))
+                        class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <span>
+                        <span class="font-semibold text-gray-900">Produk elektronik (bergaransi)</span><br>
+                        <span class="text-xs text-gray-600">Aktifkan jika produk termasuk barang elektronik seperti kipas
+                            angin, blender, atau perangkat listrik sejenis. Garansi klaim hanya berlaku untuk produk
+                            elektronik.</span>
+                    </span>
+                </label>
+            </div>
+
             <div class="flex justify-end border-t pt-4">
                 <button type="submit"
                     class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">

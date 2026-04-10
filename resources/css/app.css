@@ -4,13 +4,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────
+   BASE LAYER — TailAdmin Foundational Styles
+   ───────────────────────────────────────────────── */
 @layer base {
     :root {
+        /* Storefront brand tokens (legacy compat) */
         --ui-brand-navy: #0b1f3a;
         --ui-brand-cyan: #03ac0e;
         --ui-brand-cyan-soft: #f2fdf4;
         --ui-surface: #ffffff;
         --ui-border: #e2e8f0;
+
+        /* TailAdmin tokens */
+        --ta-sidebar-width: 18.125rem;   /* 290px */
+        --ta-header-height: 4rem;         /* 64px  */
+        --ta-transition: 300ms;
     }
 
     html {
@@ -22,102 +31,243 @@
         letter-spacing: 0.01em;
     }
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
+    h1, h2, h3, h4, h5, h6 {
         letter-spacing: -0.01em;
+    }
+
+    /* Hide elements with x-cloak (Alpine.js) */
+    [x-cloak] {
+        display: none !important;
+    }
+
+    /* Custom scrollbar for sidebar */
+    .ta-scrollbar::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .ta-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .ta-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(100, 116, 139, 0.2);
+        border-radius: 10px;
+    }
+
+    .ta-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(100, 116, 139, 0.35);
     }
 }
 
+/* ─────────────────────────────────────────────────
+   COMPONENTS LAYER — TailAdmin Design System
+   ───────────────────────────────────────────────── */
 @layer components {
+
+    /* ═══════ Page-Level ═══════ */
     .ui-page-header {
         @apply mb-6 flex flex-wrap items-start justify-between gap-3;
     }
 
     .ui-page-title {
-        @apply text-2xl font-extrabold text-slate-900;
+        @apply text-2xl font-bold text-gray-800 dark:text-white;
     }
 
     .ui-page-subtitle {
-        @apply mt-1 text-sm text-slate-600;
+        @apply mt-1 text-sm text-gray-500 dark:text-gray-400;
     }
 
+    /* ═══════ Cards ═══════ */
     .ui-card {
-        @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+        @apply rounded-2xl border border-gray-200 bg-white shadow-tailadmin dark:border-dark-border dark:bg-dark-card;
     }
 
     .ui-card-pad {
-        @apply p-5;
+        @apply p-5 sm:p-6;
     }
 
     .ui-panel {
-        @apply rounded-lg border border-slate-200 bg-white p-4 shadow-sm;
+        @apply rounded-xl border border-gray-200 bg-white p-4 shadow-tailadmin dark:border-dark-border dark:bg-dark-card;
     }
 
+    /* ═══════ Forms ═══════ */
     .ui-label {
-        @apply mb-1 block text-xs font-semibold text-slate-500;
+        @apply mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300;
     }
 
     .ui-input {
-        @apply w-full rounded-lg border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500;
+        @apply w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 transition
+               placeholder:text-gray-400
+               focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20
+               dark:border-dark-border dark:bg-dark-input dark:text-white dark:focus:border-brand-400;
     }
 
     .ui-select {
-        @apply w-full rounded-lg border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500;
+        @apply w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 transition
+               focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20
+               dark:border-dark-border dark:bg-dark-input dark:text-white;
     }
 
+    .ui-textarea {
+        @apply w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 transition
+               placeholder:text-gray-400
+               focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20
+               dark:border-dark-border dark:bg-dark-input dark:text-white;
+    }
+
+    /* ═══════ Buttons ═══════ */
     .ui-btn {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition;
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold
+               transition-all duration-200 ease-out;
     }
 
     .ui-btn-primary {
-        @apply bg-primary-600 text-white hover:bg-primary-700;
+        @apply bg-brand-500 text-white shadow-sm hover:bg-brand-600 active:bg-brand-700;
     }
 
     .ui-btn-secondary {
-        @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+        @apply border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50
+               dark:border-dark-border dark:bg-dark-card dark:text-gray-300 dark:hover:bg-dark-hover;
     }
 
     .ui-btn-soft {
-        @apply border border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100;
+        @apply border border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100
+               dark:border-brand-800 dark:bg-brand-950 dark:text-brand-300;
     }
 
+    .ui-btn-success {
+        @apply bg-success-500 text-white shadow-sm hover:bg-success-600;
+    }
+
+    .ui-btn-danger {
+        @apply bg-error-500 text-white shadow-sm hover:bg-error-600;
+    }
+
+    .ui-btn-ghost {
+        @apply text-gray-500 hover:bg-gray-100 hover:text-gray-700
+               dark:text-gray-400 dark:hover:bg-dark-hover dark:hover:text-gray-200;
+    }
+
+    /* ═══════ Badges ═══════ */
     .ui-badge {
-        @apply inline-flex rounded-full px-3 py-1 text-xs font-bold;
+        @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
     }
 
     .ui-badge-success {
-        @apply bg-emerald-100 text-emerald-700;
+        @apply bg-success-100 text-success-700 dark:bg-success-700/20 dark:text-success-400;
     }
 
     .ui-badge-warning {
-        @apply bg-amber-100 text-amber-700;
+        @apply bg-warning-100 text-warning-700 dark:bg-warning-700/20 dark:text-warning-400;
     }
 
     .ui-badge-danger {
-        @apply bg-red-100 text-red-700;
+        @apply bg-error-100 text-error-700 dark:bg-error-700/20 dark:text-error-400;
     }
 
     .ui-badge-info {
-        @apply bg-primary-100 text-primary-700;
+        @apply bg-brand-100 text-brand-700 dark:bg-brand-700/20 dark:text-brand-400;
     }
 
+    .ui-badge-neutral {
+        @apply bg-gray-100 text-gray-600 dark:bg-gray-700/40 dark:text-gray-300;
+    }
+
+    /* ═══════ Alerts ═══════ */
     .ui-alert {
-        @apply mb-4 rounded-lg border px-4 py-3 text-sm;
+        @apply mb-4 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm;
     }
 
     .ui-alert-success {
-        @apply border-emerald-200 bg-emerald-50 text-emerald-700;
+        @apply border-success-200 bg-success-50 text-success-700 dark:border-success-700/30 dark:bg-success-700/10 dark:text-success-400;
     }
 
     .ui-alert-error {
-        @apply border-red-200 bg-red-50 text-red-700;
+        @apply border-error-200 bg-error-50 text-error-700 dark:border-error-700/30 dark:bg-error-700/10 dark:text-error-400;
     }
 
+    .ui-alert-warning {
+        @apply border-warning-200 bg-warning-50 text-warning-700 dark:border-warning-700/30 dark:bg-warning-700/10 dark:text-warning-400;
+    }
+
+    .ui-alert-info {
+        @apply border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-700/30 dark:bg-brand-700/10 dark:text-brand-400;
+    }
+
+    /* ═══════ Tables (TailAdmin-style) ═══════ */
+    .ta-table {
+        @apply w-full text-sm;
+    }
+
+    .ta-table thead {
+        @apply border-b border-gray-200 dark:border-dark-border;
+    }
+
+    .ta-table thead th {
+        @apply px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500
+               dark:text-gray-400;
+    }
+
+    .ta-table tbody tr {
+        @apply border-b border-gray-100 transition-colors hover:bg-gray-50/60
+               dark:border-dark-border dark:hover:bg-dark-hover/50;
+    }
+
+    .ta-table tbody td {
+        @apply px-5 py-4 text-sm text-gray-700 dark:text-gray-300;
+    }
+
+    /* ═══════ Empty States ═══════ */
     .ui-empty {
-        @apply rounded-xl border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-sm text-slate-500;
+        @apply rounded-xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-sm text-gray-500
+               dark:border-dark-border dark:bg-dark-card dark:text-gray-400;
+    }
+
+    /* ═══════ Sidebar Navigation ═══════ */
+    .ta-nav-item {
+        @apply flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium
+               transition-all duration-200 ease-out;
+    }
+
+    .ta-nav-idle {
+        @apply text-gray-600 hover:bg-gray-100 hover:text-gray-800
+               dark:text-gray-400 dark:hover:bg-dark-hover dark:hover:text-white;
+    }
+
+    .ta-nav-active {
+        @apply bg-brand-50 text-brand-600 font-semibold
+               dark:bg-brand-500/10 dark:text-brand-400;
+    }
+
+    .ta-nav-icon {
+        @apply h-5 w-5 shrink-0 transition-colors;
+    }
+
+    .ta-nav-icon-idle {
+        @apply text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300;
+    }
+
+    .ta-nav-icon-active {
+        @apply text-brand-500 dark:text-brand-400;
+    }
+
+    /* ═══════ Dropdown ═══════ */
+    .ta-dropdown {
+        @apply absolute right-0 z-dropdown mt-2 w-60 rounded-xl border border-gray-200 bg-white py-1.5
+               shadow-tailadmin-lg dark:border-dark-border dark:bg-dark-card;
+    }
+
+    .ta-dropdown-item {
+        @apply flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-600
+               transition hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-dark-hover;
+    }
+}
+
+/* ─────────────────────────────────────────────────
+   UTILITY LAYER
+   ───────────────────────────────────────────────── */
+@layer utilities {
+    .ta-overlay {
+        @apply fixed inset-0 z-overlay bg-black/50 backdrop-blur-sm;
     }
 }

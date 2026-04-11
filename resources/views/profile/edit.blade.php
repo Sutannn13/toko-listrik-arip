@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Profil Akun - Toko Listrik Arip')
+@section('title', 'Profil Akun - Toko HS ELECTRIC')
 @section('header_subtitle', 'Akun Saya')
 
 @section('header_actions')

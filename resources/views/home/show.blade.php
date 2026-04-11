@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', $product->name . ' - Toko Listrik Arip')
+@section('title', $product->name . ' - Toko HS ELECTRIC')
 @section('header_subtitle', 'Detail Produk')
 @section('main_container_class', 'mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12')
 
@@ -40,7 +40,7 @@
             </h1>
 
             <p class="mt-6 text-base leading-relaxed text-gray-600 sm:text-lg">
-                {{ $product->description ?: 'Barang berkualitas & berstandar SNI dari Toko Listrik Arip.' }}
+                {{ $product->description ?: 'Barang berkualitas & berstandar SNI dari Toko HS ELECTRIC.' }}
             </p>
 
             <div class="mt-8 grid gap-4 grid-cols-2 sm:grid-cols-3">

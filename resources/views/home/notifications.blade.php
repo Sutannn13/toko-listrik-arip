@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Notifikasi Saya - Toko Listrik Arip')
+@section('title', 'Notifikasi Saya - Toko HS ELECTRIC')
 @section('header_subtitle', 'Notifikasi Saya')
 @section('show_default_store_actions', 'off')
 

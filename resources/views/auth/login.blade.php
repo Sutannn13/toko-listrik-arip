@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Masuk - Toko Listrik Arip</title>
+    <title>Masuk - Toko HS ELECTRIC</title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
@@ -19,7 +19,7 @@
   - White/off-white backgrounds build TRUST for financial transactions (bank-grade feel)
   - High-contrast borders + focus rings ensure WCAG AA compliance
   - Subtle shadows lift the form card, creating visual hierarchy without darkness
-  - Green primary color reinforces the Toko Arip brand identity throughout auth flow
+  - Green primary color reinforces the Toko HS ELECTRIC brand identity throughout auth flow
 --}}
 
 <body class="min-h-screen bg-slate-50 font-sans text-gray-900 antialiased">
@@ -35,7 +35,7 @@
         <section class="hidden lg:block">
             <span
                 class="mb-4 inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-primary-700">
-                Toko Listrik Arip
+                Toko HS ELECTRIC
             </span>
             <h1 class="text-4xl font-extrabold leading-tight tracking-tight text-gray-900">
                 Masuk ke Akun Anda
@@ -85,10 +85,9 @@
         <section class="w-full max-w-md mx-auto lg:mx-0">
             {{-- Mobile brand --}}
             <div class="mb-6 text-center lg:hidden">
-                <a href="{{ route('home') }}" class="inline-flex items-center gap-2.5">
-                    <span
-                        class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-extrabold text-white shadow-md shadow-primary-500/30">TA</span>
-                    <span class="text-lg font-bold text-gray-900">Toko Listrik Arip</span>
+                <a href="{{ route('home') }}" class="inline-flex items-center">
+                    <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
+                        class="h-10 w-10 object-contain">
                 </a>
             </div>
 

@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Lacak Pesanan - Toko Listrik Arip')
+@section('title', 'Lacak Pesanan - Toko HS ELECTRIC')
 @section('header_subtitle', 'Lacak Pesanan')
 @section('show_default_store_actions', 'off')
 @section('main_container_class',
@@ -9,7 +9,7 @@
 @section('footer')
     <footer class="mt-auto bg-gray-900 py-6 text-center text-gray-400">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <p class="text-sm">&copy; {{ date('Y') }} Toko Listrik Arip. Hak Cipta Dilindungi.</p>
+            <p class="text-sm">&copy; {{ date('Y') }} Toko HS ELECTRIC. Hak Cipta Dilindungi.</p>
         </div>
     </footer>
 @endsection

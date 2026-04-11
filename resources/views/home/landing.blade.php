@@ -1,7 +1,8 @@
 @extends('layouts.storefront')
 
-@section('title', 'Toko Listrik Arip - Solusi Kebutuhan Listrik')
-@section('body_class', 'min-h-screen bg-gray-950 font-sans text-gray-200 antialiased selection:bg-primary-500
+@section('title', 'Toko HS ELECTRIC - Solusi Kebutuhan Listrik')
+@section('body_class',
+    'min-h-screen bg-gray-950 font-sans text-gray-200 antialiased selection:bg-primary-500
     selection:text-white')
 @section('show_default_store_actions', 'off')
 @section('show_header', 'on')
@@ -9,7 +10,7 @@
 
 @section('background')
     <div class="fixed inset-0 z-0">
-        <img src="{{ asset('img/hero-bg.jpg') }}" alt="Toko Listrik Background"
+        <img src="{{ asset('img/hero-bg.jpg') }}" alt="Toko HS ELECTRIC Background"
             class="h-full w-full object-cover object-center"
             onerror="this.src='https://plus.unsplash.com/premium_photo-1678735398755-d6c1df88facb?q=80&w=2940&auto=format&fit=crop';" />
         <div class="absolute inset-0 bg-gray-950/85 mix-blend-multiply"></div>
@@ -33,14 +34,9 @@
     }" @scroll.window="scrolled" :class="show ? 'translate-y-0' : '-translate-y-full'"
         class="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-transparent transition-transform duration-300 ease-in-out">
         <div class="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-            <a href="{{ route('landing') }}" class="flex items-center gap-3 transition-transform hover:scale-105">
-                <span
-                    class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-extrabold text-white shadow-md shadow-primary-500/30">TA</span>
-                <div>
-                    <p class="text-sm font-bold tracking-widest text-white uppercase drop-shadow-sm">Toko Listrik
-                        Arip</p>
-                    <p class="text-xs font-medium text-gray-300 drop-shadow-sm">Pasti Nyala, Pasti Murah</p>
-                </div>
+            <a href="{{ route('landing') }}" class="flex items-center transition-transform hover:scale-105">
+                <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
+                    class="h-10 w-10 object-contain sm:h-11 sm:w-11">
             </a>
 
             <div class="flex flex-1 items-center justify-end gap-3 sm:gap-4">
@@ -244,7 +240,7 @@
 @section('footer')
     <footer class="mt-auto bg-gray-950/90 border-t border-gray-800 backdrop-blur-md py-8 text-center text-gray-500">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <p class="text-sm">&copy; {{ date('Y') }} Toko Listrik Arip. Aman, Murah, Terpercaya.</p>
+            <p class="text-sm">&copy; {{ date('Y') }} Toko HS ELECTRIC. Aman, Murah, Terpercaya.</p>
         </div>
     </footer>
 @endsection

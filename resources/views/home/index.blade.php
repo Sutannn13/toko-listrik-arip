@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Toko Listrik Arip - Katalog Produk')
+@section('title', 'Toko HS ELECTRIC - Katalog Produk')
 @section('header_subtitle', 'Katalog Produk')
 @section('main_container_class', 'flex-1 w-full mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8')
 
@@ -131,7 +131,7 @@
                 </div>
 
                 <p class="line-clamp-3 min-h-[60px] text-sm leading-relaxed text-gray-600">
-                    {{ $product->description ?: 'Barang berkualitas dari Toko Listrik Arip.' }}
+                    {{ $product->description ?: 'Barang berkualitas dari Toko HS ELECTRIC.' }}
                 </p>
 
                 <div class="mt-auto pt-4 flex flex-col gap-3">

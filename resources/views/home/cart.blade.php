@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Keranjang Belanja - Toko Listrik Arip')
+@section('title', 'Keranjang Belanja - Toko HS ELECTRIC')
 @section('header_subtitle', 'Keranjang User')
 @section('main_container_class', 'flex-1 w-full mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8')
 
@@ -240,6 +240,66 @@
                                 class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">2</span>
                             Alamat Pengiriman
                         </h3>
+
+                        <div>
+                        <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                            <span class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">3</span>
+                            Metode Pembayaran
+                        </h3>
+                        
+                        <div class="grid sm:grid-cols-3 gap-3">
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="payment_method" value="bank_transfer" class="peer sr-only" required>
+                                <div class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <div class="rounded-full bg-blue-100 p-2 text-blue-600 peer-checked:bg-primary-200 peer-checked:text-primary-700">
+                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-bold text-gray-900">Transfer Bank</p>
+                                            <p class="text-[10px] text-gray-500 mt-1">BCA, Mandiri, BRI</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="payment_method" value="ewallet" class="peer sr-only" required>
+                                <div class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <div class="rounded-full bg-teal-100 p-2 text-teal-600 peer-checked:bg-primary-200 peer-checked:text-primary-700">
+                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-bold text-gray-900">E-Wallet</p>
+                                            <p class="text-[10px] text-gray-500 mt-1">DANA, GoPay, OVO</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                            
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="payment_method" value="cod" class="peer sr-only" checked required>
+                                <div class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <div class="rounded-full bg-orange-100 p-2 text-orange-600 peer-checked:bg-primary-200 peer-checked:text-primary-700">
+                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-bold text-gray-900">Bayar di Tempat</p>
+                                            <p class="text-[10px] text-gray-500 mt-1">Cash On Delivery (COD)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
 
                         <div class="grid gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50">
                             @auth

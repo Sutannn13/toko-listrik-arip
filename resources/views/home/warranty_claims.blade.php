@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Riwayat Klaim Garansi - Toko Listrik Arip')
+@section('title', 'Riwayat Klaim Garansi - Toko HS ELECTRIC')
 @section('header_subtitle', 'Riwayat Klaim Garansi')
 @section('show_default_store_actions', 'off')
 

@@ -259,6 +259,7 @@ class HomeController extends Controller
         $simpleCart = $request->session()->get('simple_cart', []);
 
         $validated = $request->validate([
+            'payment_method' => ['required', 'string', 'in:cod,bank_transfer,ewallet'],
             'address_id' => ['nullable', 'integer'],
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_email' => ['required', 'email', 'max:255'],
@@ -427,25 +428,12 @@ class HomeController extends Controller
 
         $orderNotes = implode(' | ', $orderNotesParts);
 
+        $paymentMethod = $validated['payment_method']; // <-- TANGKAP INPUT USER
+
         $orderCode = $this->generateOrderCode();
         $paymentCode = $this->generatePaymentCode();
-
         try {
-            $order = DB::transaction(function () use (
-                $user,
-                $address,
-                $customerName,
-                $customerEmail,
-                $customerPhone,
-                $orderNotes,
-                $orderCode,
-                $paymentCode,
-                $subtotal,
-                $shippingCost,
-                $discountAmount,
-                $totalAmount,
-                $orderItemsPayload,
-            ) {
+            $order = DB::transaction(function () use ($user, $address, $customerName, $customerEmail, $customerPhone, $orderNotes, $orderCode, $paymentCode, $subtotal, $shippingCost, $discountAmount, $totalAmount, $orderItemsPayload, $paymentMethod) {
                 $order = Order::create([
                     'order_code' => $orderCode,
                     'user_id' => $user?->id,
@@ -492,10 +480,12 @@ class HomeController extends Controller
 
                 $order->payments()->create([
                     'payment_code' => $paymentCode,
-                    'method' => 'dummy',
+                    'method' => $paymentMethod,
                     'amount' => $totalAmount,
                     'status' => 'pending',
-                    'notes' => 'Payment placeholder untuk flow awal sebelum gateway real.',
+                    'notes' => $paymentMethod === 'cod'
+                        ? 'Bayar di tempat saat barang sampai (COD).'
+                        : 'Menunggu pembayaran dan upload bukti transfer/e-wallet.',
                 ]);
 
                 return $order;
@@ -506,8 +496,15 @@ class HomeController extends Controller
 
         $request->session()->forget('simple_cart');
 
+        $successMsg = 'Checkout berhasil. Kode: ' . $order->order_code . '. ';
+        if ($paymentMethod === 'cod') {
+            $successMsg .= 'Silakan siapkan uang pas saat kurir tiba.';
+        } else {
+            $successMsg .= 'Segera lakukan pembayaran dan upload bukti melalui Tracking Pesanan.';
+        }
+
         return redirect()->route('home.cart')
-            ->with('success', 'Checkout berhasil. Kode pesanan: ' . $order->order_code . '. Garansi klaim hanya untuk produk elektronik dengan masa maksimal 7 hari.')
+            ->with('success', $successMsg)
             ->with('checkout_order_code', $order->order_code);
     }
 

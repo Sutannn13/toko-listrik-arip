@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Pusat Garansi - Toko Listrik Arip')
+@section('title', 'Pusat Garansi - Toko HS ELECTRIC')
 @section('header_subtitle', 'Pusat Garansi')
 @section('show_default_store_actions', 'off')
 

@@ -1,6 +1,6 @@
 @php
     $metaTitle = trim($__env->yieldContent('title'));
-    $pageTitle = $metaTitle !== '' ? $metaTitle : config('app.name', 'Toko Listrik Arip');
+    $pageTitle = $metaTitle !== '' ? $metaTitle : config('app.name', 'Toko HS ELECTRIC');
 
     $bodyClass = trim($__env->yieldContent('body_class'));
     $bodyClass =
@@ -50,15 +50,9 @@
                 <header class="{{ $headerClass }}">
                     <div
                         class="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-                        <a href="{{ route('home') }}"
-                            class="flex items-center gap-3 transition-transform hover:scale-105">
-                            <span
-                                class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-extrabold text-white shadow-md shadow-primary-500/30">TA</span>
-                            <div>
-                                <p class="text-sm font-bold tracking-widest text-primary-600 uppercase">Toko Listrik
-                                    Arip</p>
-                                <p class="text-xs font-medium text-gray-500">{{ $headerSubtitle }}</p>
-                            </div>
+                        <a href="{{ route('home') }}" class="flex items-center transition-transform hover:scale-105">
+                            <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
+                                class="h-10 w-10 object-contain sm:h-11 sm:w-11">
                         </a>
 
                         <div class="flex flex-1 items-center justify-end gap-3 sm:gap-4">
@@ -84,7 +78,7 @@
                 <footer class="{{ $footerClass }}">
                     <div
                         class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <p class="text-sm">&copy; {{ date('Y') }} Toko Listrik Arip. Hak Cipta Dilindungi.</p>
+                        <p class="text-sm">&copy; {{ date('Y') }} Toko HS ELECTRIC. Hak Cipta Dilindungi.</p>
                         <div class="flex gap-4">
                             <a href="#" class="hover:text-white transition">Tentang Kami</a>
                             <a href="#" class="hover:text-white transition">Syarat & Ketentuan</a>

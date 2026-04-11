@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Toko Listrik Arip') }}</title>
+    <title>{{ config('app.name', 'Toko HS ELECTRIC') }}</title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
@@ -22,10 +22,9 @@
 
     <div class="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-6 sm:px-6">
         <div class="mb-6">
-            <a href="{{ route('home') }}" class="inline-flex items-center gap-2.5">
-                <span
-                    class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-extrabold text-white shadow-md shadow-primary-500/30">TA</span>
-                <span class="text-lg font-bold text-gray-900">Toko Listrik Arip</span>
+            <a href="{{ route('home') }}" class="inline-flex items-center">
+                <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
+                    class="h-10 w-10 object-contain">
             </a>
         </div>
 

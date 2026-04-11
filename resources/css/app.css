@@ -17,8 +17,8 @@
         --ui-border: #e2e8f0;
 
         /* TailAdmin tokens */
-        --ta-sidebar-width: 18.125rem;   /* 290px */
-        --ta-header-height: 4rem;         /* 64px  */
+        --ta-sidebar-width: 18.125rem; /* 290px */
+        --ta-header-height: 4rem; /* 64px  */
         --ta-transition: 300ms;
     }
 
@@ -31,7 +31,12 @@
         letter-spacing: 0.01em;
     }
 
-    h1, h2, h3, h4, h5, h6 {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
         letter-spacing: -0.01em;
     }
 
@@ -63,7 +68,6 @@
    COMPONENTS LAYER — TailAdmin Design System
    ───────────────────────────────────────────────── */
 @layer components {
-
     /* ═══════ Page-Level ═══════ */
     .ui-page-header {
         @apply mb-6 flex flex-wrap items-start justify-between gap-3;

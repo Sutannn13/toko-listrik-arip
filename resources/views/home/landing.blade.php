@@ -35,8 +35,9 @@
         class="fixed top-0 left-0 right-0 z-50 border-b border-white/25 bg-emerald-900/18 backdrop-blur-sm transition-transform duration-300 ease-in-out">
         <div class="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <a href="{{ route('landing') }}" class="flex items-center transition-transform hover:scale-105">
-                <img src="{{ asset('img/gemini_generated_image.png') }}" alt="{{ \App\Models\Setting::get('store_name', 'Toko') }}"
-                    class="h-12 w-12 object-contain drop-shadow-[0_2px_10px_rgba(15,23,42,0.42)] sm:h-12 sm:w-12">
+                <img src="{{ asset('img/gemini_generated_image.png') }}"
+                    alt="{{ \App\Models\Setting::get('store_name', 'Toko') }}"
+                    class="h-14 w-auto object-contain drop-shadow-[0_2px_8px_rgba(15,20,38,0.38)] sm:h-16">
             </a>
 
             <div class="flex flex-1 items-center justify-end gap-3 sm:gap-4">
@@ -202,7 +203,8 @@
                 <div class="mb-8 flex items-end justify-between">
                     <div>
                         <h2 class="text-2xl font-extrabold tracking-tight text-slate-900">Jelajahi Kategori</h2>
-                        <p class="mt-1 text-sm font-medium text-slate-600">Temukan barang incaran berdasarkan kelompok kategori.
+                        <p class="mt-1 text-sm font-medium text-slate-600">Temukan barang incaran berdasarkan kelompok
+                            kategori.
                         </p>
                     </div>
                     <a href="{{ route('home') }}"
@@ -217,13 +219,14 @@
                             class="group relative flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:-translate-y-1 hover:border-primary-300/70 hover:shadow-lg hover:shadow-emerald-900/15">
                             <div
                                 class="mb-4 grid h-16 w-16 place-items-center rounded-full border border-slate-200 bg-slate-100/95 shadow-inner transition-transform group-hover:scale-110 group-hover:border-primary-300/70">
-                                <svg class="h-8 w-8 text-primary-600 group-hover:text-primary-700 transition" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="h-8 w-8 text-primary-600 group-hover:text-primary-700 transition"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                         d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-center text-base font-extrabold text-slate-900 group-hover:text-primary-700 transition">
+                            <h3
+                                class="text-center text-base font-extrabold text-slate-900 group-hover:text-primary-700 transition">
                                 {{ $category->name }}</h3>
                             <p class="mt-1 text-sm font-medium text-slate-600">
                                 {{ number_format($category->active_products_count) }} Produk</p>

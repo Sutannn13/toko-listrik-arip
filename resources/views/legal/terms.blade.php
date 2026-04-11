@@ -15,27 +15,32 @@
         <div class="mt-6 space-y-6 text-sm leading-7 text-slate-700">
             <div>
                 <h2 class="text-base font-bold text-slate-900">1. Akun Pengguna</h2>
-                <p class="mt-1">Pengguna bertanggung jawab menjaga kerahasiaan akun dan password. Semua aktivitas dalam akun menjadi tanggung jawab pemilik akun.</p>
+                <p class="mt-1">Pengguna bertanggung jawab menjaga kerahasiaan akun dan password. Semua aktivitas dalam
+                    akun menjadi tanggung jawab pemilik akun.</p>
             </div>
 
             <div>
                 <h2 class="text-base font-bold text-slate-900">2. Pemesanan dan Pembayaran</h2>
-                <p class="mt-1">Pesanan diproses setelah pembayaran terverifikasi (untuk transfer/e-wallet) atau sesuai ketentuan metode COD yang berlaku.</p>
+                <p class="mt-1">Pesanan diproses setelah pembayaran terverifikasi (untuk transfer/e-wallet) atau sesuai
+                    ketentuan metode COD yang berlaku.</p>
             </div>
 
             <div>
                 <h2 class="text-base font-bold text-slate-900">3. Pengiriman</h2>
-                <p class="mt-1">Estimasi pengiriman dapat berubah karena faktor operasional atau pihak ekspedisi. Nomor resi akan diberikan jika tersedia.</p>
+                <p class="mt-1">Estimasi pengiriman dapat berubah karena faktor operasional atau pihak ekspedisi. Nomor
+                    resi akan diberikan jika tersedia.</p>
             </div>
 
             <div>
                 <h2 class="text-base font-bold text-slate-900">4. Garansi dan Klaim</h2>
-                <p class="mt-1">Garansi hanya berlaku pada produk yang memenuhi ketentuan garansi toko. Klaim wajib disertai bukti dan diajukan dalam periode garansi aktif.</p>
+                <p class="mt-1">Garansi hanya berlaku pada produk yang memenuhi ketentuan garansi toko. Klaim wajib
+                    disertai bukti dan diajukan dalam periode garansi aktif.</p>
             </div>
 
             <div>
                 <h2 class="text-base font-bold text-slate-900">5. Perubahan Ketentuan</h2>
-                <p class="mt-1">Kami berhak memperbarui syarat dan ketentuan sewaktu-waktu. Versi terbaru akan ditampilkan pada halaman ini.</p>
+                <p class="mt-1">Kami berhak memperbarui syarat dan ketentuan sewaktu-waktu. Versi terbaru akan ditampilkan
+                    pada halaman ini.</p>
             </div>
         </div>
     </section>

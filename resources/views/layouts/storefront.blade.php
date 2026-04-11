@@ -50,7 +50,8 @@
                     <div
                         class="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
                         <a href="{{ route('home') }}" class="flex items-center transition-transform hover:scale-105">
-                            <img src="{{ asset('img/gemini_generated_image.png') }}" alt="{{ \App\Models\Setting::get('store_name', 'Toko') }}"
+                            <img src="{{ asset('img/gemini_generated_image.png') }}"
+                                alt="{{ \App\Models\Setting::get('store_name', 'Toko') }}"
                                 class="h-10 w-10 object-contain sm:h-11 sm:w-11">
                         </a>
 

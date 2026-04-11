@@ -116,7 +116,8 @@
             button.addEventListener('click', () => {
                 const isVisible = input.type === 'text';
                 input.type = isVisible ? 'password' : 'text';
-                button.setAttribute('aria-label', isVisible ? 'Tampilkan password' : 'Sembunyikan password');
+                button.setAttribute('aria-label', isVisible ? 'Tampilkan password' :
+                    'Sembunyikan password');
                 button.setAttribute('aria-pressed', isVisible ? 'false' : 'true');
 
                 if (showIcon && hideIcon) {

@@ -21,7 +21,8 @@
         <div class="absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-cyan-100/25 blur-3xl"></div>
     </div>
 
-    <main data-auth-shell class="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-10">
+    <main data-auth-shell
+        class="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-10">
         <div data-auth-grid class="grid w-full items-stretch gap-6 lg:grid-cols-[1.12fr,0.88fr] lg:gap-10">
             <section
                 class="hidden rounded-3xl border border-white/35 bg-gradient-to-b from-white/24 to-white/10 p-10 text-white shadow-[0_30px_80px_rgba(15,23,42,0.28)] backdrop-blur-sm lg:flex lg:flex-col lg:justify-between">
@@ -30,28 +31,33 @@
                         <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
                             class="h-11 w-11 rounded-xl border border-white/30 bg-white/20 p-1.5 object-contain">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100">Toko HS ELECTRIC</p>
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100">Toko HS
+                                ELECTRIC</p>
                             <p class="text-sm font-medium text-white/85">Verifikasi akun pelanggan</p>
                         </div>
                     </a>
 
                     <div class="mt-10 max-w-xl">
-                        <span class="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-50">
+                        <span
+                            class="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-50">
                             Verifikasi Email
                         </span>
                         <h1 class="mt-4 text-[2.15rem] font-extrabold leading-tight tracking-tight text-white">
                             Satu langkah lagi untuk mengaktifkan akun Anda.
                         </h1>
                         <p class="mt-4 text-base leading-relaxed text-emerald-50/95">
-                            Silakan cek inbox email Anda lalu klik tautan verifikasi. Proses ini membantu menjaga keamanan akun serta memastikan notifikasi transaksi dapat terkirim dengan benar.
+                            Silakan cek inbox email Anda lalu klik tautan verifikasi. Proses ini membantu menjaga
+                            keamanan akun serta memastikan notifikasi transaksi dapat terkirim dengan benar.
                         </p>
                     </div>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="rounded-2xl border border-white/20 bg-white/12 p-4 sm:col-span-2">
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">Belum dapat email?</p>
-                        <p class="mt-2 text-sm text-white/90">Klik tombol kirim ulang verifikasi. Cek folder spam atau promosi bila email belum muncul.</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">Belum dapat email?
+                        </p>
+                        <p class="mt-2 text-sm text-white/90">Klik tombol kirim ulang verifikasi. Cek folder spam atau
+                            promosi bila email belum muncul.</p>
                     </div>
                     <div class="rounded-2xl border border-white/20 bg-white/12 p-4">
                         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">Cepat</p>
@@ -66,21 +72,27 @@
 
             <section class="w-full max-w-md place-self-center">
                 <div class="mb-5 text-center lg:hidden">
-                    <a href="{{ route('home') }}" class="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-white backdrop-blur-sm">
-                        <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC" class="h-7 w-7 object-contain">
+                    <a href="{{ route('home') }}"
+                        class="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-white backdrop-blur-sm">
+                        <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
+                            class="h-7 w-7 object-contain">
                         <span class="text-sm font-semibold">Toko HS ELECTRIC</span>
                     </a>
                 </div>
 
-                <div data-auth-card class="rounded-3xl border border-white/75 bg-white/88 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.24)] backdrop-blur-sm sm:p-8">
+                <div data-auth-card
+                    class="rounded-3xl border border-white/75 bg-white/88 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.24)] backdrop-blur-sm sm:p-8">
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Aktivasi Akun</p>
-                        <h2 data-auth-title class="mt-2 text-[1.9rem] font-extrabold leading-tight text-slate-900">Verifikasi email Anda</h2>
-                        <p data-auth-subtitle class="mt-2 text-sm leading-relaxed text-slate-500">Setelah email terverifikasi, Anda bisa menggunakan seluruh fitur akun secara penuh.</p>
+                        <h2 data-auth-title class="mt-2 text-[1.9rem] font-extrabold leading-tight text-slate-900">
+                            Verifikasi email Anda</h2>
+                        <p data-auth-subtitle class="mt-2 text-sm leading-relaxed text-slate-500">Setelah email
+                            terverifikasi, Anda bisa menggunakan seluruh fitur akun secara penuh.</p>
                     </div>
 
                     @if (session('status') == 'verification-link-sent')
-                        <div class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                        <div
+                            class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                             Link verifikasi baru telah dikirim ke email yang Anda daftarkan.
                         </div>
                     @endif

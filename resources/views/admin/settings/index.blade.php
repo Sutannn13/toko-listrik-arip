@@ -54,6 +54,19 @@
                         @endif
                     </div>
                 </div>
+
+                <div class="mt-8 border-t border-gray-100 pt-6 dark:border-dark-border">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Social Media</h3>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">URL profil sosial yang tampil di footer website.</p>
+
+                    <div class="mt-4 grid gap-5 sm:grid-cols-2">
+                        @foreach (['social_instagram_url', 'social_facebook_url', 'social_tiktok_url'] as $key)
+                            @if (isset($settings[$key]))
+                                <x-admin.setting-input :setting="$settings[$key]" />
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
             </div>
         </div>
 

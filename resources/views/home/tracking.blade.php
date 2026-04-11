@@ -1,17 +1,13 @@
 @extends('layouts.storefront')
 
-@section('title', 'Lacak Pesanan - Toko HS ELECTRIC')
+@section('title', 'Lacak Pesanan - ' . \App\Models\Setting::get('store_name', 'Toko Listrik'))
 @section('header_subtitle', 'Lacak Pesanan')
 @section('show_default_store_actions', 'off')
 @section('main_container_class',
     'mx-auto w-full max-w-xl px-4 py-16 sm:px-6 lg:px-8 flex-1 flex flex-col
     justify-center')
 @section('footer')
-    <footer class="mt-auto bg-gray-900 py-6 text-center text-gray-400">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <p class="text-sm">&copy; {{ date('Y') }} Toko HS ELECTRIC. Hak Cipta Dilindungi.</p>
-        </div>
-    </footer>
+    @include('layouts.partials.flowbite-footer')
 @endsection
 
 @section('background')

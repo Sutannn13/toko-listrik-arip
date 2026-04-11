@@ -11,62 +11,77 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        $categories = Category::latest()->get();
+        $categories = Category::withCount('products')->latest()->get();
         return view('admin.categories.index', compact('categories'));
     }
 
     public function create()
     {
-        // Tampilkan halaman form
         return view('admin.categories.create');
     }
 
     public function store(Request $request)
     {
-        // 1. Validasi: Nama wajib diisi dan nggak boleh kembar
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name',
         ]);
 
-        // 2. Simpan ke database
         Category::create([
             'name' => $validated['name'],
-            'slug' => UniqueSlugGenerator::make(Category::class, $validated['name']),
+            'slug' => UniqueSlugGenerator::make(Category::class, $validated['name'], 'slug'),
         ]);
 
-        // 3. Tendang balik ke halaman tabel dengan pesan sukses
-        return redirect()->route('admin.categories.index')->with('success', 'Kategori berhasil ditambahkan!');
+        return redirect()->route('admin.categories.index')
+            ->with('success', 'Kategori "' . $validated['name'] . '" berhasil ditambahkan!');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        //
+        return redirect()->route('admin.categories.edit', $id);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(string $id)
     {
-        //
+        $category = Category::findOrFail($id);
+        return view('admin.categories.edit', compact('category'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
-        //
+        $category = Category::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
+        ]);
+
+        // Regenerate slug only if name changed
+        $slug = $category->slug;
+        if ($validated['name'] !== $category->name) {
+            $slug = UniqueSlugGenerator::make(Category::class, $validated['name'], 'slug', $category->id);
+        }
+
+        $category->update([
+            'name' => $validated['name'],
+            'slug' => $slug,
+        ]);
+
+        return redirect()->route('admin.categories.index')
+            ->with('success', 'Kategori "' . $validated['name'] . '" berhasil diperbarui!');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
-        //
+        $category = Category::findOrFail($id);
+
+        if ($category->products()->exists()) {
+            return redirect()->route('admin.categories.index')
+                ->with('error', 'Kategori "' . $category->name . '" tidak bisa dihapus karena masih memiliki produk.');
+        }
+
+        $name = $category->name;
+        $category->delete();
+
+        return redirect()->route('admin.categories.index')
+            ->with('success', 'Kategori "' . $name . '" berhasil dihapus.');
     }
 }

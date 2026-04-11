@@ -10,7 +10,9 @@ class WarrantyClaimStatusUpdatedNotification extends Notification
 {
     use Queueable;
 
-    public function __construct(private readonly WarrantyClaim $claim) {}
+    public function __construct(private readonly WarrantyClaim $claim)
+    {
+    }
 
     public function via(object $notifiable): array
     {

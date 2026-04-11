@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\WarrantyClaimController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
+use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileAddressController;
 
@@ -15,6 +17,8 @@ use App\Http\Controllers\ProfileAddressController;
 Route::get('/', [HomeController::class, 'landing'])->name('landing');
 Route::get('/katalog', [HomeController::class, 'index'])->name('home');
 Route::get('/produk/{slug}', [HomeController::class, 'show'])->name('home.products.show');
+Route::view('/privacy-policy', 'legal.privacy')->name('legal.privacy');
+Route::view('/terms-and-conditions', 'legal.terms')->name('legal.terms');
 
 Route::middleware('auth')->group(function () {
     Route::post('/produk/{slug}/buy', [HomeController::class, 'buy'])->name('home.products.buy');
@@ -81,6 +85,8 @@ Route::middleware(['auth', 'admin.access', 'role:super-admin|admin'])
 
         // Menjadi: /admin/products | route('admin.products.index'), dll.
         Route::resource('products', ProductController::class);
+        Route::post('/products/{product}/adjust-stock', [\App\Http\Controllers\Admin\ProductController::class, 'adjustStock'])
+            ->name('products.adjust-stock');
 
         // Order pipeline minimal
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
@@ -100,6 +106,19 @@ Route::middleware(['auth', 'admin.access', 'role:super-admin|admin'])
             ->name('notifications.index');
         Route::post('/notifications/read-all', [AdminNotificationController::class, 'markAllRead'])
             ->name('notifications.read-all');
+
+        // ── System Settings ──
+        Route::middleware('role:super-admin')->group(function () {
+            Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+            Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
+
+            // ── User Management ──
+            Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+            Route::patch('/users/{user}/role', [UserManagementController::class, 'updateRole'])->name('users.update-role');
+            Route::post('/users/{user}/suspend', [UserManagementController::class, 'suspend'])->name('users.suspend');
+            Route::post('/users/{user}/unsuspend', [UserManagementController::class, 'unsuspend'])->name('users.unsuspend');
+            Route::post('/users/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('users.reset-password');
+        });
     });
 
 // 5. INI YANG LO HAPUS SEBELUMNYA (Jantung Auth Laravel Breeze)

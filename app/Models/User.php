@@ -18,6 +18,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_suspended',
+        'suspended_at',
+        'suspended_reason',
     ];
 
     /**
@@ -29,8 +32,20 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
+            'is_suspended'      => 'boolean',
+            'suspended_at'      => 'datetime',
         ];
+    }
+
+    public function isSuspended(): bool
+    {
+        return (bool) $this->is_suspended;
+    }
+
+    public function primaryRole(): string
+    {
+        return $this->getRoleNames()->first() ?? 'user';
     }
 
     public function addresses(): HasMany

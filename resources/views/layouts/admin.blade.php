@@ -34,12 +34,11 @@
     $adminUnreadNotificationCount =
         $notificationsTableExists && $authUser ? $authUser->unreadNotifications()->count() : 0;
 
-    // Route availability flags (for "Coming Soon" links)
     $hasUserManagementRoute = \Illuminate\Support\Facades\Route::has('admin.users.index');
-    $hasSystemSettingsRoute = \Illuminate\Support\Facades\Route::has('admin.settings.index');
+    $hasSystemSettingsRoute  = \Illuminate\Support\Facades\Route::has('admin.settings.index');
 
     $userManagementUrl = $hasUserManagementRoute ? route('admin.users.index') : '#';
-    $systemSettingsUrl = $hasSystemSettingsRoute ? route('admin.settings.index') : '#';
+    $systemSettingsUrl = $hasSystemSettingsRoute  ? route('admin.settings.index') : '#';
 @endphp
 
 <!DOCTYPE html>
@@ -51,7 +50,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', 'Admin Panel') - {{ config('app.name', 'Toko HS ELECTRIC') }}</title>
+    <title>@yield('title', 'Admin Panel') - {{ \App\Models\Setting::get('store_name', 'Toko Listrik') }}</title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link
@@ -130,10 +129,10 @@
             :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : 'justify-between px-6'">
             <a href="{{ $dashboardUrl }}" class="flex items-center gap-3 group"
                 :class="sidebarCollapsed ? 'lg:gap-0' : ''">
-                <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
+                <img src="{{ asset('img/gemini_generated_image.png') }}" alt="{{ \App\Models\Setting::get('store_name', 'Toko') }}"
                     class="h-9 w-9 shrink-0 rounded-lg border border-gray-200 object-contain shadow-md dark:border-dark-border">
                 <div :class="sidebarCollapsed ? 'lg:hidden' : ''" class="overflow-hidden transition-all duration-200">
-                    <p class="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">Toko HS ELECTRIC</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">{{ \App\Models\Setting::get('store_name', 'Toko Listrik') }}</p>
                     <p class="text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ $displayRole }} Panel
                     </p>
                 </div>
@@ -370,18 +369,6 @@
             </div>
         </div>
 
-        {{-- ── Desktop Collapse Toggle (bottom of sidebar) ── --}}
-        <div class="hidden lg:flex h-12 items-center justify-center border-t border-gray-200 dark:border-dark-border">
-            <button type="button" @click="sidebarCollapsed = !sidebarCollapsed"
-                class="rounded-lg p-2 text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-dark-hover dark:hover:text-gray-300"
-                :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
-                <svg class="h-5 w-5 transition-transform duration-300" :class="sidebarCollapsed ? 'rotate-180' : ''"
-                    fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                </svg>
-            </button>
-        </div>
     </aside>
 
     {{-- ═══════════════════════════════════════════════════════

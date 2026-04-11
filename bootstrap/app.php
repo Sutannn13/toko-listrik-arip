@@ -11,6 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(append: [
+            \App\Http\Middleware\CheckSuspended::class,
+            \App\Http\Middleware\CheckMaintenanceMode::class,
+        ]);
+
         // TAMBAHKAN KODE INI
         $middleware->alias([
             'admin.access' => \App\Http\Middleware\EnsureAdminAreaAccess::class,

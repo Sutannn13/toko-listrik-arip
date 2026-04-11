@@ -47,6 +47,7 @@
         </div>
     @endif
 
+    {{-- Header --}}
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-extrabold text-gray-900 sm:text-3xl">Keranjang Belanja</h1>
@@ -65,21 +66,26 @@
         </a>
     </div>
 
+    {{-- Nav Links ke halaman user --}}
     <div class="mb-6 flex flex-wrap items-center gap-2">
         <a href="{{ route('home.transactions') }}"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-1.5">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
             Riwayat Transaksi
         </a>
         <a href="{{ route('home.warranty') }}"
-            class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 hover:bg-primary-100">
+            class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 hover:bg-primary-100 flex items-center gap-1.5">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
             Pusat Garansi
         </a>
         <a href="{{ route('home.warranty-claims.index') }}"
-            class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 hover:bg-primary-100">
+            class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 hover:bg-primary-100 flex items-center gap-1.5">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
             Riwayat Klaim
         </a>
         <a href="{{ route('home.notifications.index') }}"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-1.5">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
             Notifikasi
         </a>
     </div>
@@ -103,6 +109,8 @@
         </section>
     @else
         <section class="grid gap-8 lg:grid-cols-[1.5fr,1fr]">
+
+            {{-- Kiri: Daftar Item Keranjang --}}
             <div class="space-y-4">
                 @foreach ($cartItems as $item)
                     <article
@@ -175,9 +183,9 @@
                 @endforeach
             </div>
 
+            {{-- Kanan: Form Checkout --}}
             <aside class="sticky top-24 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm self-start">
-                <h2 class="text-xl font-bold text-gray-900 border-b border-gray-100 pb-4">Ringkasan Pesanan
-                </h2>
+                <h2 class="text-xl font-bold text-gray-900 border-b border-gray-100 pb-4">Ringkasan Pesanan</h2>
 
                 <div class="mt-4 space-y-3">
                     <div class="flex items-center justify-between text-sm">
@@ -203,6 +211,7 @@
                 <form method="POST" action="{{ route('home.cart.checkout') }}" class="mt-6 space-y-5">
                     @csrf
 
+                    {{-- STEP 1: Data Pelanggan --}}
                     <div>
                         <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                             <span
@@ -211,8 +220,7 @@
                         </h3>
                         <div class="grid gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50">
                             <div>
-                                <label class="mb-1 block text-xs font-semibold text-gray-600">Nama
-                                    Lengkap</label>
+                                <label class="mb-1 block text-xs font-semibold text-gray-600">Nama Lengkap</label>
                                 <input type="text" name="customer_name"
                                     value="{{ old('customer_name', auth()->user()->name ?? '') }}"
                                     class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
@@ -234,6 +242,7 @@
                         </div>
                     </div>
 
+                    {{-- STEP 2: Alamat Pengiriman --}}
                     <div>
                         <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                             <span
@@ -241,25 +250,123 @@
                             Alamat Pengiriman
                         </h3>
 
-                        <div>
+                        <div class="grid gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50">
+                            {{-- Pilih alamat tersimpan (jika ada) --}}
+                            @auth
+                                @if ($userAddresses->isNotEmpty())
+                                    <div>
+                                        <label class="mb-1 block text-xs font-semibold text-gray-600">Pilih Alamat
+                                            Tersimpan</label>
+                                        <select name="address_id" id="address_id_select"
+                                            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                            <option value="">-- Isi alamat baru di bawah --</option>
+                                            @foreach ($userAddresses as $address)
+                                                <option value="{{ $address->id }}" @selected((int) old('address_id', $defaultAddressId) === (int) $address->id)>
+                                                    {{ $address->label ?: 'Alamat' }} —
+                                                    {{ $address->recipient_name }} ({{ $address->city }})
+                                                    {{ $address->is_default ? '[Default]' : '' }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <p class="mt-1 text-[11px] text-gray-400">Jika memilih alamat tersimpan, kolom di bawah akan diabaikan.</p>
+                                    </div>
+                                @endif
+                            @endauth
+
+                            {{-- Form alamat baru --}}
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="mb-1.5 block text-xs font-bold text-gray-700">Label (Rumah/Kantor)</label>
+                                    <input type="text" name="address_label" value="{{ old('address_label') }}"
+                                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
+                                        placeholder="Contoh: Rumah">
+                                </div>
+                                <div>
+                                    <label class="mb-1.5 block text-xs font-bold text-gray-700">Nama Penerima</label>
+                                    <input type="text" name="recipient_name" value="{{ old('recipient_name') }}"
+                                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
+                                        placeholder="Penerima paket">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="mb-1.5 block text-xs font-bold text-gray-700">No. HP Penerima</label>
+                                <input type="text" name="address_phone" value="{{ old('address_phone') }}"
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
+                                    placeholder="Contoh: 0812xxxxxx">
+                            </div>
+
+                            <div>
+                                <label class="mb-1.5 block text-xs font-bold text-gray-700">Alamat Lengkap</label>
+                                <textarea name="address_line" rows="3"
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
+                                    placeholder="Nama jalan, gedung, RT/RW">{{ old('address_line') }}</textarea>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="mb-1.5 block text-xs font-bold text-gray-700">Kota / Kab.</label>
+                                    <input type="text" name="city" value="{{ old('city') }}"
+                                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
+                                        placeholder="Kota">
+                                </div>
+                                <div>
+                                    <label class="mb-1.5 block text-xs font-bold text-gray-700">Provinsi</label>
+                                    <input type="text" name="province" value="{{ old('province') }}"
+                                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
+                                        placeholder="Provinsi">
+                                </div>
+                                <div>
+                                    <label class="mb-1.5 block text-xs font-bold text-gray-700">Kode Pos</label>
+                                    <input type="text" name="postal_code" value="{{ old('postal_code') }}"
+                                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
+                                        placeholder="12345">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="mb-1.5 block text-xs font-bold text-gray-700">Catatan/Patokan <span class="font-normal text-gray-400">(Opsional)</span></label>
+                                <input type="text" name="address_notes" value="{{ old('address_notes') }}"
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
+                                    placeholder="Misal: Pagar hitam depan masjid">
+                            </div>
+
+                            @auth
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                    <input type="checkbox" name="set_as_default" value="1" @checked(old('set_as_default'))
+                                        class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 h-4 w-4">
+                                    Jadikan sebagai alamat default
+                                </label>
+                            @endauth
+                        </div>
+                    </div>
+
+                    {{-- STEP 3: Metode Pembayaran --}}
+                    <div>
                         <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <span class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">3</span>
+                            <span
+                                class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">3</span>
                             Metode Pembayaran
                         </h3>
-                        
+
                         <div class="grid sm:grid-cols-3 gap-3">
                             <label class="relative cursor-pointer">
                                 <input type="radio" name="payment_method" value="bank_transfer" class="peer sr-only" required>
-                                <div class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
+                                <div
+                                    class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
                                     <div class="flex flex-col items-center text-center gap-2">
-                                        <div class="rounded-full bg-blue-100 p-2 text-blue-600 peer-checked:bg-primary-200 peer-checked:text-primary-700">
+                                        <div class="rounded-full bg-blue-100 p-2 text-blue-600">
                                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
+                                                </path>
                                             </svg>
                                         </div>
                                         <div>
                                             <p class="text-sm font-bold text-gray-900">Transfer Bank</p>
-                                            <p class="text-[10px] text-gray-500 mt-1">BCA, Mandiri, BRI</p>
+                                            <p class="text-[10px] text-gray-500 mt-1">
+                                                {{ implode(', ', array_filter([\App\Models\Setting::get('bank_1_name'), \App\Models\Setting::get('bank_2_name'), \App\Models\Setting::get('bank_3_name')])) ?: 'Transfer Bank' }}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -267,11 +374,14 @@
 
                             <label class="relative cursor-pointer">
                                 <input type="radio" name="payment_method" value="ewallet" class="peer sr-only" required>
-                                <div class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
+                                <div
+                                    class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
                                     <div class="flex flex-col items-center text-center gap-2">
-                                        <div class="rounded-full bg-teal-100 p-2 text-teal-600 peer-checked:bg-primary-200 peer-checked:text-primary-700">
+                                        <div class="rounded-full bg-teal-100 p-2 text-teal-600">
                                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z">
+                                                </path>
                                             </svg>
                                         </div>
                                         <div>
@@ -281,14 +391,17 @@
                                     </div>
                                 </div>
                             </label>
-                            
+
                             <label class="relative cursor-pointer">
                                 <input type="radio" name="payment_method" value="cod" class="peer sr-only" checked required>
-                                <div class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
+                                <div
+                                    class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
                                     <div class="flex flex-col items-center text-center gap-2">
-                                        <div class="rounded-full bg-orange-100 p-2 text-orange-600 peer-checked:bg-primary-200 peer-checked:text-primary-700">
+                                        <div class="rounded-full bg-orange-100 p-2 text-orange-600">
                                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z">
+                                                </path>
                                             </svg>
                                         </div>
                                         <div>
@@ -301,100 +414,9 @@
                         </div>
                     </div>
 
-                        <div class="grid gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50">
-                            @auth
-                                @if ($userAddresses->isNotEmpty())
-                                    <div>
-                                        <label class="mb-1 block text-xs font-semibold text-gray-600">Pilih Alamat
-                                            Tersimpan</label>
-                                        <select name="address_id"
-                                            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                            <option value="">-- Buat alamat baru --</option>
-                                            @foreach ($userAddresses as $address)
-                                                <option value="{{ $address->id }}" @selected((int) old('address_id', $defaultAddressId) === (int) $address->id)>
-                                                    {{ $address->label ?: 'Alamat' }} -
-                                                    {{ $address->recipient_name }} ({{ $address->city }})
-                                                    {{ $address->is_default ? '[Default]' : '' }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                @endif
-                            @endauth
-
-                            <div class="grid gap-3 pt-2">
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="mb-1 block text-xs font-semibold text-gray-600">Label
-                                            (Rumah/Kantor)</label>
-                                        <input type="text" name="address_label" value="{{ old('address_label') }}"
-                                            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                    </div>
-                                    <div>
-                                        <label class="mb-1 block text-xs font-semibold text-gray-600">Nama
-                                            Penerima</label>
-                                        <input type="text" name="recipient_name" value="{{ old('recipient_name') }}"
-                                            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="mb-1 block text-xs font-semibold text-gray-600">No. HP
-                                        Penerima</label>
-                                    <input type="text" name="address_phone" value="{{ old('address_phone') }}"
-                                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                </div>
-
-                                <div>
-                                    <label class="mb-1 block text-xs font-semibold text-gray-600">Alamat
-                                        Lengkap</label>
-                                    <textarea name="address_line" rows="2"
-                                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                                        placeholder="Nama jalan, gedung, RT/RW">{{ old('address_line') }}</textarea>
-                                </div>
-
-                                <div class="grid gap-3 grid-cols-3">
-                                    <div class="col-span-1">
-                                        <label
-                                            class="mb-1 block text-[10px] sm:text-xs font-semibold text-gray-600">Kota</label>
-                                        <input type="text" name="city" value="{{ old('city') }}"
-                                            class="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                    </div>
-                                    <div class="col-span-1">
-                                        <label
-                                            class="mb-1 block text-[10px] sm:text-xs font-semibold text-gray-600">Provinsi</label>
-                                        <input type="text" name="province" value="{{ old('province') }}"
-                                            class="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                    </div>
-                                    <div class="col-span-1">
-                                        <label class="mb-1 block text-[10px] sm:text-xs font-semibold text-gray-600">Kode
-                                            Pos</label>
-                                        <input type="text" name="postal_code" value="{{ old('postal_code') }}"
-                                            class="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="mb-1 block text-xs font-semibold text-gray-600">Catatan/Patokan</label>
-                                    <input type="text" name="address_notes" value="{{ old('address_notes') }}"
-                                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                                        placeholder="Misal: Pagar hitam depan masjid">
-                                </div>
-                            </div>
-
-                            @auth
-                                <label class="mt-2 inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                                    <input type="checkbox" name="set_as_default" value="1" @checked(old('set_as_default'))
-                                        class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 h-4 w-4">
-                                    Jadikan sebagai alamat default
-                                </label>
-                            @endauth
-                        </div>
-                    </div>
-
                     <button type="submit"
                         class="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3.5 text-base font-bold text-white shadow-md shadow-primary-500/20 transition hover:bg-primary-700 focus:outline-none focus:ring-4 focus:ring-primary-500/30">
-                        Checkout & Bayar
+                        Checkout &amp; Bayar
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
@@ -405,6 +427,7 @@
         </section>
     @endif
 
+    {{-- Pesanan Terakhir --}}
     @if ($recentOrders->isNotEmpty())
         <section class="mt-12 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
             <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -414,10 +437,16 @@
                         produk yang sudah dibeli.</p>
                 </div>
 
-                <a href="{{ route('home.warranty-claims.index') }}"
-                    class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 hover:bg-primary-100">
-                    Lihat Riwayat Klaim
-                </a>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('home.transactions') }}"
+                        class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                        Semua Transaksi
+                    </a>
+                    <a href="{{ route('home.warranty-claims.index') }}"
+                        class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 hover:bg-primary-100">
+                        Lihat Riwayat Klaim
+                    </a>
+                </div>
             </div>
 
             <div class="grid gap-6">
@@ -497,7 +526,8 @@
                                                 class="mt-1.5 inline-flex items-center gap-1.5 rounded bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700">
                                                 <svg class="h-3 w-3" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
                                                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                 </svg>
                                                 @if ($isWarrantyEligible)
@@ -543,7 +573,8 @@
                                                                 placeholder="Alasan klaim rusak/cacat" required>
                                                         </div>
 
-                                                        <input type="file" name="damage_proof" accept="image/*,video/*"
+                                                        <input type="file" name="damage_proof"
+                                                            accept="image/*,video/*"
                                                             class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-gray-700 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                                                             required>
 

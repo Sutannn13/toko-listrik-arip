@@ -1,6 +1,6 @@
 @php
     $metaTitle = trim($__env->yieldContent('title'));
-    $pageTitle = $metaTitle !== '' ? $metaTitle : config('app.name', 'Toko HS ELECTRIC');
+    $pageTitle = $metaTitle !== '' ? $metaTitle : \App\Models\Setting::get('store_name', 'Toko Listrik');
 
     $bodyClass = trim($__env->yieldContent('body_class'));
     $bodyClass =
@@ -19,7 +19,6 @@
     $headerSubtitle = $headerSubtitle !== '' ? $headerSubtitle : 'Pasti Nyala, Pasti Murah';
 
     $footerClass = trim($__env->yieldContent('footer_class'));
-    $footerClass = $footerClass !== '' ? $footerClass : 'mt-auto bg-gray-900 py-8 text-center text-gray-400';
 
     $showHeader = trim($__env->yieldContent('show_header')) !== 'off';
     $showFooter = trim($__env->yieldContent('show_footer')) !== 'off';
@@ -51,7 +50,7 @@
                     <div
                         class="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
                         <a href="{{ route('home') }}" class="flex items-center transition-transform hover:scale-105">
-                            <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
+                            <img src="{{ asset('img/gemini_generated_image.png') }}" alt="{{ \App\Models\Setting::get('store_name', 'Toko') }}"
                                 class="h-10 w-10 object-contain sm:h-11 sm:w-11">
                         </a>
 
@@ -75,16 +74,7 @@
             @hasSection('footer')
                 @yield('footer')
             @else
-                <footer class="{{ $footerClass }}">
-                    <div
-                        class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <p class="text-sm">&copy; {{ date('Y') }} Toko HS ELECTRIC. Hak Cipta Dilindungi.</p>
-                        <div class="flex gap-4">
-                            <a href="#" class="hover:text-white transition">Tentang Kami</a>
-                            <a href="#" class="hover:text-white transition">Syarat & Ketentuan</a>
-                        </div>
-                    </div>
-                </footer>
+                @include('layouts.partials.flowbite-footer', ['footerClass' => $footerClass])
             @endif
         @endif
     </div>

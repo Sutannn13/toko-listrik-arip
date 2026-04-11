@@ -118,8 +118,7 @@ class HomeController extends Controller
             ->firstOrFail();
 
         if ($product->stock < 1) {
-            return redirect()->route('home.products.show', $product->slug)
-                ->with('error', 'Stok produk habis. Silakan pilih produk lain.');
+            return back()->with('error', 'Stok produk habis. Silakan pilih produk lain.');
         }
 
         $validated = $request->validate([
@@ -128,15 +127,26 @@ class HomeController extends Controller
 
         $qty = (int) ($validated['qty'] ?? 1);
         $simpleCart = $request->session()->get('simple_cart', []);
+
+        // FIX LOGIKA 1: Bersihin array session biar ID-nya jadi Key yang mutlak.
+        // Ini buat nyegah bug item masuk ke keranjang jadi 2 baris (dobel).
+        $cleanCart = [];
+        foreach ($simpleCart as $item) {
+            if (isset($item['product_id'])) {
+                $cleanCart[$item['product_id']] = $item;
+            }
+        }
+        $simpleCart = $cleanCart;
+
         $existingQty = isset($simpleCart[$product->id]) ? (int) $simpleCart[$product->id]['qty'] : 0;
 
         if ($existingQty >= (int) $product->stock) {
-            return redirect()->route('home.products.show', $product->slug)
-                ->with('error', 'Jumlah produk di keranjang sudah mencapai stok tersedia.');
+            return back()->with('error', 'Jumlah produk di keranjang sudah mencapai stok tersedia.');
         }
 
         $newQty = min($existingQty + $qty, (int) $product->stock);
 
+        // Timpa data pakai ID sebagai key, jadi kuantitasnya aja yang nambah, bukan barisnya.
         $simpleCart[$product->id] = [
             'product_id' => $product->id,
             'name' => $product->name,
@@ -148,8 +158,9 @@ class HomeController extends Controller
 
         $request->session()->put('simple_cart', $simpleCart);
 
-        return redirect()->route('home.products.show', $product->slug)
-            ->with('success', $product->name . ' berhasil ditambahkan ke keranjang sederhana.');
+        // FIX LOGIKA 2: Pakai back() biar user tetep di halaman saat ini 
+        // (gak dialihin maksa ke halaman detail produk). Belanja jadi ga keganggu.
+        return back()->with('success', $product->name . ' berhasil ditambahkan ke keranjang.');
     }
 
     public function cart(Request $request): View

@@ -50,6 +50,13 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        if (Auth::user()->isSuspended()) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => 'Akun Anda telah disuspend. Silakan hubungi admin.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

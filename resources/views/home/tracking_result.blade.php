@@ -1,15 +1,11 @@
 @extends('layouts.storefront')
 
-@section('title', 'Hasil Lacak Pesanan ' . $order->order_code . ' - Toko HS ELECTRIC')
+@section('title', 'Hasil Lacak Pesanan ' . $order->order_code . ' - ' . \App\Models\Setting::get('store_name', 'Toko Listrik'))
 @section('header_subtitle', 'Hasil Pelacakan')
 @section('show_default_store_actions', 'off')
 @section('main_container_class', 'mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8 flex-1')
 @section('footer')
-    <footer class="mt-auto bg-gray-900 py-6 text-center text-gray-400">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <p class="text-sm">&copy; {{ date('Y') }} Toko HS ELECTRIC. Hak Cipta Dilindungi.</p>
-        </div>
-    </footer>
+    @include('layouts.partials.flowbite-footer')
 @endsection
 
 @section('background')
@@ -73,8 +69,8 @@
             <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
                 <h3 class="text-sm font-bold text-blue-900 mb-2">Segera Upload Bukti Pembayaran</h3>
                 <p class="text-xs text-blue-700 mb-4">Transfer sebesar <strong>Rp
-                        {{ number_format($order->total_amount, 0, ',', '.') }}</strong> ke <b>BCA 12345678 a/n
-                        Arip</b>, lalu unggah bukti di sini agar pesanan diproses.</p>
+                        {{ number_format($order->total_amount, 0, ',', '.') }}</strong> ke <b>{{ \App\Models\Setting::get('bank_1_name') }} {{ \App\Models\Setting::get('bank_1_account') }} a/n
+                        {{ \App\Models\Setting::get('bank_1_holder') }}</b>, lalu unggah bukti di sini agar pesanan diproses.</p>
 
                 <form action="{{ route('home.tracking.proof', $order->order_code) }}" method="POST"
                     enctype="multipart/form-data" class="flex flex-col sm:flex-row gap-3">

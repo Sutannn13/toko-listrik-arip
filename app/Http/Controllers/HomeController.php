@@ -922,6 +922,59 @@ class HomeController extends Controller
         ]);
     }
 
+    public function openNotification(Request $request, string $notification): RedirectResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            abort(403);
+        }
+
+        if (!Schema::hasTable('notifications')) {
+            return redirect()->route('home.notifications.index')
+                ->with('error', 'Tabel notifikasi belum tersedia. Jalankan migrasi database terlebih dahulu.');
+        }
+
+        $notificationModel = $user->notifications()
+            ->whereKey($notification)
+            ->first();
+
+        abort_unless($notificationModel, 404);
+
+        if ($notificationModel->read_at === null) {
+            $notificationModel->markAsRead();
+        }
+
+        $payload = is_array($notificationModel->data) ? $notificationModel->data : [];
+        $targetUrl = trim((string) ($payload['route'] ?? ''));
+
+        if ($targetUrl === '') {
+            return redirect()->route('home.notifications.index');
+        }
+
+        if (Str::startsWith($targetUrl, '/')) {
+            return redirect()->to($targetUrl);
+        }
+
+        $appUrl = rtrim((string) config('app.url'), '/');
+        if ($appUrl !== '' && Str::startsWith($targetUrl, $appUrl)) {
+            return redirect()->to($targetUrl);
+        }
+
+        $targetHost = parse_url($targetUrl, PHP_URL_HOST);
+        $currentHost = parse_url((string) url('/'), PHP_URL_HOST);
+        if (
+            is_string($targetHost) &&
+            $targetHost !== '' &&
+            is_string($currentHost) &&
+            $currentHost !== '' &&
+            strcasecmp($targetHost, $currentHost) === 0
+        ) {
+            return redirect()->to($targetUrl);
+        }
+
+        return redirect()->route('home.notifications.index');
+    }
+
     public function markAllNotificationsRead(Request $request): RedirectResponse
     {
         $user = $request->user();

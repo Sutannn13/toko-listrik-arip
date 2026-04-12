@@ -40,6 +40,36 @@
     $adminUnreadNotificationCount =
         $notificationsTableExists && $authUser ? $authUser->unreadNotifications()->count() : 0;
 
+    $adminNotificationPreviews = collect();
+    if ($notificationsTableExists && $authUser) {
+        $adminNotificationPreviews = $authUser
+            ->notifications()
+            ->latest()
+            ->limit(6)
+            ->get()
+            ->map(function ($notification) use ($adminNotificationsUrl) {
+                $payload = is_array($notification->data) ? $notification->data : [];
+                $title = trim((string) ($payload['title'] ?? 'Pembaruan sistem'));
+                $message = trim((string) ($payload['message'] ?? 'Ada notifikasi baru untuk ditinjau.'));
+                $route = trim((string) ($payload['route'] ?? ''));
+                $referenceCode = trim((string) ($payload['order_code'] ?? ($payload['claim_code'] ?? '')));
+
+                if ($route === '') {
+                    $route = $adminNotificationsUrl;
+                }
+
+                return [
+                    'open_route' => route('admin.notifications.open', ['notification' => $notification->id]),
+                    'title' => $title !== '' ? $title : 'Pembaruan sistem',
+                    'message' => \Illuminate\Support\Str::limit($message, 120),
+                    'route' => $route,
+                    'time' => optional($notification->created_at)->diffForHumans() ?? '-',
+                    'reference' => $referenceCode,
+                    'is_unread' => $notification->read_at === null,
+                ];
+            });
+    }
+
     $hasUserManagementRoute = \Illuminate\Support\Facades\Route::has('admin.users.index');
     $hasSystemSettingsRoute = \Illuminate\Support\Facades\Route::has('admin.settings.index');
 
@@ -502,16 +532,48 @@
                                         baru</span>
                                 @endif
                             </div>
-                            <div class="py-2 max-h-64 overflow-y-auto ta-scrollbar">
+                            <div class="max-h-80 overflow-y-auto ta-scrollbar">
                                 @if ($adminUnreadNotificationCount > 0)
-                                    <p class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                                    <p class="px-4 pt-3 text-[11px] font-medium text-gray-500 dark:text-gray-400">
                                         Anda memiliki {{ $adminUnreadNotificationCount }} notifikasi belum dibaca.
                                     </p>
-                                @else
-                                    <p class="px-4 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
-                                        Tidak ada notifikasi baru.
-                                    </p>
                                 @endif
+
+                                @forelse ($adminNotificationPreviews as $preview)
+                                    <a href="{{ $preview['open_route'] }}"
+                                        class="block border-b border-gray-100/80 transition hover:bg-gray-50 dark:border-dark-border dark:hover:bg-dark-hover">
+                                        <div class="px-4 py-3">
+                                            <div class="flex items-start gap-2">
+                                                <span
+                                                    class="mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full {{ $preview['is_unread'] ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-500' }}"></span>
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="flex items-start justify-between gap-3">
+                                                        <p class="text-xs font-semibold text-gray-800 dark:text-white">
+                                                            {{ $preview['title'] }}</p>
+                                                        <p
+                                                            class="shrink-0 text-[10px] text-gray-400 dark:text-gray-500">
+                                                            {{ $preview['time'] }}</p>
+                                                    </div>
+
+                                                    <p
+                                                        class="mt-1 text-[11px] leading-relaxed text-gray-600 dark:text-gray-300">
+                                                        {{ $preview['message'] }}</p>
+
+                                                    @if ($preview['reference'] !== '')
+                                                        <p
+                                                            class="mt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                                                            Ref: {{ $preview['reference'] }}
+                                                        </p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                @empty
+                                    <p class="px-4 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
+                                        Belum ada notifikasi admin.
+                                    </p>
+                                @endforelse
                             </div>
                             <div class="border-t border-gray-100 dark:border-dark-border">
                                 <a href="{{ $adminNotificationsUrl }}"

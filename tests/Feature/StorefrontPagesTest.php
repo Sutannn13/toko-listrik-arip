@@ -87,6 +87,86 @@ class StorefrontPagesTest extends TestCase
         $this->assertSame(0, $user->fresh()->unreadNotifications()->count());
     }
 
+    public function test_storefront_header_shows_notification_preview_for_user(): void
+    {
+        $user = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Socket Preview',
+            'slug' => 'socket-preview',
+            'price' => 95000,
+            'is_electronic' => true,
+        ]);
+
+        $order = $this->createOrderWithSingleItem($user, $product, [
+            'status' => 'completed',
+            'payment_status' => 'paid',
+        ]);
+
+        $user->notify(new OrderCompletedNotification($order));
+
+        $response = $this->actingAs($user)->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('Notifikasi');
+        $response->assertSee($order->order_code);
+        $response->assertSee('Lihat Semua Notifikasi');
+    }
+
+    public function test_custom_landing_header_shows_notification_preview_for_user(): void
+    {
+        $user = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Kabel Landing Preview',
+            'slug' => 'kabel-landing-preview',
+            'price' => 120000,
+            'is_electronic' => true,
+        ]);
+
+        $order = $this->createOrderWithSingleItem($user, $product, [
+            'status' => 'completed',
+            'payment_status' => 'paid',
+        ]);
+
+        $user->notify(new OrderCompletedNotification($order));
+
+        $response = $this->actingAs($user)->get(route('landing'));
+
+        $response->assertOk();
+        $response->assertSee('Notifikasi');
+        $response->assertSee($order->order_code);
+        $response->assertSee('Lihat Semua Notifikasi');
+    }
+
+    public function test_opening_user_notification_preview_marks_it_as_read(): void
+    {
+        $user = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Panel Open Preview',
+            'slug' => 'panel-open-preview',
+            'price' => 135000,
+            'is_electronic' => true,
+        ]);
+
+        $order = $this->createOrderWithSingleItem($user, $product, [
+            'status' => 'completed',
+            'payment_status' => 'paid',
+        ]);
+
+        $user->notify(new OrderCompletedNotification($order));
+
+        $notification = $user->unreadNotifications()->first();
+        $this->assertNotNull($notification);
+
+        $response = $this->actingAs($user)
+            ->get(route('home.notifications.open', ['notification' => $notification->id]));
+
+        $response->assertRedirect(route('home.transactions', absolute: false));
+        $this->assertNotNull($notification->fresh()->read_at);
+    }
+
     public function test_warranty_center_page_lists_only_users_eligible_items_and_respects_status_filter(): void
     {
         $user = User::factory()->create();

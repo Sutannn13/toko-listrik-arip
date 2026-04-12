@@ -15,24 +15,24 @@
 </head>
 
 <body class="min-h-screen text-slate-900 antialiased"
-    style="font-family: 'Manrope', sans-serif; background-image: linear-gradient(120deg, rgba(6, 78, 59, 0.78) 0%, rgba(6, 95, 70, 0.68) 38%, rgba(15, 23, 42, 0.62) 100%), url('{{ asset('img/image_loginpage.png') }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+    style="font-family: 'Manrope', sans-serif; background-image: linear-gradient(120deg, rgba(8, 47, 73, 0.82) 0%, rgba(12, 74, 110, 0.72) 42%, rgba(15, 23, 42, 0.68) 100%), url('{{ asset('img/image_loginpage.png') }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
     <div class="pointer-events-none fixed inset-0 bg-slate-950/30"></div>
     <div class="pointer-events-none fixed inset-0 overflow-hidden">
-        <div class="absolute -left-16 -top-20 h-72 w-72 rounded-full bg-emerald-200/20 blur-3xl"></div>
-        <div class="absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-cyan-200/15 blur-3xl"></div>
+        <div class="absolute -left-16 -top-20 h-72 w-72 rounded-full bg-cyan-200/20 blur-3xl"></div>
+        <div class="absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-blue-200/20 blur-3xl"></div>
     </div>
 
     <main data-auth-shell
         class="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-10">
         <div data-auth-grid class="grid w-full items-stretch gap-6 lg:grid-cols-[1.12fr,0.88fr] lg:gap-10">
             <section
-                class="hidden rounded-3xl border border-white/25 bg-gradient-to-b from-emerald-900/72 to-emerald-950/58 p-10 text-white shadow-[0_30px_80px_rgba(2,6,23,0.45)] backdrop-blur-md lg:flex lg:flex-col lg:justify-between">
+                class="hidden rounded-3xl border border-white/25 bg-gradient-to-b from-sky-900/72 to-slate-950/60 p-10 text-white shadow-[0_30px_80px_rgba(2,6,23,0.45)] backdrop-blur-md lg:flex lg:flex-col lg:justify-between">
                 <div>
                     <a href="{{ route('home') }}" class="inline-flex items-center gap-3">
                         <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
                             class="h-11 w-11 rounded-xl border border-white/30 bg-white/20 p-1.5 object-contain">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100">Toko HS
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100">Toko HS
                                 ELECTRIC</p>
                             <p class="text-sm font-medium text-white/85">Registrasi akun pelanggan</p>
                         </div>
@@ -40,13 +40,13 @@
 
                     <div class="mt-10 max-w-xl">
                         <span
-                            class="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-50">
+                            class="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cyan-50">
                             Daftar Akun Baru
                         </span>
                         <h1 class="mt-4 text-[2.15rem] font-extrabold leading-tight tracking-tight text-white">
                             Registrasi akun dengan alur yang ringkas, aman, dan profesional.
                         </h1>
-                        <p class="mt-4 text-base leading-relaxed text-emerald-50">
+                        <p class="mt-4 text-base leading-relaxed text-cyan-50">
                             Dengan satu akun, Anda dapat menyimpan alamat pengiriman, memantau transaksi, serta
                             mengelola klaim garansi secara terstruktur.
                         </p>
@@ -55,23 +55,23 @@
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="rounded-2xl border border-white/30 bg-white/18 p-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">Alamat Tersimpan
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">Alamat Tersimpan
                         </p>
                         <p class="mt-2 text-sm text-white">Lebih cepat saat checkout berikutnya, tanpa input berulang.
                         </p>
                     </div>
                     <div class="rounded-2xl border border-white/30 bg-white/18 p-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">Status Pesanan</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">Status Pesanan</p>
                         <p class="mt-2 text-sm text-white">Pantau setiap perubahan status order secara real-time.</p>
                     </div>
                     <div class="rounded-2xl border border-white/30 bg-white/18 p-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">Garansi
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">Garansi
                             Terintegrasi</p>
                         <p class="mt-2 text-sm text-white">Pengajuan klaim lebih jelas dengan jejak aktivitas lengkap.
                         </p>
                     </div>
                     <div class="rounded-2xl border border-white/30 bg-white/18 p-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">Notifikasi Penting
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">Notifikasi Penting
                         </p>
                         <p class="mt-2 text-sm text-white">Dapatkan update transaksi langsung dari dashboard akun.</p>
                     </div>
@@ -89,12 +89,12 @@
                 </div>
 
                 <div data-auth-card
-                    class="rounded-3xl border border-white/90 bg-white/96 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.35)] backdrop-blur-md sm:p-8">
+                    class="rounded-3xl border border-white/95 bg-white/97 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.35)] backdrop-blur-md sm:p-8">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Registrasi</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Registrasi</p>
                         <h2 data-auth-title class="mt-2 text-[1.9rem] font-extrabold leading-tight text-slate-900">Buat
                             akun baru</h2>
-                        <p data-auth-subtitle class="mt-2 text-sm leading-relaxed text-slate-500">Lengkapi data berikut
+                        <p data-auth-subtitle class="mt-2 text-sm leading-relaxed text-slate-600">Lengkapi data berikut
                             untuk mulai belanja dengan proses checkout yang lebih nyaman.</p>
                     </div>
 
@@ -107,7 +107,7 @@
                                 Lengkap</label>
                             <input id="name" name="name" type="text" value="{{ old('name') }}" required
                                 autofocus autocomplete="name"
-                                class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/15"
+                                class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/15"
                                 placeholder="Nama lengkap Anda">
                             <x-input-error :messages="$errors->get('name')" class="mt-1.5 text-xs text-red-600" />
                         </div>
@@ -117,7 +117,7 @@
                                 class="mb-1.5 block text-sm font-semibold text-slate-700">Email</label>
                             <input id="email" name="email" type="email" value="{{ old('email') }}" required
                                 autocomplete="username"
-                                class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/15"
+                                class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/15"
                                 placeholder="contoh@email.com">
                             <x-input-error :messages="$errors->get('email')" class="mt-1.5 text-xs text-red-600" />
                         </div>
@@ -128,11 +128,11 @@
                             <div class="relative">
                                 <input id="password" name="password" type="password" required
                                     autocomplete="new-password"
-                                    class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 pr-12 text-sm font-medium text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/15"
+                                    class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 pr-12 text-sm font-medium text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/15"
                                     placeholder="Minimal 8 karakter, kombinasi huruf & angka">
                                 <button type="button" data-password-toggle data-target="password"
                                     aria-label="Tampilkan password"
-                                    class="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 transition hover:text-emerald-700 focus:outline-none">
+                                    class="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 transition hover:text-sky-700 focus:outline-none">
                                     <svg data-icon-show class="h-5 w-5" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -169,11 +169,11 @@
                             <div class="relative">
                                 <input id="password_confirmation" name="password_confirmation" type="password"
                                     required autocomplete="new-password"
-                                    class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 pr-12 text-sm font-medium text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/15"
+                                    class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 pr-12 text-sm font-medium text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/15"
                                     placeholder="Ulangi password yang sama">
                                 <button type="button" data-password-toggle data-target="password_confirmation"
                                     aria-label="Tampilkan password"
-                                    class="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 transition hover:text-emerald-700 focus:outline-none">
+                                    class="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 transition hover:text-sky-700 focus:outline-none">
                                     <svg data-icon-show class="h-5 w-5" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -192,7 +192,7 @@
                         </div>
 
                         <button type="submit" data-loading-text="Membuat akun..."
-                            class="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/35 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-80">
+                            class="inline-flex w-full items-center justify-center rounded-2xl bg-sky-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-sky-600/25 transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-500/35 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-80">
                             Buat Akun Sekarang
                         </button>
                     </form>
@@ -200,7 +200,7 @@
                     <div class="mt-6 border-t border-slate-200 pt-5 text-center text-sm text-slate-600">
                         Sudah punya akun?
                         <a href="{{ route('login') }}"
-                            class="font-semibold text-emerald-700 transition hover:text-emerald-800">
+                            class="font-semibold text-sky-700 transition hover:text-sky-800">
                             Masuk di sini
                         </a>
                     </div>

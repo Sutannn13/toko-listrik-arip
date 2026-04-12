@@ -16,6 +16,7 @@
     @php
         $authUser = Auth::user();
         $isAdminUser = $authUser->hasAnyRole(['super-admin', 'admin']);
+        $notificationsTableExists = \Illuminate\Support\Facades\Schema::hasTable('notifications');
         $normalizedPhotoPath = str_replace('\\', '/', (string) $authUser->profile_photo_path);
         $profilePhotoUrl =
             $normalizedPhotoPath !== '' &&
@@ -23,6 +24,38 @@
                 ? route('profile.photo', $authUser) . '?v=' . ($authUser->updated_at?->timestamp ?? now()->timestamp)
                 : null;
         $emailHandle = '@' . \Illuminate\Support\Str::before((string) $authUser->email, '@');
+
+        $userUnreadNotificationCount = 0;
+        $userNotificationPreviews = collect();
+
+        if (!$isAdminUser && $notificationsTableExists) {
+            $userUnreadNotificationCount = $authUser->unreadNotifications()->count();
+
+            $userNotificationPreviews = $authUser
+                ->notifications()
+                ->latest()
+                ->limit(6)
+                ->get()
+                ->map(function ($notification) {
+                    $payload = is_array($notification->data) ? $notification->data : [];
+                    $title = trim((string) ($payload['title'] ?? 'Pembaruan akun'));
+                    $message = trim((string) ($payload['message'] ?? 'Ada notifikasi baru untuk Anda.'));
+                    $route = trim((string) ($payload['route'] ?? route('home.notifications.index')));
+
+                    if ($route === '') {
+                        $route = route('home.notifications.index');
+                    }
+
+                    return [
+                        'open_route' => route('home.notifications.open', ['notification' => $notification->id]),
+                        'title' => $title !== '' ? $title : 'Pembaruan akun',
+                        'message' => \Illuminate\Support\Str::limit($message, 120),
+                        'route' => $route,
+                        'time' => optional($notification->created_at)->diffForHumans() ?? '-',
+                        'is_unread' => $notification->read_at === null,
+                    ];
+                });
+        }
     @endphp
 
     @if (!$isAdminUser)
@@ -38,6 +71,73 @@
                     class="absolute top-0 right-0 grid h-4 w-4 -translate-y-1/4 translate-x-1/4 place-items-center rounded-full bg-red-500 text-[10px] font-bold text-white">{{ $cartQuantity }}</span>
             @endif
         </a>
+
+        <div x-data="{ notificationOpen: false }" class="relative">
+            <button x-on:click="notificationOpen = !notificationOpen" x-on:keydown.escape.window="notificationOpen = false"
+                class="relative rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-primary-600"
+                aria-label="Notifikasi akun" x-bind:aria-expanded="notificationOpen.toString()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+
+                @if ($userUnreadNotificationCount > 0)
+                    <span
+                        class="absolute top-0 right-0 grid h-4 w-4 -translate-y-1/4 translate-x-1/4 place-items-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                        {{ $userUnreadNotificationCount > 9 ? '9+' : $userUnreadNotificationCount }}
+                    </span>
+                @endif
+            </button>
+
+            <div x-cloak x-show="notificationOpen" x-on:click.away="notificationOpen = false"
+                x-transition:enter="ease-out duration-150" x-transition:enter-start="-translate-y-1 opacity-0"
+                x-transition:enter-end="translate-y-0 opacity-100"
+                class="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl shadow-gray-200/70">
+                <div class="flex items-center justify-between border-b border-gray-100 px-3 py-2.5">
+                    <p class="text-xs font-bold uppercase tracking-wider text-gray-500">Notifikasi</p>
+                    @if ($userUnreadNotificationCount > 0)
+                        <span
+                            class="inline-flex rounded bg-primary-100 px-2 py-0.5 text-[10px] font-semibold text-primary-700">
+                            {{ $userUnreadNotificationCount }} baru
+                        </span>
+                    @endif
+                </div>
+
+                <div class="max-h-80 overflow-y-auto">
+                    @if (!$notificationsTableExists)
+                        <p class="px-4 py-6 text-center text-xs text-gray-400">Fitur notifikasi belum tersedia.</p>
+                    @else
+                        @forelse ($userNotificationPreviews as $preview)
+                            <a href="{{ $preview['open_route'] }}"
+                                class="block border-b border-gray-100/80 px-4 py-3 transition hover:bg-gray-50">
+                                <div class="flex items-start gap-2">
+                                    <span
+                                        class="mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full {{ $preview['is_unread'] ? 'bg-primary-500' : 'bg-gray-300' }}"></span>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <p class="text-xs font-semibold text-gray-800">{{ $preview['title'] }}</p>
+                                            <p class="shrink-0 text-[10px] text-gray-400">{{ $preview['time'] }}</p>
+                                        </div>
+                                        <p class="mt-1 text-[11px] leading-relaxed text-gray-600">{{ $preview['message'] }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </a>
+                        @empty
+                            <p class="px-4 py-6 text-center text-xs text-gray-400">Belum ada notifikasi baru.</p>
+                        @endforelse
+                    @endif
+                </div>
+
+                <div class="border-t border-gray-100">
+                    <a href="{{ route('home.notifications.index') }}"
+                        class="block px-4 py-2.5 text-center text-xs font-semibold text-primary-700 transition hover:bg-gray-50">
+                        Lihat Semua Notifikasi
+                    </a>
+                </div>
+            </div>
+        </div>
     @endif
 
     <div x-data="{ dropdownOpen: false }" class="relative">

@@ -126,6 +126,39 @@ class AdminNotificationTriggersTest extends TestCase
         ]);
     }
 
+    public function test_admin_clicking_notification_preview_marks_it_as_read(): void
+    {
+        [$admin, $customer] = $this->createAdminAndCustomer();
+
+        $order = Order::create([
+            'order_code' => 'ORD-ARIP-20260413-OPEN01',
+            'user_id' => $customer->id,
+            'customer_name' => $customer->name,
+            'customer_email' => $customer->email,
+            'customer_phone' => '081200000099',
+            'status' => 'pending',
+            'payment_status' => 'pending',
+            'warranty_status' => 'active',
+            'subtotal' => 100000,
+            'shipping_cost' => 0,
+            'discount_amount' => 0,
+            'total_amount' => 100000,
+            'placed_at' => now(),
+        ]);
+
+        $admin->notify(new AdminNewOrderNotification($order));
+
+        $notification = $admin->unreadNotifications()->first();
+        $this->assertNotNull($notification);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.notifications.open', ['notification' => $notification->id]));
+
+        $response->assertRedirect(route('admin.orders.show', $order, absolute: false));
+
+        $this->assertNotNull($notification->fresh()->read_at);
+    }
+
     private function createAdminAndCustomer(): array
     {
         Role::findOrCreate('admin', 'web');

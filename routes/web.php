@@ -43,9 +43,15 @@ Route::middleware('auth')->group(function () {
         ->name('home.tracking.proof');
 });
 
-// 2. DASHBOARD USER BIASA (Bawaan Breeze)
+// 2. DASHBOARD LEGACY (Breeze) -> redirect ke halaman yang sesuai role
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    $user = request()->user();
+
+    if ($user && $user->hasAnyRole(['super-admin', 'admin'])) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    return redirect()->route('home');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // 3. PROFILE USER (Bawaan Breeze)
@@ -73,6 +79,8 @@ Route::middleware('auth')->group(function () {
         ->name('home.transactions');
     Route::get('/notifikasi', [HomeController::class, 'notifications'])
         ->name('home.notifications.index');
+    Route::get('/notifikasi/{notification}/open', [HomeController::class, 'openNotification'])
+        ->name('home.notifications.open');
     Route::post('/notifikasi/baca-semua', [HomeController::class, 'markAllNotificationsRead'])
         ->name('home.notifications.read-all');
 });
@@ -114,6 +122,8 @@ Route::middleware(['auth', 'admin.access', 'role:super-admin|admin'])
 
         Route::get('/notifications', [AdminNotificationController::class, 'index'])
             ->name('notifications.index');
+        Route::get('/notifications/{notification}/open', [AdminNotificationController::class, 'open'])
+            ->name('notifications.open');
         Route::post('/notifications/read-all', [AdminNotificationController::class, 'markAllRead'])
             ->name('notifications.read-all');
 

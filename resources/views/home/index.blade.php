@@ -8,6 +8,7 @@
     $baseSearchQuery = array_filter([
         'q' => $keyword,
     ]);
+    $storeTagline = trim((string) \App\Models\Setting::get('store_tagline', ''));
 @endphp
 
 @section('content')
@@ -32,6 +33,9 @@
                 class="mb-2 inline-flex items-center rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-600">Katalog
                 Resmi</span>
             <h1 class="text-2xl font-extrabold text-gray-900 sm:text-3xl">Pusat Kebutuhan Listrik</h1>
+            @if ($storeTagline !== '')
+                <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-primary-700">{{ $storeTagline }}</p>
+            @endif
             <p class="mt-2 max-w-2xl text-sm text-gray-600">Jelajahi ratusan produk alat listrik dengan harga
                 transparan dan stok riil.</p>
         </div>

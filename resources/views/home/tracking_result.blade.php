@@ -363,6 +363,16 @@
                         <span class="text-gray-600">Total Item</span>
                         <span class="font-bold text-gray-900">{{ number_format($order->items->sum('quantity')) }}</span>
                     </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Subtotal</span>
+                        <span class="font-semibold text-gray-900">Rp
+                            {{ number_format($order->subtotal, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Ongkir</span>
+                        <span class="font-semibold text-gray-900">Rp
+                            {{ number_format($order->shipping_cost, 0, ',', '.') }}</span>
+                    </div>
                     <div class="flex justify-between text-base items-center pt-2">
                         <span class="font-bold text-gray-900">Total Pembayaran</span>
                         <span class="text-xl font-black text-primary-600">Rp

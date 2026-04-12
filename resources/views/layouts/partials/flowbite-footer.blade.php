@@ -6,16 +6,6 @@
         $storePhoneDigits = '62' . substr($storePhoneDigits, 1);
     }
 
-    $whatsAppUrl = $storePhoneDigits !== '' ? 'https://wa.me/' . $storePhoneDigits : route('home');
-    $storeEmail = (string) \App\Models\Setting::get('store_email', 'admin@example.com');
-    $emailUrl = 'mailto:' . $storeEmail;
-
-    $storeAddress = (string) \App\Models\Setting::get('store_address', '');
-    $mapsUrl =
-        $storeAddress !== ''
-            ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($storeAddress)
-            : route('home');
-
     $normalizeExternalUrl = static function (string $url): string {
         $url = trim($url);
         if ($url === '') {
@@ -27,19 +17,23 @@
         return $url;
     };
 
-    $instagramUrl = $normalizeExternalUrl(
-        (string) \App\Models\Setting::get('social_instagram_url', 'https://instagram.com/tokohselectric'),
-    );
-    $facebookUrl = $normalizeExternalUrl(
-        (string) \App\Models\Setting::get('social_facebook_url', 'https://facebook.com/tokohselectric'),
-    );
-    $tiktokUrl = $normalizeExternalUrl(
-        (string) \App\Models\Setting::get('social_tiktok_url', 'https://www.tiktok.com/@tokohselectric'),
-    );
+    $whatsAppUrl = $storePhoneDigits !== '' ? 'https://wa.me/' . $storePhoneDigits : route('home');
+    $storeEmail = (string) \App\Models\Setting::get('store_email', 'admin@example.com');
+    $emailUrl = 'mailto:' . $storeEmail;
 
-    $instagramHref = $instagramUrl !== '' ? $instagramUrl : route('home');
-    $facebookHref = $facebookUrl !== '' ? $facebookUrl : route('home');
-    $tiktokHref = $tiktokUrl !== '' ? $tiktokUrl : route('home');
+    $storeMapsUrl = $normalizeExternalUrl((string) \App\Models\Setting::get('store_maps_url', ''));
+    $storeAddress = (string) \App\Models\Setting::get('store_address', '');
+    $mapsUrl =
+        $storeMapsUrl !== ''
+            ? $storeMapsUrl
+            : ($storeAddress !== ''
+                ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($storeAddress)
+                : route('home'));
+
+    $hoursWeekday = (string) \App\Models\Setting::get('hours_weekday', '09:00 - 20:00');
+    $hoursSaturday = (string) \App\Models\Setting::get('hours_saturday', '09:00 - 20:00');
+    $hoursSunday = (string) \App\Models\Setting::get('hours_sunday', '09:00 - 20:00');
+    $hoursNote = trim((string) \App\Models\Setting::get('hours_note', ''));
 @endphp
 
 <footer class="mt-auto border-t border-slate-700/70 bg-slate-900 text-slate-300 font-body {{ $footerClass ?? '' }}">
@@ -68,25 +62,17 @@
                     </ul>
                 </div>
                 <div>
-                    <h2 class="mb-5 text-sm font-semibold uppercase tracking-wide text-white">Follow Us</h2>
-                    <ul class="space-y-3 text-sm">
-                        <li>
-                            <a href="{{ $instagramHref }}" target="_blank" rel="noopener noreferrer"
-                                class="text-slate-400 transition hover:text-brand-300">Instagram</a>
-                        </li>
-                        <li>
-                            <a href="{{ $facebookHref }}" target="_blank" rel="noopener noreferrer"
-                                class="text-slate-400 transition hover:text-brand-300">Facebook</a>
-                        </li>
-                        <li>
-                            <a href="{{ $tiktokHref }}" target="_blank" rel="noopener noreferrer"
-                                class="text-slate-400 transition hover:text-brand-300">TikTok</a>
-                        </li>
-                        <li>
-                            <a href="{{ $whatsAppUrl }}" target="_blank" rel="noopener noreferrer"
-                                class="text-slate-400 transition hover:text-brand-300">WhatsApp</a>
-                        </li>
+                    <h2 class="mb-5 text-sm font-semibold uppercase tracking-wide text-white">Jam Operasional</h2>
+                    <ul class="space-y-3 text-sm text-slate-400">
+                        <li>Senin - Jumat: {{ $hoursWeekday }}</li>
+                        <li>Sabtu: {{ $hoursSaturday }}</li>
+                        <li>Minggu: {{ $hoursSunday }}</li>
                     </ul>
+                    @if ($hoursNote !== '')
+                        <p class="mt-3 text-xs leading-relaxed text-slate-500">{{ $hoursNote }}</p>
+                    @endif
+                    <p class="mt-3 text-xs text-slate-500">Kontak tersedia lewat ikon WhatsApp, Email, dan Maps di
+                        bawah.</p>
                 </div>
                 <div>
                     <h2 class="mb-5 text-sm font-semibold uppercase tracking-wide text-white">Legal</h2>
@@ -111,29 +97,6 @@
                 &copy; {{ date('Y') }} {{ $storeName }}. All Rights Reserved.
             </span>
             <div class="mt-4 flex gap-5 sm:mt-0 sm:justify-center">
-                <a href="{{ $instagramHref }}" target="_blank" rel="noopener noreferrer"
-                    class="text-slate-400 transition hover:text-brand-300" aria-label="Instagram">
-                    <svg class="h-5 w-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                        <path fill-rule="evenodd"
-                            d="M12 2.03c2.72 0 3.06.01 4.12.06 1.02.05 1.71.21 2.11.37.54.21.92.47 1.32.87.4.4.66.78.87 1.32.16.4.32 1.09.37 2.11.05 1.06.06 1.4.06 4.12s-.01 3.06-.06 4.12c-.05 1.02-.21 1.71-.37 2.11-.21.54-.47.92-.87 1.32-.4.4-.78.66-1.32.87-.4.16-1.09.32-2.11.37-1.06.05-1.4.06-4.12.06s-3.06-.01-4.12-.06c-1.02-.05-1.71-.21-2.11-.37a3.52 3.52 0 0 1-1.32-.87 3.52 3.52 0 0 1-.87-1.32c-.16-.4-.32-1.09-.37-2.11-.05-1.06-.06-1.4-.06-4.12s.01-3.06.06-4.12c.05-1.02.21-1.71.37-2.11.21-.54.47-.92.87-1.32.4-.4.78-.66 1.32-.87.4-.16 1.09-.32 2.11-.37 1.06-.05 1.4-.06 4.12-.06ZM12 7.44a4.56 4.56 0 1 0 0 9.12 4.56 4.56 0 0 0 0-9.12Zm0 7.53a2.97 2.97 0 1 1 0-5.94 2.97 2.97 0 0 1 0 5.94Zm5.82-7.71a1.07 1.07 0 1 1-2.14 0 1.07 1.07 0 0 1 2.14 0Z"
-                            clip-rule="evenodd" />
-                    </svg>
-                </a>
-                <a href="{{ $facebookHref }}" target="_blank" rel="noopener noreferrer"
-                    class="text-slate-400 transition hover:text-brand-300" aria-label="Facebook">
-                    <svg class="h-5 w-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                        <path fill-rule="evenodd"
-                            d="M12 2.04C6.5 2.04 2 6.53 2 12.06c0 5 3.65 9.14 8.44 9.92v-7.02H7.9v-2.9h2.54V9.84c0-2.5 1.49-3.89 3.78-3.89 1.09 0 2.23.2 2.23.2v2.47h-1.26c-1.24 0-1.63.78-1.63 1.57v1.88h2.77l-.44 2.9h-2.33V22c4.79-.78 8.44-4.92 8.44-9.92 0-5.53-4.5-10.02-10-10.02Z"
-                            clip-rule="evenodd" />
-                    </svg>
-                </a>
-                <a href="{{ $tiktokHref }}" target="_blank" rel="noopener noreferrer"
-                    class="text-slate-400 transition hover:text-brand-300" aria-label="TikTok">
-                    <svg class="h-5 w-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                        <path
-                            d="M16.5 3c.32 1.56 1.26 2.9 2.63 3.76A6.8 6.8 0 0 0 22 7.7v3.15a10 10 0 0 1-4.18-1.07v6.04a6.81 6.81 0 1 1-5.37-6.65v3.26a3.54 3.54 0 1 0 2.1 3.24V3h1.95z" />
-                    </svg>
-                </a>
                 <a href="{{ $whatsAppUrl }}" target="_blank" rel="noopener noreferrer"
                     class="text-slate-400 transition hover:text-brand-300" aria-label="WhatsApp">
                     <svg class="h-5 w-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">

@@ -92,18 +92,39 @@
 @endsection
 
 @section('content')
+    @php
+        $storeOperatingStatus = $storeOperatingStatus ?? [
+            'is_open' => true,
+            'status_label' => 'Toko Buka',
+            'day_label' => 'Hari Ini',
+            'hours_text' => '09:00 - 20:00',
+            'note' => '',
+        ];
+        $storeTagline = trim(
+            (string) \App\Models\Setting::get('store_tagline', 'Solusi Kebutuhan Listrik Rumah & Industri'),
+        );
+
+        $isStoreOpen = (bool) ($storeOperatingStatus['is_open'] ?? false);
+        $statusLabel = (string) ($storeOperatingStatus['status_label'] ?? 'Status Toko');
+        $todayLabel = (string) ($storeOperatingStatus['day_label'] ?? 'Hari Ini');
+        $todayHours = (string) ($storeOperatingStatus['hours_text'] ?? 'Jam belum diatur');
+        $hoursNote = (string) ($storeOperatingStatus['note'] ?? '');
+        $hasOverflowCategories = $featuredCategories->count() > 4;
+    @endphp
+
     <!-- Hero Section -->
     <section class="py-16 sm:py-24 lg:py-32">
         <div
             class="mx-auto flex max-w-7xl flex-col items-center rounded-3xl border border-white/15 bg-slate-950/20 px-4 py-10 text-center shadow-[0_20px_60px_rgba(2,6,23,0.32)] backdrop-blur-[2px] sm:px-6 lg:px-10 lg:py-14">
             <span
-                class="mb-5 inline-flex items-center gap-2 rounded-full border border-primary-200/45 bg-white/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary-100 backdrop-blur-sm">
+                class="mb-5 inline-flex items-center gap-2 rounded-full border bg-white/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider backdrop-blur-sm {{ $isStoreOpen ? 'border-primary-200/45 text-primary-100' : 'border-rose-200/45 text-rose-100' }}">
                 <span class="relative flex h-2 w-2">
                     <span
-                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-300 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-300"></span>
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 {{ $isStoreOpen ? 'bg-primary-300' : 'bg-rose-300' }}"></span>
+                    <span
+                        class="relative inline-flex rounded-full h-2 w-2 {{ $isStoreOpen ? 'bg-primary-300' : 'bg-rose-300' }}"></span>
                 </span>
-                Toko Buka - Online 24 Jam
+                {{ $statusLabel }} - {{ $todayHours }} ({{ $todayLabel }})
             </span>
             <h1
                 class="mx-auto max-w-4xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl drop-shadow-md">
@@ -111,10 +132,19 @@
                     class="text-transparent bg-clip-text bg-gradient-to-r from-primary-100 to-emerald-100">Terpercaya</span>
                 & Termurah.
             </h1>
+            @if ($storeTagline !== '')
+                <p
+                    class="mx-auto mt-4 inline-flex max-w-3xl items-center rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-semibold text-slate-100 backdrop-blur-sm">
+                    {{ $storeTagline }}
+                </p>
+            @endif
             <p class="mx-auto mt-6 max-w-2xl text-lg text-slate-100/90 drop-shadow-sm">
                 Dari toko pinggir jalan menjadi website e-commerce modern. Temukan koleksi lengkap kabel,
                 saklar, lampu, dan kebutuhan kelistrikan lainnya dengan garansi pengembalian 7 hari.
             </p>
+            @if ($hoursNote !== '')
+                <p class="mt-3 text-sm text-slate-200/90">{{ $hoursNote }}</p>
+            @endif
             <div class="mt-8 flex flex-wrap justify-center gap-4">
                 <a href="{{ route('home') }}"
                     class="inline-flex items-center justify-center rounded-xl bg-primary-500 px-6 py-3.5 text-base font-semibold text-white shadow-xl shadow-primary-600/30 transition hover:-translate-y-0.5 hover:bg-primary-400 hover:shadow-primary-500/40">
@@ -206,6 +236,11 @@
                         <p class="mt-1 text-sm font-medium text-slate-600">Temukan barang incaran berdasarkan kelompok
                             kategori.
                         </p>
+                        @if ($hasOverflowCategories)
+                            <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Geser kartu kategori ke samping jika daftar lebih panjang.
+                            </p>
+                        @endif
                     </div>
                     <a href="{{ route('home') }}"
                         class="hidden sm:inline-flex text-sm font-bold text-primary-700 underline decoration-primary-300 underline-offset-4 transition hover:text-primary-800">
@@ -213,30 +248,80 @@
                     </a>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                    @forelse ($featuredCategories as $category)
-                        <a href="{{ route('home', ['category' => $category->id]) }}"
-                            class="group relative flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:-translate-y-1 hover:border-primary-300/70 hover:shadow-lg hover:shadow-emerald-900/15">
+                <div x-data="{
+                    canScrollLeft: false,
+                    canScrollRight: false,
+                    syncScrollState() {
+                        const track = this.$refs.track;
+                        if (!track) {
+                            return;
+                        }
+                
+                        this.canScrollLeft = track.scrollLeft > 8;
+                        this.canScrollRight = (track.scrollLeft + track.clientWidth) < (track.scrollWidth - 8);
+                    },
+                    init() {
+                        this.syncScrollState();
+                        window.addEventListener('resize', () => this.syncScrollState());
+                    },
+                    slide(direction) {
+                        const track = this.$refs.track;
+                        if (!track) {
+                            return;
+                        }
+                
+                        const distance = Math.max(240, Math.round(track.clientWidth * 0.85));
+                        track.scrollBy({ left: direction * distance, behavior: 'smooth' });
+                        setTimeout(() => this.syncScrollState(), 240);
+                    }
+                }" class="relative">
+                    @if ($hasOverflowCategories)
+                        <button type="button" @click="slide(-1)" x-show="canScrollLeft" x-cloak
+                            class="absolute -left-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-slate-200 bg-white/95 p-2 text-slate-700 shadow-lg transition hover:border-primary-300 hover:text-primary-700 sm:flex"
+                            aria-label="Geser kategori ke kiri">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+
+                        <button type="button" @click="slide(1)" x-show="canScrollRight" x-cloak
+                            class="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-slate-200 bg-white/95 p-2 text-slate-700 shadow-lg transition hover:border-primary-300 hover:text-primary-700 sm:flex"
+                            aria-label="Geser kategori ke kanan">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    @endif
+
+                    <div x-ref="track" @scroll="syncScrollState"
+                        class="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 pr-1 [scrollbar-width:thin]">
+                        @forelse ($featuredCategories as $category)
+                            <a href="{{ route('home', ['category' => $category->id]) }}"
+                                class="group relative flex min-h-[190px] min-w-[220px] flex-1 snap-start flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:-translate-y-1 hover:border-primary-300/70 hover:shadow-lg hover:shadow-emerald-900/15 sm:min-w-[250px] lg:min-w-[260px]">
+                                <div
+                                    class="mb-4 grid h-16 w-16 place-items-center rounded-full border border-slate-200 bg-slate-100/95 shadow-inner transition-transform group-hover:scale-110 group-hover:border-primary-300/70">
+                                    <svg class="h-8 w-8 text-primary-600 transition group-hover:text-primary-700"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                </div>
+                                <h3
+                                    class="text-center text-base font-extrabold text-slate-900 transition group-hover:text-primary-700">
+                                    {{ $category->name }}
+                                </h3>
+                                <p class="mt-1 text-sm font-medium text-slate-600">
+                                    {{ number_format($category->active_products_count) }} Produk
+                                </p>
+                            </a>
+                        @empty
                             <div
-                                class="mb-4 grid h-16 w-16 place-items-center rounded-full border border-slate-200 bg-slate-100/95 shadow-inner transition-transform group-hover:scale-110 group-hover:border-primary-300/70">
-                                <svg class="h-8 w-8 text-primary-600 group-hover:text-primary-700 transition"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
+                                class="w-full rounded-2xl border-2 border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
+                                Belum ada kategori aktif.
                             </div>
-                            <h3
-                                class="text-center text-base font-extrabold text-slate-900 group-hover:text-primary-700 transition">
-                                {{ $category->name }}</h3>
-                            <p class="mt-1 text-sm font-medium text-slate-600">
-                                {{ number_format($category->active_products_count) }} Produk</p>
-                        </a>
-                    @empty
-                        <div
-                            class="col-span-full rounded-2xl border-2 border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
-                            Belum ada kategori aktif.
-                        </div>
-                    @endforelse
+                        @endforelse
+                    </div>
                 </div>
             </div>
         </div>

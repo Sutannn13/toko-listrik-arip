@@ -168,10 +168,24 @@
                         <span class="text-gray-600">Total Item</span>
                         <span class="font-bold text-gray-900">{{ number_format($totalQuantity) }}</span>
                     </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-600">Ongkir / Item</span>
+                        <span class="font-semibold text-gray-900">Rp
+                            {{ number_format($shippingCostPerItem, 0, ',', '.') }}</span>
+                    </div>
                     <div class="flex items-center justify-between text-base">
                         <span class="text-gray-600 font-medium">Subtotal</span>
                         <span class="text-xl font-black text-primary-600">Rp
                             {{ number_format($subtotal, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-600">Total Ongkir</span>
+                        <span class="font-semibold text-gray-900">Rp {{ number_format($shippingCost, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="border-t border-gray-100 pt-3 flex items-center justify-between text-base">
+                        <span class="text-gray-900 font-bold">Total Bayar</span>
+                        <span class="text-xl font-black text-primary-700">Rp
+                            {{ number_format($totalAmount, 0, ',', '.') }}</span>
                     </div>
                 </div>
 

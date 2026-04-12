@@ -9,11 +9,15 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\WarrantyClaim;
+use App\Notifications\AdminNewOrderNotification;
+use App\Notifications\AdminPaymentProofUploadedNotification;
 use App\Notifications\WarrantyClaimSubmittedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Notification as NotificationMessage;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -32,13 +36,15 @@ class HomeController extends Controller
             ])
             ->orderByDesc('active_products_count')
             ->orderBy('name')
-            ->limit(4)
             ->get();
+
+        $storeOperatingStatus = $this->resolveStoreOperatingStatus();
 
         return view('home.landing', [
             'featuredCategories' => $featuredCategories,
             'totalProducts' => Product::where('is_active', true)->count(),
             'totalCategories' => Category::count(),
+            'storeOperatingStatus' => $storeOperatingStatus,
             ...$this->cartSummary($request),
         ]);
     }
@@ -288,6 +294,9 @@ class HomeController extends Controller
 
         $subtotal = (int) $cartItems->sum('subtotal');
         $totalQuantity = (int) $cartItems->sum('qty');
+        $shippingCostPerItem = $this->shippingCostPerItem();
+        $shippingCost = $this->calculateShippingCost($totalQuantity);
+        $totalAmount = $subtotal + $shippingCost;
 
         $userAddresses = collect();
         $defaultAddressId = null;
@@ -310,6 +319,9 @@ class HomeController extends Controller
             'cartItems' => $cartItems,
             'subtotal' => $subtotal,
             'totalQuantity' => $totalQuantity,
+            'shippingCostPerItem' => $shippingCostPerItem,
+            'shippingCost' => $shippingCost,
+            'totalAmount' => $totalAmount,
             'userAddresses' => $userAddresses,
             'defaultAddressId' => $defaultAddressId,
             'selectedAddress' => $selectedAddress,
@@ -424,7 +436,8 @@ class HomeController extends Controller
             ];
         }
 
-        $shippingCost = 0;
+        $shippingCostPerItem = $this->shippingCostPerItem();
+        $shippingCost = $this->calculateShippingCost($totalQuantity);
         $discountAmount = 0;
         $totalAmount = $subtotal + $shippingCost - $discountAmount;
 
@@ -521,6 +534,7 @@ class HomeController extends Controller
 
         $orderNotesParts = [
             'Order dibuat dari checkout storefront. Total item: ' . $totalQuantity,
+            'Ongkir per item: Rp ' . number_format($shippingCostPerItem, 0, ',', '.'),
         ];
 
         if ($addressSnapshot !== '') {
@@ -601,6 +615,8 @@ class HomeController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('home.cart')->with('error', 'Checkout gagal: ' . $e->getMessage());
         }
+
+        $this->notifyAdminsWhenEnabled('notif_order_new', new AdminNewOrderNotification($order));
 
         $request->session()->forget('simple_cart');
 
@@ -746,14 +762,7 @@ class HomeController extends Controller
                 ->with('error', 'Klaim garansi gagal diproses. Silakan coba lagi.');
         }
 
-        $adminRecipients = User::query()
-            ->whereHas('roles', fn($query) => $query
-                ->where('guard_name', 'web')
-                ->whereIn('name', ['super-admin', 'admin']))
-            ->get();
-        if ($adminRecipients->isNotEmpty()) {
-            Notification::send($adminRecipients, new WarrantyClaimSubmittedNotification($claim));
-        }
+        $this->notifyAdminsWhenEnabled('notif_claim_new', new WarrantyClaimSubmittedNotification($claim));
 
         return redirect()->route('home.cart')->with('success', 'Klaim garansi berhasil diajukan. Tim admin akan meninjau klaim Anda.');
     }
@@ -1007,7 +1016,106 @@ class HomeController extends Controller
             Storage::disk('public')->delete($oldProofPath);
         }
 
+        $this->notifyAdminsWhenEnabled(
+            'notif_order_paid',
+            new AdminPaymentProofUploadedNotification($order, $payment, $isReplacingExistingProof),
+        );
+
         return back()->with('success', 'Bukti pembayaran berhasil diunggah dan diteruskan ke admin. Silakan tunggu ACC admin.');
+    }
+
+    private function resolveStoreOperatingStatus(): array
+    {
+        $now = now();
+        $dayOfWeekIso = (int) $now->dayOfWeekIso;
+
+        $hoursSettingKey = match ($dayOfWeekIso) {
+            6 => 'hours_saturday',
+            7 => 'hours_sunday',
+            default => 'hours_weekday',
+        };
+
+        $dayLabel = match ($dayOfWeekIso) {
+            1 => 'Senin',
+            2 => 'Selasa',
+            3 => 'Rabu',
+            4 => 'Kamis',
+            5 => 'Jumat',
+            6 => 'Sabtu',
+            default => 'Minggu',
+        };
+
+        $todayHours = trim((string) Setting::get($hoursSettingKey, '09:00 - 20:00'));
+        $hoursNote = trim((string) Setting::get('hours_note', ''));
+
+        $isOpen = $this->isStoreOpenBySchedule($todayHours, $now->format('H:i'));
+
+        return [
+            'is_open' => $isOpen,
+            'status_label' => $isOpen ? 'Toko Buka' : 'Toko Tutup',
+            'day_label' => $dayLabel,
+            'hours_text' => $todayHours !== '' ? $todayHours : 'Jam operasional belum diatur',
+            'note' => $hoursNote,
+        ];
+    }
+
+    private function isStoreOpenBySchedule(string $hoursText, string $currentTime): bool
+    {
+        $normalized = strtolower(trim($hoursText));
+
+        if ($normalized === '' || str_contains($normalized, 'tutup')) {
+            return false;
+        }
+
+        if (str_contains($normalized, '24 jam') || str_contains($normalized, '24jam')) {
+            return true;
+        }
+
+        $hoursText = str_replace('—', '-', $hoursText);
+        $hoursText = str_replace('–', '-', $hoursText);
+
+        if (!preg_match('/^\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\s*$/', $hoursText, $matches)) {
+            return true;
+        }
+
+        $startMinutes = $this->timeToMinutes($matches[1]);
+        $endMinutes = $this->timeToMinutes($matches[2]);
+        $currentMinutes = $this->timeToMinutes($currentTime);
+
+        if ($startMinutes === null || $endMinutes === null || $currentMinutes === null) {
+            return true;
+        }
+
+        if ($startMinutes === $endMinutes) {
+            return true;
+        }
+
+        if ($endMinutes > $startMinutes) {
+            return $currentMinutes >= $startMinutes && $currentMinutes < $endMinutes;
+        }
+
+        return $currentMinutes >= $startMinutes || $currentMinutes < $endMinutes;
+    }
+
+    private function timeToMinutes(string $time): ?int
+    {
+        $parts = explode(':', trim($time));
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        $hour = filter_var($parts[0], FILTER_VALIDATE_INT);
+        $minute = filter_var($parts[1], FILTER_VALIDATE_INT);
+
+        if ($hour === false || $minute === false) {
+            return null;
+        }
+
+        if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59) {
+            return null;
+        }
+
+        return ($hour * 60) + $minute;
     }
 
     private function generateOrderCode(): string
@@ -1045,6 +1153,50 @@ class HomeController extends Controller
             'cartItemCount' => count($simpleCart),
             'cartQuantity' => array_sum(array_column($simpleCart, 'qty')),
         ];
+    }
+
+    private function shippingCostPerItem(): int
+    {
+        $rawValue = (string) Setting::get('shipping_cost_per_item', '5000');
+        $normalized = preg_replace('/[^0-9]/', '', $rawValue);
+
+        if ($normalized === null || $normalized === '') {
+            return 5000;
+        }
+
+        return max(0, (int) $normalized);
+    }
+
+    private function calculateShippingCost(int $totalQuantity): int
+    {
+        return max(0, $totalQuantity) * $this->shippingCostPerItem();
+    }
+
+    private function notifyAdminsWhenEnabled(string $toggleSettingKey, NotificationMessage $notification): void
+    {
+        if (!Setting::get($toggleSettingKey, true)) {
+            return;
+        }
+
+        if (!Schema::hasTable('notifications')) {
+            return;
+        }
+
+        $adminRecipients = User::query()
+            ->whereHas('roles', fn($query) => $query
+                ->where('guard_name', 'web')
+                ->whereIn('name', ['super-admin', 'admin']))
+            ->get();
+
+        if ($adminRecipients->isEmpty()) {
+            return;
+        }
+
+        try {
+            Notification::send($adminRecipients, $notification);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     private function hasAddressFormInput(array $validated): bool

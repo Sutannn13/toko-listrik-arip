@@ -328,7 +328,8 @@ class HomePageTest extends TestCase
             'status' => 'pending',
             'payment_status' => 'pending',
             'subtotal' => 36000,
-            'total_amount' => 36000,
+            'shipping_cost' => 15000,
+            'total_amount' => 51000,
         ]);
 
         $this->assertDatabaseHas('order_items', [
@@ -340,7 +341,7 @@ class HomePageTest extends TestCase
 
         $this->assertDatabaseHas('payments', [
             'method' => 'dummy',
-            'amount' => 36000,
+            'amount' => 51000,
             'status' => 'pending',
         ]);
 
@@ -418,7 +419,8 @@ class HomePageTest extends TestCase
             'customer_name' => 'User Default Alamat',
             'customer_email' => 'default-address@example.com',
             'subtotal' => 36000,
-            'total_amount' => 36000,
+            'shipping_cost' => 10000,
+            'total_amount' => 46000,
         ]);
     }
 

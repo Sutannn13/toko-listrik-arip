@@ -61,7 +61,7 @@
                 <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">Detail toko yang ditampilkan ke pelanggan.</p>
 
                 <div class="grid gap-5 sm:grid-cols-2">
-                    @foreach (['store_name', 'store_tagline', 'store_phone', 'store_email'] as $key)
+                    @foreach (['store_name', 'store_tagline', 'store_phone', 'store_email', 'store_maps_url'] as $key)
                         @if (isset($settings[$key]))
                             <x-admin.setting-input :setting="$settings[$key]" />
                         @endif
@@ -87,6 +87,21 @@
                         @endforeach
                     </div>
                 </div>
+
+                @if (isset($settings['shipping_cost_per_item']))
+                    <div class="mt-8 border-t border-gray-100 pt-6 dark:border-dark-border">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                            Pengiriman
+                        </h3>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Total ongkir checkout dihitung otomatis: ongkir per item x jumlah item di keranjang.
+                        </p>
+
+                        <div class="mt-4 grid gap-5 sm:grid-cols-2">
+                            <x-admin.setting-input :setting="$settings['shipping_cost_per_item']" />
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -220,17 +235,25 @@
             <div
                 class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-dark-border dark:bg-dark-card">
                 <h2 class="mb-1 text-base font-bold text-gray-800 dark:text-white">Pengaturan Notifikasi</h2>
-                <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">Atur jenis notifikasi email yang dikirim ke admin.
+                <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">Atur jenis notifikasi admin (database) untuk
+                    aktivitas penting pelanggan.
                 </p>
 
                 <div class="space-y-4">
                     @foreach (['notif_order_new', 'notif_order_paid', 'notif_claim_new'] as $key)
                         @if (isset($settings[$key]))
+                            @php
+                                $rawLabel = (string) $settings[$key]->label;
+                                $displayLabel = \Illuminate\Support\Str::startsWith(strtolower($rawLabel), 'email:')
+                                    ? 'Notifikasi Admin (Database): ' .
+                                        trim(\Illuminate\Support\Str::after($rawLabel, ':'))
+                                    : $rawLabel;
+                            @endphp
                             <label
                                 class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 px-5 py-4 transition hover:bg-gray-100 dark:border-dark-border dark:bg-dark-hover dark:hover:bg-dark-card">
                                 <div>
                                     <p class="text-sm font-semibold text-gray-800 dark:text-white">
-                                        {{ $settings[$key]->label }}</p>
+                                        {{ $displayLabel }}</p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Kunci: <code
                                             class="text-[10px]">{{ $key }}</code></p>
                                 </div>

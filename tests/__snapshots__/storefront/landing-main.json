@@ -1,6 +1,6 @@
 {
-    "title": "Toko Listrik Arip - Solusi Kebutuhan Listrik",
-    "brand": "Toko Listrik Arip",
+    "title": "Toko HS ELECTRIC - Solusi Kebutuhan Listrik",
+    "brand": "",
     "headings": [
         "Pusat Alat Listrik Terpercaya & Termurah.",
         "Produk Original",
@@ -9,11 +9,7 @@
         "Jelajahi Kategori",
         "Kipas Angin"
     ],
-    "primary_actions": [
-        "Mulai Belanja",
-        "Lihat Kategori",
-        "Kipas Angin 2 Produk"
-    ],
+    "primary_actions": [],
     "structure": {
         "section_count": 3,
         "article_count": 0,

@@ -22,7 +22,8 @@ class Setting extends Model
         }
 
         if ($setting->type === 'boolean') {
-            return (bool) $setting->value;
+            $normalized = filter_var((string) $setting->value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            return $normalized ?? false;
         }
 
         return $setting->value;

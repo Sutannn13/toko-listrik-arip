@@ -17,6 +17,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'profile_photo_path',
         'password',
         'is_suspended',
         'suspended_at',
@@ -66,5 +67,10 @@ class User extends Authenticatable
     public function warrantyClaimActivities(): HasMany
     {
         return $this->hasMany(WarrantyClaimActivity::class, 'actor_id');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
     }
 }

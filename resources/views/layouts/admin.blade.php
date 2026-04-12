@@ -10,6 +10,12 @@
     $authUser = Auth::user();
     $primaryRole = $authUser?->getRoleNames()->first();
     $displayRole = \Illuminate\Support\Str::headline(str_replace('-', ' ', $primaryRole ?? 'user'));
+    $normalizedAdminPhotoPath = str_replace('\\', '/', (string) $authUser?->profile_photo_path);
+    $adminProfilePhotoUrl =
+        $normalizedAdminPhotoPath !== '' &&
+        \Illuminate\Support\Facades\Storage::disk('public')->exists($normalizedAdminPhotoPath)
+            ? route('profile.photo', $authUser) . '?v=' . ($authUser->updated_at?->timestamp ?? now()->timestamp)
+            : null;
 
     $dashboardUrl = route('admin.dashboard');
     $categoryUrl = route('admin.categories.index');
@@ -35,10 +41,10 @@
         $notificationsTableExists && $authUser ? $authUser->unreadNotifications()->count() : 0;
 
     $hasUserManagementRoute = \Illuminate\Support\Facades\Route::has('admin.users.index');
-    $hasSystemSettingsRoute  = \Illuminate\Support\Facades\Route::has('admin.settings.index');
+    $hasSystemSettingsRoute = \Illuminate\Support\Facades\Route::has('admin.settings.index');
 
     $userManagementUrl = $hasUserManagementRoute ? route('admin.users.index') : '#';
-    $systemSettingsUrl = $hasSystemSettingsRoute  ? route('admin.settings.index') : '#';
+    $systemSettingsUrl = $hasSystemSettingsRoute ? route('admin.settings.index') : '#';
 @endphp
 
 <!DOCTYPE html>
@@ -129,10 +135,12 @@
             :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : 'justify-between px-6'">
             <a href="{{ $dashboardUrl }}" class="flex items-center gap-3 group"
                 :class="sidebarCollapsed ? 'lg:gap-0' : ''">
-                <img src="{{ asset('img/gemini_generated_image.png') }}" alt="{{ \App\Models\Setting::get('store_name', 'Toko') }}"
+                <img src="{{ asset('img/gemini_generated_image.png') }}"
+                    alt="{{ \App\Models\Setting::get('store_name', 'Toko') }}"
                     class="h-9 w-9 shrink-0 rounded-lg border border-gray-200 object-contain shadow-md dark:border-dark-border">
                 <div :class="sidebarCollapsed ? 'lg:hidden' : ''" class="overflow-hidden transition-all duration-200">
-                    <p class="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">{{ \App\Models\Setting::get('store_name', 'Toko Listrik') }}</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                        {{ \App\Models\Setting::get('store_name', 'Toko Listrik') }}</p>
                     <p class="text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ $displayRole }} Panel
                     </p>
                 </div>
@@ -329,8 +337,13 @@
                 <div class="flex items-center gap-3 rounded-xl bg-gray-50 px-3.5 py-3 dark:bg-dark-hover"
                     :class="sidebarCollapsed ? 'lg:justify-center lg:px-2 lg:py-2' : ''">
                     <div
-                        class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white">
-                        {{ strtoupper(substr($authUser->name, 0, 1)) }}
+                        class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white">
+                        @if ($adminProfilePhotoUrl)
+                            <img src="{{ $adminProfilePhotoUrl }}" alt="Foto profil {{ $authUser->name }}"
+                                class="h-full w-full object-cover">
+                        @else
+                            {{ strtoupper(substr($authUser->name, 0, 1)) }}
+                        @endif
                     </div>
                     <div class="min-w-0 flex-1" :class="sidebarCollapsed ? 'lg:hidden' : ''">
                         <p class="truncate text-sm font-semibold text-gray-800 dark:text-white">{{ $authUser->name }}
@@ -517,8 +530,13 @@
                         <button type="button" @click="open = !open"
                             class="flex items-center gap-2.5 rounded-lg py-1.5 pl-1.5 pr-3 transition hover:bg-gray-50 dark:hover:bg-dark-hover">
                             <div
-                                class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white">
-                                {{ strtoupper(substr($authUser->name, 0, 1)) }}
+                                class="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white">
+                                @if ($adminProfilePhotoUrl)
+                                    <img src="{{ $adminProfilePhotoUrl }}" alt="Foto profil {{ $authUser->name }}"
+                                        class="h-full w-full object-cover">
+                                @else
+                                    {{ strtoupper(substr($authUser->name, 0, 1)) }}
+                                @endif
                             </div>
                             <div class="hidden sm:block text-left">
                                 <p class="text-sm font-semibold text-gray-800 dark:text-white">{{ $authUser->name }}

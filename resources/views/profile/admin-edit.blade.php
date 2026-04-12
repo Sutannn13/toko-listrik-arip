@@ -1,15 +1,17 @@
 @extends('layouts.storefront')
 
-@section('title', 'Profil Akun - Toko HS ELECTRIC')
-@section('header_subtitle', 'Akun Saya')
+@section('title', 'Profil Admin - Toko HS ELECTRIC')
+@section('header_subtitle', 'Akun Admin')
 
 @section('header_actions')
-    <a href="{{ route('home') }}" class="ui-btn ui-btn-secondary">
-        Katalog
+    <a href="{{ route('admin.dashboard') }}" class="ui-btn ui-btn-secondary">
+        Dashboard Admin
     </a>
-    <a href="{{ route('profile.addresses.index') }}" class="ui-btn ui-btn-soft">
-        Kelola Alamat
-    </a>
+    @if ($user->hasRole('super-admin'))
+        <a href="{{ route('admin.settings.index') }}" class="ui-btn ui-btn-soft">
+            Pengaturan
+        </a>
+    @endif
 @endsection
 
 @section('content')
@@ -22,12 +24,10 @@
             \Illuminate\Support\Facades\Storage::disk('public')->exists($normalizedPhotoPath)
                 ? route('profile.photo', $user) . '?v=' . ($user->updated_at?->timestamp ?? now()->timestamp)
                 : null;
-        $profileInitial = strtoupper(substr($user->name ?? 'U', 0, 1));
-        $addresses = $addresses ?? collect();
-        $defaultAddress = $defaultAddress ?? null;
+        $profileInitial = strtoupper(substr($user->name ?? 'A', 0, 1));
 
         if ($status === 'profile-updated') {
-            $successMessage = 'Profil berhasil diperbarui.';
+            $successMessage = 'Profil admin berhasil diperbarui.';
         } elseif ($status === 'password-updated') {
             $successMessage = 'Password berhasil diperbarui.';
         } elseif ($status === 'verification-link-sent') {
@@ -35,8 +35,8 @@
         }
     @endphp
 
-    <x-ui.page-header title="Profil Akun"
-        subtitle="Perbarui data akun, foto profil, alamat default, dan keamanan password dari satu halaman." />
+    <x-ui.page-header title="Profil Admin"
+        subtitle="Halaman profil khusus admin untuk mengelola identitas akun, keamanan, dan akses panel admin." />
 
     @include('partials.flash-alerts', [
         'successMessage' => $successMessage,
@@ -47,19 +47,12 @@
         @csrf
     </form>
 
-    <div class="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">
+    <div class="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
         <section class="ui-card overflow-hidden">
-            <div class="bg-gradient-to-r from-slate-900 via-blue-900 to-cyan-800 px-6 py-5 text-white">
-                <h3 class="text-lg font-extrabold">Identitas Akun</h3>
-                <p class="mt-1 text-sm text-cyan-100">Data ini dipakai untuk notifikasi, checkout, dan komunikasi pesanan.
+            <div class="bg-gradient-to-r from-slate-900 via-cyan-900 to-teal-700 px-6 py-5 text-white">
+                <h3 class="text-lg font-extrabold">Identitas Admin</h3>
+                <p class="mt-1 text-sm text-cyan-100">Data ini digunakan untuk akses panel admin dan notifikasi internal.
                 </p>
-                <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-cyan-100">
-                    <span class="rounded-full bg-white/15 px-2.5 py-1">{{ $addresses->count() }} alamat tersimpan</span>
-                    @if ($defaultAddress)
-                        <span class="rounded-full bg-white/15 px-2.5 py-1">Default:
-                            {{ $defaultAddress->label ?: 'Alamat Utama' }}</span>
-                    @endif
-                </div>
             </div>
 
             <div class="ui-card-pad">
@@ -75,14 +68,14 @@
                                         class="h-full w-full object-cover">
                                 @else
                                     <div
-                                        class="grid h-full w-full place-items-center bg-gradient-to-br from-blue-600 to-cyan-500 text-3xl font-black text-white">
+                                        class="grid h-full w-full place-items-center bg-gradient-to-br from-cyan-600 to-teal-500 text-3xl font-black text-white">
                                         {{ $profileInitial }}
                                     </div>
                                 @endif
                             </div>
 
                             <div class="flex-1 space-y-2">
-                                <label for="profile_photo" class="ui-label">Foto Profil</label>
+                                <label for="profile_photo" class="ui-label">Foto Profil Admin</label>
                                 <input id="profile_photo" name="profile_photo" type="file"
                                     accept="image/png,image/jpeg,image/jpg,image/webp" class="ui-input">
                                 <p class="text-xs text-slate-500">Format: JPG, PNG, WEBP. Maksimal 4MB.</p>
@@ -105,7 +98,7 @@
 
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label for="name" class="ui-label">Nama Lengkap</label>
+                            <label for="name" class="ui-label">Nama Admin</label>
                             <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}"
                                 required autofocus autocomplete="name" class="ui-input">
                             @error('name')
@@ -114,7 +107,7 @@
                         </div>
 
                         <div>
-                            <label for="email" class="ui-label">Email</label>
+                            <label for="email" class="ui-label">Email Admin</label>
                             <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}"
                                 required autocomplete="username" class="ui-input">
                             @error('email')
@@ -136,7 +129,7 @@
                     @endif
 
                     <button type="submit" class="ui-btn ui-btn-primary">
-                        Simpan Profil
+                        Simpan Profil Admin
                     </button>
                 </form>
             </div>
@@ -144,69 +137,42 @@
 
         <div class="space-y-6">
             <section class="ui-card ui-card-pad">
-                <div class="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                        <h3 class="text-base font-extrabold text-slate-900">Alamat Default Pengiriman</h3>
-                        <p class="mt-1 text-sm text-slate-600">Ganti alamat default langsung dari sini, edit detail tetap
-                            tersedia di halaman alamat.</p>
-                    </div>
-                    <a href="{{ route('profile.addresses.index') }}" class="ui-btn ui-btn-soft px-3 py-2 text-xs">
-                        Kelola Detail Alamat
+                <h3 class="text-base font-extrabold text-slate-900">Akses Cepat Admin</h3>
+                <p class="mt-1 text-sm text-slate-600">Shortcut untuk tugas utama admin tanpa menu belanja user.</p>
+
+                <div class="mt-4 grid gap-2">
+                    <a href="{{ route('admin.products.index') }}"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                        Kelola Produk
                     </a>
+                    <a href="{{ route('admin.categories.index') }}"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                        Kelola Kategori
+                    </a>
+                    <a href="{{ route('admin.orders.index') }}"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                        Kelola Pesanan
+                    </a>
+                    <a href="{{ route('admin.warranty-claims.index') }}"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                        Monitoring Klaim Garansi
+                    </a>
+                    <a href="{{ route('admin.notifications.index') }}"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                        Notifikasi Admin
+                    </a>
+                    @if ($user->hasRole('super-admin'))
+                        <a href="{{ route('admin.settings.index') }}"
+                            class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                            Pengaturan Sistem
+                        </a>
+                    @endif
                 </div>
-
-                @if ($defaultAddress)
-                    <div class="mt-4 rounded-xl border border-cyan-200 bg-cyan-50 p-4">
-                        <p class="text-xs font-bold uppercase tracking-wider text-cyan-700">Sedang Dipakai Checkout</p>
-                        <p class="mt-2 text-sm font-bold text-slate-900">{{ $defaultAddress->label ?: 'Alamat Utama' }}</p>
-                        <p class="text-sm text-slate-700">{{ $defaultAddress->recipient_name }} -
-                            {{ $defaultAddress->phone }}</p>
-                        <p class="text-sm text-slate-700">{{ $defaultAddress->address_line }}</p>
-                        <p class="text-sm text-slate-700">{{ $defaultAddress->city }}, {{ $defaultAddress->province }}
-                            {{ $defaultAddress->postal_code }}</p>
-                    </div>
-                @else
-                    <div
-                        class="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                        Belum ada alamat default. Tambahkan alamat agar checkout tidak perlu isi ulang.
-                    </div>
-                @endif
-
-                @if ($addresses->isNotEmpty())
-                    <div class="mt-4 space-y-2">
-                        @foreach ($addresses as $address)
-                            <div
-                                class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-900">
-                                        {{ $address->label ?: 'Alamat' }}
-                                        @if ($address->is_default)
-                                            <span
-                                                class="ml-1 rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-bold uppercase text-primary-700">Default</span>
-                                        @endif
-                                    </p>
-                                    <p class="text-xs text-slate-600">{{ $address->recipient_name }} -
-                                        {{ $address->city }}</p>
-                                </div>
-
-                                @if (!$address->is_default)
-                                    <form method="POST" action="{{ route('profile.addresses.default', $address) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="ui-btn ui-btn-secondary px-3 py-1.5 text-xs">
-                                            Jadikan Default
-                                        </button>
-                                    </form>
-                                @endif
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
             </section>
 
             <section class="ui-card ui-card-pad">
                 <h3 class="text-base font-extrabold text-slate-900">Keamanan Password</h3>
-                <p class="mt-1 text-sm text-slate-600">Gunakan password panjang dan unik agar akun tetap aman.</p>
+                <p class="mt-1 text-sm text-slate-600">Gunakan password kuat untuk menjaga keamanan panel admin.</p>
 
                 <form method="POST" action="{{ route('password.update') }}" class="mt-5 space-y-4">
                     @csrf
@@ -214,8 +180,8 @@
 
                     <div>
                         <label for="current_password" class="ui-label">Password Saat Ini</label>
-                        <input id="current_password" name="current_password" type="password"
-                            autocomplete="current-password" class="ui-input">
+                        <input id="current_password" name="current_password" type="password" autocomplete="current-password"
+                            class="ui-input">
                         @if ($errors->updatePassword->has('current_password'))
                             <p class="mt-1 text-xs font-semibold text-red-600">
                                 {{ $errors->updatePassword->first('current_password') }}
@@ -247,34 +213,6 @@
 
                     <button type="submit" class="ui-btn ui-btn-primary">
                         Update Password
-                    </button>
-                </form>
-            </section>
-
-            <section class="ui-card ui-card-pad border border-red-200 bg-red-50/50">
-                <h3 class="text-base font-extrabold text-red-800">Zona Bahaya</h3>
-                <p class="mt-1 text-sm text-red-700">Penghapusan akun bersifat permanen dan tidak dapat dipulihkan.</p>
-
-                <form method="POST" action="{{ route('profile.destroy') }}" class="mt-5 space-y-3"
-                    onsubmit="return confirm('Hapus akun secara permanen?');">
-                    @csrf
-                    @method('DELETE')
-
-                    <div>
-                        <label for="delete_password" class="ui-label text-red-700">Konfirmasi Password</label>
-                        <input id="delete_password" name="password" type="password"
-                            class="ui-input border-red-200 focus:border-red-400 focus:ring-red-400"
-                            placeholder="Masukkan password untuk konfirmasi">
-                        @if ($errors->userDeletion->has('password'))
-                            <p class="mt-1 text-xs font-semibold text-red-600">
-                                {{ $errors->userDeletion->first('password') }}
-                            </p>
-                        @endif
-                    </div>
-
-                    <button type="submit"
-                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
-                        Hapus Akun Permanen
                     </button>
                 </form>
             </section>

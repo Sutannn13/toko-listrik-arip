@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Notifications\OrderCompletedNotification;
+use App\Notifications\PaymentProofStatusUpdatedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -26,7 +28,12 @@ class OrderController extends Controller
         ]);
 
         $orders = Order::query()
-            ->with(['user:id,name,email', 'payments', 'latestPayment'])
+            ->with([
+                'user:id,name,email',
+                'address:id,label,recipient_name,address_line,city,province,postal_code',
+                'payments',
+                'latestPayment',
+            ])
             ->when($filters['q'] ?? null, function ($query, $keyword) {
                 $query->where(function ($searchQuery) use ($keyword) {
                     $searchQuery
@@ -105,6 +112,20 @@ class OrderController extends Controller
                 ->with('error', 'Pesanan cancelled tidak boleh memiliki payment status paid.');
         }
 
+        if ($order->status === 'completed' && $validated['status'] !== 'completed') {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Pesanan yang sudah completed tidak dapat diturunkan statusnya.');
+        }
+
+        if ($validated['payment_status'] === 'paid') {
+            $latestPayment = $order->payments()->latest('id')->first();
+
+            if ($latestPayment && in_array($latestPayment->method, ['bank_transfer', 'ewallet', 'dummy'], true) && blank($latestPayment->proof_url)) {
+                return redirect()->route('admin.orders.show', $order)
+                    ->with('error', 'Pembayaran transfer/e-wallet hanya bisa diubah ke paid setelah pelanggan upload bukti dan diverifikasi admin.');
+            }
+        }
+
         $transitionBlocked = false;
 
         DB::transaction(function () use ($order, $validated, &$transitionBlocked) {
@@ -125,6 +146,8 @@ class OrderController extends Controller
             $oldStatus = $lockedOrder->status;
             $lockedOrder->status = $validated['status'];
             $lockedOrder->payment_status = $validated['payment_status'];
+            $isNowCompleted = $oldStatus !== 'completed' && $lockedOrder->status === 'completed';
+            $isNowCancelled = $oldStatus !== 'cancelled' && $lockedOrder->status === 'cancelled';
 
             if (array_key_exists('tracking_number', $validated)) {
                 $lockedOrder->tracking_number = $validated['tracking_number'] !== ''
@@ -141,7 +164,7 @@ class OrderController extends Controller
                 $lockedOrder->warranty_status = 'void';
             }
 
-            if ($oldStatus !== 'cancelled' && $lockedOrder->status === 'cancelled') {
+            if ($isNowCancelled) {
                 $lockedOrder->load('items');
 
                 foreach ($lockedOrder->items as $item) {
@@ -163,6 +186,28 @@ class OrderController extends Controller
             }
 
             $lockedOrder->save();
+
+            if ($isNowCompleted) {
+                $warrantyStart = ($lockedOrder->completed_at ?? now())->copy()->startOfDay();
+
+                $lockedOrder->items()
+                    ->where('warranty_days', '>', 0)
+                    ->lockForUpdate()
+                    ->get()
+                    ->each(function (OrderItem $item) use ($warrantyStart) {
+                        $days = max(1, (int) $item->warranty_days);
+                        $item->warranty_expires_at = $warrantyStart->copy()->addDays($days)->endOfDay();
+                        $item->save();
+                    });
+            }
+
+            if ($isNowCancelled) {
+                $lockedOrder->items()
+                    ->where('warranty_days', '>', 0)
+                    ->whereNotNull('warranty_expires_at')
+                    ->lockForUpdate()
+                    ->update(['warranty_expires_at' => null]);
+            }
 
             $latestPayment = $lockedOrder->payments()
                 ->latest('id')
@@ -190,6 +235,192 @@ class OrderController extends Controller
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Status pesanan berhasil diperbarui.');
+    }
+
+    public function approvePaymentProof(Request $request, Order $order, Payment $payment): RedirectResponse
+    {
+        if ($payment->order_id !== $order->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'admin_notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if (blank($payment->proof_url)) {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Bukti pembayaran belum diunggah oleh pelanggan.');
+        }
+
+        if (in_array($payment->status, ['paid', 'refunded'], true)) {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Status pembayaran ini sudah final dan tidak bisa diverifikasi ulang.');
+        }
+
+        if ($order->status === 'cancelled') {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Pesanan yang sudah cancelled tidak dapat diubah menjadi paid.');
+        }
+
+        try {
+            DB::transaction(function () use ($order, $payment, $validated) {
+                $lockedOrder = Order::query()
+                    ->whereKey($order->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $lockedPayment = Payment::query()
+                    ->whereKey($payment->id)
+                    ->where('order_id', $order->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$lockedOrder || !$lockedPayment) {
+                    throw new \RuntimeException('NOT_FOUND');
+                }
+
+                if (blank($lockedPayment->proof_url)) {
+                    throw new \RuntimeException('NO_PROOF');
+                }
+
+                if (in_array($lockedPayment->status, ['paid', 'refunded'], true)) {
+                    throw new \RuntimeException('FINAL_STATUS');
+                }
+
+                if ($lockedOrder->status === 'cancelled') {
+                    throw new \RuntimeException('ORDER_CANCELLED');
+                }
+
+                $paidAt = $lockedPayment->paid_at ?: now();
+
+                $lockedPayment->update([
+                    'status' => 'paid',
+                    'paid_at' => $paidAt,
+                    'notes' => $this->buildPaymentReviewNote('approved', $validated['admin_notes'] ?? null),
+                ]);
+
+                $lockedOrder->payment_status = 'paid';
+                $lockedOrder->paid_at = $paidAt;
+                $lockedOrder->save();
+            }, 3);
+        } catch (\RuntimeException $e) {
+            $message = match ($e->getMessage()) {
+                'NO_PROOF' => 'Bukti pembayaran tidak ditemukan untuk diverifikasi.',
+                'FINAL_STATUS' => 'Status pembayaran ini sudah final dan tidak bisa diverifikasi ulang.',
+                'ORDER_CANCELLED' => 'Pesanan yang sudah cancelled tidak dapat diubah menjadi paid.',
+                default => 'Data pesanan/pembayaran tidak ditemukan saat proses verifikasi.',
+            };
+
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', $message);
+        }
+
+        $order->refresh();
+        $payment->refresh();
+
+        if ($order->user) {
+            $order->user->notify(new PaymentProofStatusUpdatedNotification(
+                $order,
+                $payment,
+                'approved',
+                $validated['admin_notes'] ?? null,
+            ));
+        }
+
+        return redirect()->route('admin.orders.show', $order)
+            ->with('success', 'Bukti pembayaran berhasil disetujui.');
+    }
+
+    public function rejectPaymentProof(Request $request, Order $order, Payment $payment): RedirectResponse
+    {
+        if ($payment->order_id !== $order->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'admin_notes' => ['required', 'string', 'min:5', 'max:1000'],
+        ]);
+
+        if (blank($payment->proof_url)) {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Bukti pembayaran belum diunggah oleh pelanggan.');
+        }
+
+        if (in_array($payment->status, ['paid', 'refunded'], true)) {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Status pembayaran ini sudah final dan tidak bisa ditolak.');
+        }
+
+        if ($order->status === 'completed') {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Pesanan yang sudah completed tidak dapat diubah menjadi failed.');
+        }
+
+        try {
+            DB::transaction(function () use ($order, $payment, $validated) {
+                $lockedOrder = Order::query()
+                    ->whereKey($order->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $lockedPayment = Payment::query()
+                    ->whereKey($payment->id)
+                    ->where('order_id', $order->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$lockedOrder || !$lockedPayment) {
+                    throw new \RuntimeException('NOT_FOUND');
+                }
+
+                if (blank($lockedPayment->proof_url)) {
+                    throw new \RuntimeException('NO_PROOF');
+                }
+
+                if (in_array($lockedPayment->status, ['paid', 'refunded'], true)) {
+                    throw new \RuntimeException('FINAL_STATUS');
+                }
+
+                if ($lockedOrder->status === 'completed') {
+                    throw new \RuntimeException('ORDER_COMPLETED');
+                }
+
+                $lockedPayment->update([
+                    'status' => 'failed',
+                    'paid_at' => null,
+                    'notes' => $this->buildPaymentReviewNote('rejected', $validated['admin_notes']),
+                ]);
+
+                $lockedOrder->payment_status = 'failed';
+                $lockedOrder->paid_at = null;
+                $lockedOrder->save();
+            }, 3);
+        } catch (\RuntimeException $e) {
+            $message = match ($e->getMessage()) {
+                'NO_PROOF' => 'Bukti pembayaran tidak ditemukan untuk ditolak.',
+                'FINAL_STATUS' => 'Status pembayaran ini sudah final dan tidak bisa ditolak.',
+                'ORDER_COMPLETED' => 'Pesanan yang sudah completed tidak dapat diubah menjadi failed.',
+                default => 'Data pesanan/pembayaran tidak ditemukan saat proses penolakan.',
+            };
+
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', $message);
+        }
+
+        $order->refresh();
+        $payment->refresh();
+
+        if ($order->user) {
+            $order->user->notify(new PaymentProofStatusUpdatedNotification(
+                $order,
+                $payment,
+                'rejected',
+                $validated['admin_notes'],
+            ));
+        }
+
+        return redirect()->route('admin.orders.show', $order)
+            ->with('success', 'Bukti pembayaran ditolak. Pelanggan dapat mengunggah bukti baru.');
     }
 
     public function updateItemWarranty(Request $request, Order $order, OrderItem $orderItem): RedirectResponse
@@ -253,5 +484,19 @@ class OrderController extends Controller
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Tanggal garansi item berhasil diperbarui.');
+    }
+
+    private function buildPaymentReviewNote(string $decision, ?string $adminNotes = null): string
+    {
+        $baseNote = $decision === 'approved'
+            ? 'Bukti pembayaran diverifikasi admin dan dinyatakan valid.'
+            : 'Bukti pembayaran ditolak admin. Silakan unggah bukti pembayaran yang valid.';
+
+        $adminNotes = trim((string) $adminNotes);
+        if ($adminNotes !== '') {
+            return $baseNote . ' Catatan admin: ' . $adminNotes;
+        }
+
+        return $baseNote;
     }
 }

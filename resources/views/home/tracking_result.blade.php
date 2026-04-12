@@ -1,7 +1,14 @@
 @extends('layouts.storefront')
 
-@section('title', 'Hasil Lacak Pesanan ' . $order->order_code . ' - ' . \App\Models\Setting::get('store_name', 'Toko
-    Listrik'))
+@section('title',
+    'Hasil Lacak Pesanan ' .
+    $order->order_code .
+    ' - ' .
+    \App\Models\Setting::get(
+    'store_name',
+    'Toko
+    Listrik',
+    ))
 @section('header_subtitle', 'Hasil Pelacakan')
 @section('show_default_store_actions', 'off')
 @section('main_container_class', 'mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8 flex-1')
@@ -18,7 +25,7 @@
 @section('header_actions')
     <a href="{{ route('home.tracking') }}"
         class="hidden sm:inline-flex rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-primary-500 hover:text-primary-600 hover:bg-gray-50">
-        Cek Nomor Resi Lain
+        Kembali ke Daftar Pesanan
     </a>
 @endsection
 
@@ -49,6 +56,10 @@
         </div>
     @endif
 
+    @php
+        $latestPayment = $order->payments->sortByDesc('created_at')->first();
+    @endphp
+
     <!-- Resi Display -->
     @if ($order->tracking_number)
         <div
@@ -63,43 +74,161 @@
 
     <!-- Payment Proof Form -->
     @if ($order->status !== 'cancelled' && $order->payment_status !== 'paid')
-        @php
-            $latestPayment = $order->payments->sortByDesc('created_at')->first();
-        @endphp
-        @if ($latestPayment && !$latestPayment->proof_url)
-            <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
-                <h3 class="text-sm font-bold text-blue-900 mb-2">Segera Upload Bukti Pembayaran</h3>
-                <p class="text-xs text-blue-700 mb-4">Transfer sebesar <strong>Rp
-                        {{ number_format($order->total_amount, 0, ',', '.') }}</strong> ke
-                    <b>{{ \App\Models\Setting::get('bank_1_name') }} {{ \App\Models\Setting::get('bank_1_account') }} a/n
-                        {{ \App\Models\Setting::get('bank_1_holder') }}</b>, lalu unggah bukti di sini agar pesanan
-                    diproses.</p>
+        @if ($latestPayment)
+            @php
+                $proofMethods = ['bank_transfer', 'ewallet', 'dummy'];
+                $isProofPaymentMethod = in_array($latestPayment->method, $proofMethods, true);
+                $isCodMethod = $latestPayment->method === 'cod';
 
-                <form action="{{ route('home.tracking.proof', $order->order_code) }}" method="POST"
-                    enctype="multipart/form-data" class="flex flex-col sm:flex-row gap-3">
-                    @csrf
-                    <input type="file" name="payment_proof" accept="image/*" required
-                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition bg-white">
-                    <button type="submit"
-                        class="whitespace-nowrap rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 shadow-md">
-                        Unggah Bukti
-                    </button>
-                </form>
-                @error('payment_proof')
-                    <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
-        @elseif($latestPayment && $latestPayment->proof_url)
-            <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm flex items-center gap-4">
-                <svg class="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <div>
-                    <p class="text-sm font-bold text-blue-900">Bukti Transfer Berhasil Diunggah</p>
-                    <p class="text-xs text-blue-700 mt-0.5">Admin sedang memverifikasi pembayaran Anda.</p>
+                $bankTransferAccounts = array_values(
+                    array_filter(
+                        [
+                            [
+                                'name' => \App\Models\Setting::get('bank_1_name', 'BCA'),
+                                'number' => \App\Models\Setting::get('bank_1_account'),
+                                'holder' => \App\Models\Setting::get('bank_1_holder'),
+                            ],
+                            [
+                                'name' => \App\Models\Setting::get('bank_2_name', 'BRI'),
+                                'number' => \App\Models\Setting::get('bank_2_account'),
+                                'holder' => \App\Models\Setting::get('bank_2_holder'),
+                            ],
+                        ],
+                        fn(array $account) => filled($account['name']) && filled($account['number']),
+                    ),
+                );
+
+                $ewalletAccount = [
+                    'name' => \App\Models\Setting::get('bank_3_name', 'DANA'),
+                    'number' => \App\Models\Setting::get('bank_3_account'),
+                    'holder' => \App\Models\Setting::get('bank_3_holder'),
+                ];
+            @endphp
+
+            @if ($isProofPaymentMethod && !$latestPayment->proof_url)
+                <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
+                    <h3 class="text-sm font-bold text-blue-900 mb-2">Segera Upload Bukti Pembayaran</h3>
+                    <p class="text-xs text-blue-700 mb-3">
+                        Bayar sebesar <strong>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</strong>
+                        sesuai metode yang dipilih, lalu upload bukti agar status masuk antrean ACC admin.
+                    </p>
+
+                    @if (in_array($latestPayment->method, ['bank_transfer', 'dummy'], true))
+                        <div class="mb-4 space-y-2 rounded-lg border border-blue-200 bg-white p-3">
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-blue-700">Rekening Transfer
+                                Bank</p>
+                            @forelse ($bankTransferAccounts as $account)
+                                <p class="text-xs text-gray-700">
+                                    <span class="font-semibold">{{ $account['name'] }}</span>
+                                    {{ $account['number'] }}
+                                    @if (filled($account['holder']))
+                                        a/n {{ $account['holder'] }}
+                                    @endif
+                                </p>
+                            @empty
+                                <p class="text-xs text-gray-700">Info rekening bank belum disetel oleh admin.</p>
+                            @endforelse
+                        </div>
+                    @elseif($latestPayment->method === 'ewallet')
+                        <div class="mb-4 rounded-lg border border-blue-200 bg-white p-3">
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-blue-700">Akun E-Wallet /
+                                E-Money</p>
+                            <p class="mt-1 text-xs text-gray-700">
+                                <span class="font-semibold">{{ $ewalletAccount['name'] }}</span>
+                                {{ $ewalletAccount['number'] ?: '-' }}
+                                @if (filled($ewalletAccount['holder']))
+                                    a/n {{ $ewalletAccount['holder'] }}
+                                @endif
+                            </p>
+                        </div>
+                    @endif
+
+                    <form action="{{ route('home.tracking.proof', $order->order_code) }}" method="POST"
+                        enctype="multipart/form-data" class="flex flex-col sm:flex-row gap-3">
+                        @csrf
+                        <input type="file" name="payment_proof" accept="image/*" required
+                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition bg-white">
+                        <button type="submit"
+                            class="whitespace-nowrap rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 shadow-md">
+                            Unggah Bukti
+                        </button>
+                    </form>
+                    @error('payment_proof')
+                        <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
-            </div>
+            @elseif($isProofPaymentMethod && $latestPayment->proof_url)
+                @php
+                    $isProofRejected = $latestPayment->status === 'failed';
+                @endphp
+                <div
+                    class="mb-6 rounded-xl border p-4 shadow-sm {{ $isProofRejected ? 'border-red-200 bg-red-50' : 'border-blue-200 bg-blue-50' }}">
+                    <div class="flex items-center gap-4">
+                        @if ($isProofRejected)
+                            <svg class="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12">
+                                </path>
+                            </svg>
+                        @else
+                            <svg class="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        @endif
+                        <div>
+                            @if ($isProofRejected)
+                                <p class="text-sm font-bold text-red-900">Bukti Pembayaran Ditolak Admin</p>
+                                <p class="text-xs text-red-700 mt-0.5">Silakan unggah ulang bukti pembayaran yang valid.</p>
+                            @else
+                                <p class="text-sm font-bold text-blue-900">Bukti Pembayaran Berhasil Diunggah</p>
+                                <p class="text-xs text-blue-700 mt-0.5">Status pembayaran Anda saat ini menunggu ACC admin.
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+
+                    @if ($isProofRejected && $latestPayment->notes)
+                        <div class="mt-3 rounded-lg border border-red-200 bg-white px-3 py-2">
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-red-700">Catatan Admin</p>
+                            <p class="mt-1 text-xs text-red-700">{{ $latestPayment->notes }}</p>
+                        </div>
+                    @endif
+
+                    <div class="mt-4 flex flex-wrap items-center gap-3">
+                        <a href="{{ Storage::disk('public')->url($latestPayment->proof_url) }}" target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center rounded-lg border px-3 py-2 text-xs font-semibold transition {{ $isProofRejected ? 'border-red-300 text-red-700 hover:bg-red-100' : 'border-blue-300 text-blue-700 hover:bg-blue-100' }} bg-white">
+                            Lihat Bukti Saat Ini
+                        </a>
+                    </div>
+
+                    @if (in_array($latestPayment->status, ['pending', 'failed'], true))
+                        <form action="{{ route('home.tracking.proof', $order->order_code) }}" method="POST"
+                            enctype="multipart/form-data" class="mt-4 grid gap-3 sm:grid-cols-[1fr,auto]">
+                            @csrf
+                            <input type="hidden" name="replace_proof" value="1">
+                            <input type="file" name="payment_proof" accept="image/*" required
+                                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold transition bg-white {{ $isProofRejected ? 'file:bg-red-100 file:text-red-700 hover:file:bg-red-200' : 'file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200' }}">
+                            <button type="submit"
+                                class="whitespace-nowrap rounded-xl px-6 py-2.5 text-sm font-bold text-white transition shadow-md {{ $isProofRejected ? 'bg-red-700 hover:bg-red-800' : 'bg-blue-700 hover:bg-blue-800' }}">
+                                Ganti Bukti
+                            </button>
+                        </form>
+                        @error('payment_proof')
+                            <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    @endif
+                </div>
+            @elseif($isCodMethod)
+                <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+                    <p class="text-sm font-bold text-emerald-900">Metode Pembayaran COD</p>
+                    <p class="mt-1 text-xs text-emerald-700">
+                        Pesanan ini menggunakan COD, jadi tidak perlu upload bukti pembayaran. Silakan bayar saat barang
+                        diterima.
+                    </p>
+                </div>
+            @endif
         @endif
     @endif
 
@@ -144,8 +273,20 @@
             @endif
         </div>
 
-        <div
-            class="w-full sm:w-auto p-4 rounded-xl {{ $order->payment_status === 'paid' ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200' }}">
+        @php
+            $isWaitingAdminApproval =
+                $latestPayment &&
+                in_array($latestPayment->method, ['bank_transfer', 'ewallet', 'dummy'], true) &&
+                $latestPayment->status === 'pending' &&
+                filled($latestPayment->proof_url);
+            $paymentBoxClass =
+                $order->payment_status === 'paid'
+                    ? 'bg-green-50 border border-green-200'
+                    : ($isWaitingAdminApproval
+                        ? 'bg-blue-50 border border-blue-200'
+                        : 'bg-orange-50 border border-orange-200');
+        @endphp
+        <div class="w-full sm:w-auto p-4 rounded-xl {{ $paymentBoxClass }}">
             <p class="text-[10px] uppercase font-bold text-gray-500 mb-1">Status Pembayaran</p>
             @if ($order->payment_status === 'paid')
                 <p class="text-sm font-bold text-green-700 flex items-center gap-1.5"><svg class="w-4 h-4" fill="none"
@@ -153,9 +294,15 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg> Lunas (Paid)</p>
-            @else
-                <p class="text-sm font-bold text-orange-700 flex items-center gap-1.5"><svg class="w-4 h-4" fill="none"
+            @elseif($isWaitingAdminApproval)
+                <p class="text-sm font-bold text-blue-700 flex items-center gap-1.5"><svg class="w-4 h-4" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg> Menunggu ACC Admin</p>
+            @else
+                <p class="text-sm font-bold text-orange-700 flex items-center gap-1.5"><svg class="w-4 h-4"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg> Belum Lunas ({{ $order->payment_status }})</p>

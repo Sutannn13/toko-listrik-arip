@@ -7,12 +7,19 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Support\UniqueSlugGenerator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::with('category')->latest()->get();
+        $products = Product::with('category')
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
         return view('admin.products.index', compact('products'));
     }
 
@@ -31,15 +38,22 @@ class ProductController extends Controller
             'stock'        => 'required|integer|min:0',
             'unit'         => 'required|in:pcs,meter,roll,box',
             'description'  => 'nullable|string',
+            'image'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
             'is_electronic' => 'nullable|boolean',
             'is_active'    => 'nullable|boolean',
         ]);
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('products', 'public');
+        }
 
         Product::create([
             'category_id'  => $validated['category_id'],
             'name'         => $validated['name'],
             'slug'         => UniqueSlugGenerator::make(Product::class, $validated['name'], 'slug'),
             'description'  => $validated['description'] ?? null,
+            'image_path'   => $imagePath,
             'price'        => $validated['price'],
             'stock'        => $validated['stock'],
             'unit'         => $validated['unit'],
@@ -75,6 +89,8 @@ class ProductController extends Controller
             'stock'        => 'required|integer|min:0',
             'unit'         => 'required|in:pcs,meter,roll,box',
             'description'  => 'nullable|string',
+            'image'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'remove_image' => 'nullable|boolean',
             'is_electronic' => 'nullable|boolean',
             'is_active'    => 'nullable|boolean',
         ]);
@@ -85,11 +101,28 @@ class ProductController extends Controller
             $slug = UniqueSlugGenerator::make(Product::class, $validated['name'], 'slug', $product->id);
         }
 
+        $newImagePath = $product->image_path;
+
+        if ((bool) ($validated['remove_image'] ?? false) && ! $request->hasFile('image')) {
+            if (! empty($product->image_path)) {
+                Storage::disk('public')->delete($product->image_path);
+            }
+            $newImagePath = null;
+        }
+
+        if ($request->hasFile('image')) {
+            if (! empty($product->image_path)) {
+                Storage::disk('public')->delete($product->image_path);
+            }
+            $newImagePath = $request->file('image')->store('products', 'public');
+        }
+
         $product->update([
             'category_id'  => $validated['category_id'],
             'name'         => $validated['name'],
             'slug'         => $slug,
             'description'  => $validated['description'] ?? null,
+            'image_path'   => $newImagePath,
             'price'        => $validated['price'],
             'stock'        => $validated['stock'],
             'unit'         => $validated['unit'],
@@ -129,6 +162,11 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         $name    = $product->name;
+
+        if (! empty($product->image_path)) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
         $product->delete();
 
         return redirect()->route('admin.products.index')

@@ -22,17 +22,22 @@ Route::view('/terms-and-conditions', 'legal.terms')->name('legal.terms');
 
 Route::middleware('auth')->group(function () {
     Route::post('/produk/{slug}/buy', [HomeController::class, 'buy'])->name('home.products.buy');
+    Route::post('/produk/{slug}/review', [HomeController::class, 'submitReview'])
+        ->middleware('throttle:5,1')
+        ->name('home.products.review');
     Route::get('/keranjang', [HomeController::class, 'cart'])->name('home.cart');
     Route::patch('/keranjang/{productId}', [HomeController::class, 'updateCart'])->name('home.cart.update');
     Route::delete('/keranjang/{productId}', [HomeController::class, 'removeFromCart'])->name('home.cart.remove');
     Route::post('/keranjang/checkout', [HomeController::class, 'checkout'])
-        ->middleware('throttle:3,10')
+        ->middleware('throttle:12,1')
         ->name('home.cart.checkout');
 
     Route::get('/cek-pesanan', [HomeController::class, 'tracking'])->name('home.tracking');
     Route::post('/cek-pesanan', [HomeController::class, 'checkTracking'])
         ->middleware('throttle:10,1')
         ->name('home.tracking.check');
+    Route::get('/cek-pesanan/{orderCode}', [HomeController::class, 'showTracking'])
+        ->name('home.tracking.show');
     Route::post('/cek-pesanan/{orderCode}/payment-proof', [HomeController::class, 'uploadPaymentProof'])
         ->middleware('throttle:6,1')
         ->name('home.tracking.proof');
@@ -46,6 +51,7 @@ Route::get('/dashboard', function () {
 // 3. PROFILE USER (Bawaan Breeze)
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('/profile/photo/{user}', [ProfileController::class, 'photo'])->name('profile.photo');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
@@ -92,6 +98,10 @@ Route::middleware(['auth', 'admin.access', 'role:super-admin|admin'])
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
+        Route::patch('/orders/{order}/payments/{payment}/approve', [OrderController::class, 'approvePaymentProof'])
+            ->name('orders.payments.approve');
+        Route::patch('/orders/{order}/payments/{payment}/reject', [OrderController::class, 'rejectPaymentProof'])
+            ->name('orders.payments.reject');
         Route::patch('/orders/{order}/items/{orderItem}/warranty', [OrderController::class, 'updateItemWarranty'])
             ->name('orders.items.update-warranty');
 

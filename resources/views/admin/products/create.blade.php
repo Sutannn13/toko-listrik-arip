@@ -10,7 +10,7 @@
     </div>
 
     <div class="bg-white rounded-lg shadow p-6 max-w-4xl">
-        <form action="{{ route('admin.products.store') }}" method="POST">
+        <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
@@ -68,6 +68,14 @@
                 <textarea name="description" rows="4"
                     class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Contoh: Kabel ukuran 2x1.5mm, warna putih, SNI..."></textarea>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Foto Produk (Opsional)</label>
+                <input type="file" name="image" accept="image/png,image/jpeg,image/jpg,image/webp"
+                    class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white">
+                <p class="mt-1 text-xs text-gray-500">Format: JPG/PNG/WEBP, maksimal 4MB. Jika kosong, katalog memakai
+                    gambar bawaan.</p>
             </div>
 
             <div class="mb-6 rounded-lg border border-blue-100 bg-blue-50 p-4">

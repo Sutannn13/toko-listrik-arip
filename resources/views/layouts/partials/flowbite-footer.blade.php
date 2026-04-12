@@ -21,15 +21,21 @@
         if ($url === '') {
             return '';
         }
-        if (! preg_match('/^https?:\/\//i', $url)) {
+        if (!preg_match('/^https?:\/\//i', $url)) {
             return 'https://' . ltrim($url, '/');
         }
         return $url;
     };
 
-    $instagramUrl = $normalizeExternalUrl((string) \App\Models\Setting::get('social_instagram_url', ''));
-    $facebookUrl = $normalizeExternalUrl((string) \App\Models\Setting::get('social_facebook_url', ''));
-    $tiktokUrl = $normalizeExternalUrl((string) \App\Models\Setting::get('social_tiktok_url', ''));
+    $instagramUrl = $normalizeExternalUrl(
+        (string) \App\Models\Setting::get('social_instagram_url', 'https://instagram.com/tokohselectric'),
+    );
+    $facebookUrl = $normalizeExternalUrl(
+        (string) \App\Models\Setting::get('social_facebook_url', 'https://facebook.com/tokohselectric'),
+    );
+    $tiktokUrl = $normalizeExternalUrl(
+        (string) \App\Models\Setting::get('social_tiktok_url', 'https://www.tiktok.com/@tokohselectric'),
+    );
 
     $instagramHref = $instagramUrl !== '' ? $instagramUrl : route('home');
     $facebookHref = $facebookUrl !== '' ? $facebookUrl : route('home');
@@ -41,8 +47,6 @@
         <div class="gap-8 md:flex md:justify-between">
             <div class="mb-8 md:mb-0">
                 <a href="{{ route('landing') }}" class="flex items-center gap-3">
-                    <img src="{{ asset('img/gemini_generated_image.png') }}" alt="{{ $storeName }}"
-                        class="h-9 w-9 object-contain">
                     <span class="self-center whitespace-nowrap text-2xl font-semibold text-white">
                         {{ $storeName }}
                     </span>

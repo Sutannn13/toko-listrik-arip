@@ -18,6 +18,10 @@ class Review extends Model
         'image',
     ];
 
+    protected $casts = [
+        'rating' => 'integer',
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

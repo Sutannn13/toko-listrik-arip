@@ -3,9 +3,7 @@
 @section('title', 'Lacak Pesanan - ' . \App\Models\Setting::get('store_name', 'Toko Listrik'))
 @section('header_subtitle', 'Lacak Pesanan')
 @section('show_default_store_actions', 'off')
-@section('main_container_class',
-    'mx-auto w-full max-w-xl px-4 py-16 sm:px-6 lg:px-8 flex-1 flex flex-col
-    justify-center')
+@section('main_container_class', 'mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8 flex-1')
 @section('footer')
     @include('layouts.partials.flowbite-footer')
 @endsection
@@ -26,77 +24,145 @@
 
 @section('content')
 
-    <div class="text-center mb-10">
-        <div
-            class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary-50 text-primary-600 shadow-sm border border-primary-100 mb-6">
-            <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
-                </path>
-            </svg>
-        </div>
-        <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Lacak Pesanan Anda</h1>
-        <p class="mt-3 text-base text-gray-500 max-w-sm mx-auto">Masukkan kode pesanan untuk melihat status
-            terkini pesanan milik akun Anda.</p>
-    </div>
-
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl shadow-gray-200/50 sm:p-8">
-        @if (session('error'))
-            <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 flex gap-3 text-sm text-red-700 items-start">
-                <svg class="h-5 w-5 shrink-0 text-red-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <p>{{ session('error') }}</p>
-            </div>
-        @endif
-
-        @if ($errors->any())
-            <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                <ul class="list-inside list-disc">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
-        <form method="POST" action="{{ route('home.tracking.check') }}" class="space-y-6">
-            @csrf
+    <div class="mb-8">
+        <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <label for="order_code" class="mb-1.5 block text-sm font-semibold text-gray-700">Kode Pesanan
-                    (Order ID)</label>
-                <div class="relative">
-                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
-                        </svg>
-                    </div>
-                    <input type="text" name="order_code" id="order_code"
-                        value="{{ old('order_code', request('order_code')) }}"
-                        class="block w-full rounded-xl border-gray-300 pl-10 focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-3 transition shadow-sm"
-                        placeholder="Contoh: ORD-17ABC98XYZ" required>
-                </div>
+                <h1 class="text-2xl font-extrabold text-gray-900 sm:text-3xl">Lacak Pesanan</h1>
+                <p class="mt-1 text-sm text-gray-500">Semua pesanan akun Anda tampil otomatis, tanpa input kode order.
+                </p>
             </div>
+            <a href="{{ route('home.transactions') }}"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+                Riwayat Transaksi
+            </a>
+        </div>
+
+        <form method="GET" action="{{ route('home.tracking') }}" class="mt-4 grid gap-3 sm:grid-cols-[1fr,180px,auto]">
+            <input type="text" name="q" value="{{ $filters['q'] ?? '' }}"
+                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                placeholder="Cari kode order atau nama produk">
+
+            <select name="status"
+                class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20">
+                @foreach (['all' => 'Semua Status', 'pending' => 'Pending', 'processing' => 'Processing', 'shipped' => 'Shipped', 'completed' => 'Completed', 'cancelled' => 'Cancelled'] as $value => $label)
+                    <option value="{{ $value }}" @selected(($filters['status'] ?? 'all') === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
 
             <button type="submit"
-                class="group relative flex w-full justify-center rounded-xl border border-transparent bg-primary-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary-500/30 transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                    <svg class="h-5 w-5 text-primary-300 group-hover:text-primary-200 transition" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                </span>
-                Lacak Pesanan
+                class="inline-flex items-center justify-center rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-primary-700">
+                Filter
             </button>
-
-            <div class="text-center pt-2">
-                <a href="{{ route('home') }}"
-                    class="text-sm font-medium text-primary-600 hover:text-primary-500 transition">Atau kembali
-                    mulai berbelanja</a>
-            </div>
         </form>
     </div>
+
+    @include('home.partials.flash-alerts')
+
+    <div class="space-y-4">
+        @forelse ($orders as $order)
+            @php
+                $latestPayment = $order->payments->first();
+                $isCancelled = $order->status === 'cancelled';
+
+                $currentStep = 1;
+                if ($order->status === 'completed') {
+                    $currentStep = 4;
+                } elseif ($order->status === 'shipped') {
+                    $currentStep = 3;
+                } elseif ($order->status === 'processing' || $order->payment_status === 'paid') {
+                    $currentStep = 2;
+                }
+
+                $steps = [
+                    ['label' => 'Menunggu Bayar', 'hint' => 'Transfer/COD'],
+                    ['label' => 'Diproses', 'hint' => 'Admin menyiapkan'],
+                    ['label' => 'Dikirim', 'hint' => $order->tracking_number ?: 'Menunggu resi'],
+                    ['label' => 'Selesai', 'hint' => 'Pesanan tuntas'],
+                ];
+            @endphp
+
+            <article class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-extrabold text-primary-700">{{ $order->order_code }}</p>
+                        <p class="text-xs text-gray-500">
+                            {{ optional($order->placed_at)->format('d M Y H:i') ?? $order->created_at->format('d M Y H:i') }}
+                        </p>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <span
+                            class="ui-badge uppercase {{ $order->status === 'completed' ? 'ui-badge-success' : ($order->status === 'cancelled' ? 'ui-badge-danger' : 'ui-badge-warning') }}">
+                            {{ $order->status }}
+                        </span>
+                        <span
+                            class="ui-badge uppercase {{ $order->payment_status === 'paid' ? 'ui-badge-success' : ($order->payment_status === 'failed' ? 'ui-badge-danger' : 'ui-badge-warning') }}">
+                            {{ $order->payment_status }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+                    <p class="text-gray-600">Item: <span
+                            class="font-semibold text-gray-900">{{ number_format((int) $order->items->sum('quantity')) }}</span>
+                    </p>
+                    <p class="text-gray-600">Total: <span class="font-semibold text-gray-900">Rp
+                            {{ number_format((int) $order->total_amount, 0, ',', '.') }}</span></p>
+                    <p class="text-gray-600">Payment Ref: <span
+                            class="font-semibold text-gray-900">{{ $latestPayment?->payment_code ?? '-' }}</span></p>
+                </div>
+
+                @if ($isCancelled)
+                    <div
+                        class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                        Pesanan dibatalkan.
+                    </div>
+                @else
+                    <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        @foreach ($steps as $index => $step)
+                            @php
+                                $stepNumber = $index + 1;
+                                $isReached = $stepNumber <= $currentStep;
+                            @endphp
+                            <div
+                                class="rounded-lg border px-3 py-2 {{ $isReached ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-gray-50' }}">
+                                <p
+                                    class="text-[11px] font-bold uppercase tracking-wide {{ $isReached ? 'text-emerald-700' : 'text-gray-500' }}">
+                                    {{ $step['label'] }}
+                                </p>
+                                <p class="mt-1 text-xs {{ $isReached ? 'text-emerald-700' : 'text-gray-500' }}">
+                                    {{ $step['hint'] }}
+                                </p>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <p class="text-xs text-gray-500">Produk:
+                        {{ $order->items->pluck('product_name')->filter()->join(', ') ?: '-' }}</p>
+
+                    <a href="{{ route('home.tracking.show', $order->order_code) }}"
+                        class="inline-flex items-center rounded-lg bg-primary-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-primary-700">
+                        Lihat Detail Tracking
+                    </a>
+                </div>
+            </article>
+        @empty
+            <div class="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 p-12 text-center">
+                <p class="text-sm font-semibold text-gray-700">Belum ada pesanan untuk dilacak.</p>
+                <p class="mt-1 text-xs text-gray-500">Checkout pertama Anda akan muncul otomatis di halaman ini.</p>
+                <a href="{{ route('home') }}"
+                    class="mt-5 inline-flex rounded-xl bg-primary-600 px-5 py-2 text-sm font-bold text-white shadow-md shadow-primary-500/20 hover:bg-primary-700 transition">
+                    Mulai Belanja
+                </a>
+            </div>
+        @endforelse
+    </div>
+
+    @if ($orders->hasPages())
+        <div class="mt-6 rounded-lg bg-white p-4 shadow-sm border border-gray-100">
+            {{ $orders->links() }}
+        </div>
+    @endif
 @endsection

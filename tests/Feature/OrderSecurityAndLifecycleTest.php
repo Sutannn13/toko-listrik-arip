@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\WarrantyClaim;
+use App\Notifications\PaymentProofStatusUpdatedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -75,6 +76,265 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $this->assertNotNull($payment->proof_url);
         $this->assertStringStartsWith('payments/' . $order->order_code . '/', (string) $payment->proof_url);
         $this->assertTrue(Storage::disk('public')->exists((string) $payment->proof_url));
+    }
+
+    public function test_order_with_cod_method_cannot_upload_payment_proof(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'Stop Kontak COD',
+            'slug' => 'stop-kontak-cod',
+            'price' => 55000,
+            'stock' => 7,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($user, $product, 1, now()->subMinutes(10));
+        $payment->update([
+            'method' => 'cod',
+            'notes' => 'COD test payment.',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from(route('home.tracking'))
+            ->post(route('home.tracking.proof', $order->order_code), [
+                'payment_proof' => UploadedFile::fake()->image('proof-cod.jpg'),
+            ]);
+
+        $response->assertRedirect(route('home.tracking'));
+        $response->assertSessionHas('error');
+
+        $payment->refresh();
+        $this->assertNull($payment->proof_url);
+        $this->assertCount(0, Storage::disk('public')->allFiles());
+    }
+
+    public function test_order_owner_can_open_tracking_detail_without_manual_code_form(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'Lampu Tracking Detail',
+            'slug' => 'lampu-tracking-detail',
+            'price' => 65000,
+            'stock' => 8,
+        ]);
+
+        [$order] = $this->createPendingOrder($user, $product, 1, now()->subMinutes(15));
+
+        $response = $this->actingAs($user)
+            ->get(route('home.tracking.show', $order->order_code));
+
+        $response->assertOk();
+        $response->assertSee($order->order_code);
+        $response->assertSee('Status Pesanan');
+    }
+
+    public function test_tracking_check_form_redirects_to_new_tracking_detail_page(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'Kabel Redirect Tracking',
+            'slug' => 'kabel-redirect-tracking',
+            'price' => 34000,
+            'stock' => 10,
+        ]);
+
+        [$order] = $this->createPendingOrder($user, $product, 1, now()->subMinutes(20));
+
+        $response = $this->actingAs($user)
+            ->post(route('home.tracking.check'), [
+                'order_code' => $order->order_code,
+            ]);
+
+        $response->assertRedirect(route('home.tracking.show', $order->order_code));
+    }
+
+    public function test_admin_can_approve_uploaded_payment_proof_and_mark_order_paid(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'MCB Approval Flow',
+            'slug' => 'mcb-approval-flow',
+            'price' => 150000,
+            'stock' => 5,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($customer, $product, 1, now()->subMinutes(30));
+
+        $payment->update([
+            'proof_url' => 'payments/' . $order->order_code . '/proof-approve.jpg',
+            'status' => 'pending',
+            'paid_at' => null,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->from(route('admin.orders.show', $order))
+            ->patch(route('admin.orders.payments.approve', [$order, $payment]), [
+                'admin_notes' => 'Nominal dan rekening tujuan sesuai mutasi.',
+            ]);
+
+        $response->assertRedirect(route('admin.orders.show', $order));
+        $response->assertSessionHas('success');
+
+        $order->refresh();
+        $payment->refresh();
+
+        $this->assertSame('paid', $order->payment_status);
+        $this->assertNotNull($order->paid_at);
+        $this->assertSame('paid', $payment->status);
+        $this->assertNotNull($payment->paid_at);
+        $this->assertStringContainsString('Bukti pembayaran diverifikasi admin', (string) $payment->notes);
+
+        $notification = $customer->fresh()->notifications()->latest()->first();
+        $this->assertNotNull($notification);
+        $this->assertSame(PaymentProofStatusUpdatedNotification::class, $notification->type);
+        $this->assertSame('approved', $notification->data['decision'] ?? null);
+        $this->assertSame($order->order_code, $notification->data['order_code'] ?? null);
+    }
+
+    public function test_admin_cannot_mark_bank_transfer_order_as_paid_without_proof_from_status_form(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'MCB Without Proof',
+            'slug' => 'mcb-without-proof',
+            'price' => 110000,
+            'stock' => 5,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($customer, $product, 1, now()->subMinutes(20));
+        $payment->update([
+            'method' => 'bank_transfer',
+            'proof_url' => null,
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->from(route('admin.orders.show', $order))
+            ->patch(route('admin.orders.update-status', $order), [
+                'status' => 'pending',
+                'payment_status' => 'paid',
+                'tracking_number' => '',
+            ]);
+
+        $response->assertRedirect(route('admin.orders.show', $order));
+        $response->assertSessionHas('error');
+
+        $order->refresh();
+        $payment->refresh();
+
+        $this->assertSame('pending', $order->payment_status);
+        $this->assertNull($order->paid_at);
+        $this->assertSame('pending', $payment->status);
+    }
+
+    public function test_admin_can_reject_payment_proof_and_customer_can_reupload(): void
+    {
+        Storage::fake('public');
+
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Kabel Reject Flow',
+            'slug' => 'kabel-reject-flow',
+            'price' => 88000,
+            'stock' => 6,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($customer, $product, 1, now()->subMinutes(25));
+
+        $oldProofPath = 'payments/' . $order->order_code . '/proof-old.jpg';
+        Storage::disk('public')->put($oldProofPath, 'proof lama');
+
+        $payment->update([
+            'proof_url' => $oldProofPath,
+            'status' => 'pending',
+            'paid_at' => null,
+        ]);
+
+        $rejectResponse = $this->actingAs($admin)
+            ->from(route('admin.orders.show', $order))
+            ->patch(route('admin.orders.payments.reject', [$order, $payment]), [
+                'admin_notes' => 'Nominal transfer tidak sesuai dengan total invoice.',
+            ]);
+
+        $rejectResponse->assertRedirect(route('admin.orders.show', $order));
+        $rejectResponse->assertSessionHas('success');
+
+        $order->refresh();
+        $payment->refresh();
+
+        $this->assertSame('failed', $order->payment_status);
+        $this->assertNull($order->paid_at);
+        $this->assertSame('failed', $payment->status);
+        $this->assertStringContainsString('Bukti pembayaran ditolak admin', (string) $payment->notes);
+
+        $notification = $customer->fresh()->notifications()->latest()->first();
+        $this->assertNotNull($notification);
+        $this->assertSame(PaymentProofStatusUpdatedNotification::class, $notification->type);
+        $this->assertSame('rejected', $notification->data['decision'] ?? null);
+        $this->assertStringContainsString('Nominal transfer tidak sesuai', (string) ($notification->data['admin_notes'] ?? ''));
+
+        $uploadResponse = $this->actingAs($customer)
+            ->from(route('home.tracking'))
+            ->post(route('home.tracking.proof', $order->order_code), [
+                'replace_proof' => 1,
+                'payment_proof' => UploadedFile::fake()->image('proof-new.jpg'),
+            ]);
+
+        $uploadResponse->assertRedirect(route('home.tracking'));
+        $uploadResponse->assertSessionHas('success');
+
+        $order->refresh();
+        $payment->refresh();
+
+        $this->assertSame('pending', $order->payment_status);
+        $this->assertSame('pending', $payment->status);
+        $this->assertNotNull($payment->proof_url);
+        $this->assertNotSame($oldProofPath, $payment->proof_url);
+        $this->assertFalse(Storage::disk('public')->exists($oldProofPath));
+        $this->assertTrue(Storage::disk('public')->exists((string) $payment->proof_url));
+    }
+
+    public function test_admin_must_provide_reason_when_rejecting_payment_proof(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+
+        $product = $this->createProduct([
+            'name' => 'Pompa Reject Validation',
+            'slug' => 'pompa-reject-validation',
+            'price' => 210000,
+            'stock' => 4,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($customer, $product, 1, now()->subMinutes(35));
+
+        $payment->update([
+            'proof_url' => 'payments/' . $order->order_code . '/proof-validation.jpg',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->from(route('admin.orders.show', $order))
+            ->patch(route('admin.orders.payments.reject', [$order, $payment]), [
+                'admin_notes' => '',
+            ]);
+
+        $response->assertRedirect(route('admin.orders.show', $order));
+        $response->assertSessionHasErrors('admin_notes');
+
+        $order->refresh();
+        $payment->refresh();
+
+        $this->assertSame('pending', $order->payment_status);
+        $this->assertSame('pending', $payment->status);
     }
 
     public function test_auto_cancel_command_cancels_only_expired_pending_orders_and_restores_stock(): void
@@ -575,10 +835,10 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $payment = Payment::create([
             'order_id' => $order->id,
             'payment_code' => 'PAY-ARIP-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
-            'method' => 'dummy',
+            'method' => 'bank_transfer',
             'amount' => $subtotal,
             'status' => 'pending',
-            'notes' => 'Payment dummy untuk testing.',
+            'notes' => 'Payment transfer untuk testing.',
         ]);
 
         return [$order, $payment, $orderItem];

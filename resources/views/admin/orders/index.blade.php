@@ -91,6 +91,7 @@
                 <tr class="bg-gray-800 text-sm uppercase tracking-wider text-white">
                     <th class="p-4 font-medium">Kode</th>
                     <th class="p-4 font-medium">Customer</th>
+                    <th class="p-4 font-medium">Alamat</th>
                     <th class="p-4 font-medium">Total</th>
                     <th class="p-4 font-medium">Payment</th>
                     <th class="p-4 font-medium">Status</th>
@@ -109,6 +110,15 @@
                         <td class="p-4">
                             <p class="font-semibold">{{ $order->customer_name }}</p>
                             <p class="text-xs text-gray-500">{{ $order->customer_email }}</p>
+                        </td>
+                        <td class="p-4 text-sm text-gray-600">
+                            @if ($order->address)
+                                <p class="font-semibold text-gray-800">{{ $order->address->city ?: '-' }}
+                                    {{ $order->address->province ? ', ' . $order->address->province : '' }}</p>
+                                <p class="text-xs text-gray-500">{{ $order->address->address_line ?: '-' }}</p>
+                            @else
+                                <p class="text-xs text-gray-400 italic">Alamat belum tersedia</p>
+                            @endif
                         </td>
                         <td class="p-4 font-bold text-cyan-700">Rp {{ number_format($order->total_amount, 0, ',', '.') }}
                         </td>
@@ -138,7 +148,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="p-6 text-center text-gray-500 italic">Belum ada pesanan tersimpan.</td>
+                        <td colspan="8" class="p-6 text-center text-gray-500 italic">Belum ada pesanan tersimpan.</td>
                     </tr>
                 @endforelse
             </tbody>

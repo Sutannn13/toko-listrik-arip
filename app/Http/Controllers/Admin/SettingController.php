@@ -29,8 +29,13 @@ class SettingController extends Controller
             }
 
             if ($setting->type === 'boolean') {
-                // Checkboxes not submitted = off
-                $value = '1';
+                $rawBooleanValue = is_array($value)
+                    ? (string) end($value)
+                    : (string) $value;
+
+                $value = in_array(strtolower($rawBooleanValue), ['1', 'true', 'on', 'yes'], true)
+                    ? '1'
+                    : '0';
             }
 
             $setting->update(['value' => (string) $value]);

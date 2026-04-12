@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\Review;
 use App\Models\User;
 use App\Models\WarrantyClaim;
 use App\Notifications\WarrantyClaimSubmittedNotification;
@@ -62,6 +63,8 @@ class HomeController extends Controller
 
         $products = Product::query()
             ->with('category:id,name')
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
             ->where('is_active', true)
             ->when($selectedCategoryId > 0, fn($query) => $query->where('category_id', $selectedCategoryId))
             ->when($keyword !== '', function ($query) use ($keyword) {
@@ -91,11 +94,15 @@ class HomeController extends Controller
     {
         $product = Product::query()
             ->with('category:id,name')
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
             ->where('is_active', true)
             ->where('slug', $slug)
             ->firstOrFail();
 
         $relatedProducts = Product::query()
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
             ->where('is_active', true)
             ->where('id', '!=', $product->id)
             ->when($product->category_id, fn($query) => $query->where('category_id', $product->category_id))
@@ -103,11 +110,95 @@ class HomeController extends Controller
             ->limit(4)
             ->get();
 
+        $reviews = $product->reviews()
+            ->with('user:id,name')
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        $user = $request->user();
+        $userReview = null;
+        $canReview = false;
+
+        if ($user) {
+            $userReview = Review::query()
+                ->where('user_id', $user->id)
+                ->where('product_id', $product->id)
+                ->first();
+
+            $hasPurchased = OrderItem::query()
+                ->where('product_id', $product->id)
+                ->whereHas('order', fn($query) => $query
+                    ->where('user_id', $user->id)
+                    ->where('status', 'completed'))
+                ->exists();
+
+            $canReview = $hasPurchased;
+        }
+
         return view('home.show', [
             'product' => $product,
             'relatedProducts' => $relatedProducts,
+            'reviews' => $reviews,
+            'canReview' => $canReview,
+            'userReview' => $userReview,
             ...$this->cartSummary($request),
         ]);
+    }
+
+    public function submitReview(Request $request, string $slug): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            abort(403);
+        }
+
+        $product = Product::query()
+            ->where('is_active', true)
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        $hasPurchased = OrderItem::query()
+            ->where('product_id', $product->id)
+            ->whereHas('order', fn($query) => $query
+                ->where('user_id', $user->id)
+                ->where('status', 'completed'))
+            ->exists();
+
+        if (! $hasPurchased) {
+            return back()->with('error', 'Anda hanya bisa memberi ulasan setelah membeli produk ini.');
+        }
+
+        $validated = $request->validate([
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'comment' => ['nullable', 'string', 'max:2000'],
+            'image' => ['prohibited'],
+        ], [
+            'image.prohibited' => 'Ulasan saat ini hanya mendukung teks tanpa gambar.',
+        ]);
+
+        $existingReview = Review::query()
+            ->where('user_id', $user->id)
+            ->where('product_id', $product->id)
+            ->first();
+
+        if (! empty($existingReview?->image)) {
+            Storage::disk('public')->delete($existingReview->image);
+        }
+
+        Review::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'product_id' => $product->id,
+            ],
+            [
+                'rating' => (int) $validated['rating'],
+                'comment' => filled($validated['comment'] ?? null) ? $validated['comment'] : null,
+                'image' => null,
+            ],
+        );
+
+        return back()->with('success', 'Ulasan produk berhasil disimpan. Terima kasih atas feedback Anda.');
     }
 
     public function buy(Request $request, string $slug): RedirectResponse
@@ -158,7 +249,7 @@ class HomeController extends Controller
 
         $request->session()->put('simple_cart', $simpleCart);
 
-        // FIX LOGIKA 2: Pakai back() biar user tetep di halaman saat ini 
+        // FIX LOGIKA 2: Pakai back() biar user tetep di halaman saat ini
         // (gak dialihin maksa ke halaman detail produk). Belanja jadi ga keganggu.
         return back()->with('success', $product->name . ' berhasil ditambahkan ke keranjang.');
     }
@@ -200,6 +291,7 @@ class HomeController extends Controller
 
         $userAddresses = collect();
         $defaultAddressId = null;
+        $selectedAddress = null;
 
         if ($request->user()) {
             $userAddresses = $request->user()
@@ -210,6 +302,8 @@ class HomeController extends Controller
 
             $defaultAddressId = $userAddresses->firstWhere('is_default', true)?->id
                 ?? $userAddresses->first()?->id;
+
+            $selectedAddress = $userAddresses->firstWhere('id', $defaultAddressId);
         }
 
         return view('home.cart', [
@@ -218,7 +312,7 @@ class HomeController extends Controller
             'totalQuantity' => $totalQuantity,
             'userAddresses' => $userAddresses,
             'defaultAddressId' => $defaultAddressId,
-            'recentOrders' => $this->recentOrdersForCart($request),
+            'selectedAddress' => $selectedAddress,
             ...$this->cartSummary($request),
         ]);
     }
@@ -270,7 +364,7 @@ class HomeController extends Controller
         $simpleCart = $request->session()->get('simple_cart', []);
 
         $validated = $request->validate([
-            'payment_method' => ['required', 'string', 'in:cod,bank_transfer,ewallet'],
+            'payment_method' => ['nullable', 'string', 'in:cod,bank_transfer,ewallet,dummy'],
             'address_id' => ['nullable', 'integer'],
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_email' => ['required', 'email', 'max:255'],
@@ -439,7 +533,7 @@ class HomeController extends Controller
 
         $orderNotes = implode(' | ', $orderNotesParts);
 
-        $paymentMethod = $validated['payment_method']; // <-- TANGKAP INPUT USER
+        $paymentMethod = (string) ($validated['payment_method'] ?? 'dummy');
 
         $orderCode = $this->generateOrderCode();
         $paymentCode = $this->generatePaymentCode();
@@ -483,7 +577,7 @@ class HomeController extends Controller
                         'quantity' => $payload['qty'],
                         'subtotal' => $payload['subtotal'],
                         'warranty_days' => $warrantyDays,
-                        'warranty_expires_at' => $warrantyDays > 0 ? now()->addDays($warrantyDays) : null,
+                        'warranty_expires_at' => null,
                     ]);
 
                     $freshProduct->decrement('stock', $payload['qty']);
@@ -494,9 +588,12 @@ class HomeController extends Controller
                     'method' => $paymentMethod,
                     'amount' => $totalAmount,
                     'status' => 'pending',
-                    'notes' => $paymentMethod === 'cod'
-                        ? 'Bayar di tempat saat barang sampai (COD).'
-                        : 'Menunggu pembayaran dan upload bukti transfer/e-wallet.',
+                    'notes' => match ($paymentMethod) {
+                        'cod' => 'Bayar di tempat saat barang sampai (COD).',
+                        'bank_transfer' => 'Menunggu transfer bank dan upload bukti pembayaran. Setelah upload, status menunggu ACC admin.',
+                        'ewallet' => 'Menunggu pembayaran e-wallet dan upload bukti pembayaran. Setelah upload, status menunggu ACC admin.',
+                        default => 'Menunggu pembayaran.',
+                    },
                 ]);
 
                 return $order;
@@ -511,7 +608,7 @@ class HomeController extends Controller
         if ($paymentMethod === 'cod') {
             $successMsg .= 'Silakan siapkan uang pas saat kurir tiba.';
         } else {
-            $successMsg .= 'Segera lakukan pembayaran dan upload bukti melalui Tracking Pesanan.';
+            $successMsg .= 'Segera lakukan pembayaran, upload bukti melalui Tracking Pesanan, lalu tunggu ACC admin.';
         }
 
         return redirect()->route('home.cart')
@@ -870,8 +967,24 @@ class HomeController extends Controller
             return back()->with('error', 'Status pembayaran saat ini tidak mengizinkan unggah bukti baru.');
         }
 
-        if ($payment->status === 'pending' && !empty($payment->proof_url)) {
-            return back()->with('error', 'Bukti pembayaran sudah diunggah. Silakan tunggu verifikasi admin.');
+        if (! in_array($payment->method, ['bank_transfer', 'ewallet', 'dummy'], true)) {
+            if ($payment->method === 'cod') {
+                return back()->with('error', 'Metode COD tidak memerlukan upload bukti pembayaran.');
+            }
+
+            return back()->with('error', 'Metode pembayaran pada pesanan ini tidak mendukung upload bukti.');
+        }
+
+        $isReplacingExistingProof = false;
+        $oldProofPath = null;
+
+        if (! empty($payment->proof_url)) {
+            if (! $request->boolean('replace_proof')) {
+                return back()->with('error', 'Bukti pembayaran sudah diunggah. Gunakan aksi ganti bukti jika ingin mengunggah ulang.');
+            }
+
+            $oldProofPath = $payment->proof_url;
+            $isReplacingExistingProof = true;
         }
 
         $path = $request->file('payment_proof')->store('payments/' . $order->order_code, 'public');
@@ -880,33 +993,21 @@ class HomeController extends Controller
             'proof_url' => $path,
             'status' => 'pending',
             'paid_at' => null,
-            'notes' => 'Bukti pembayaran diunggah ulang oleh pelanggan, menunggu verifikasi admin.',
+            'notes' => $isReplacingExistingProof
+                ? 'Bukti pembayaran diganti oleh pelanggan, status menunggu ACC admin.'
+                : 'Bukti pembayaran diunggah oleh pelanggan, status menunggu ACC admin.',
         ]);
 
-        if ($order->payment_status === 'failed') {
-            $order->payment_status = 'pending';
-            $order->save();
+        $order->update([
+            'payment_status' => 'pending',
+            'paid_at' => null,
+        ]);
+
+        if ($oldProofPath) {
+            Storage::disk('public')->delete($oldProofPath);
         }
 
-        return back()->with('success', 'Bukti pembayaran berhasil diunggah. Silakan tunggu konfirmasi admin.');
-    }
-
-    private function recentOrdersForCart(Request $request)
-    {
-        $user = $request->user();
-        if (!$user) {
-            return collect();
-        }
-
-        return Order::query()
-            ->with([
-                'items.warrantyClaims' => fn($claimQuery) => $claimQuery->latest(),
-                'payments' => fn($paymentQuery) => $paymentQuery->latest(),
-            ])
-            ->where('user_id', $user->id)
-            ->latest()
-            ->limit(5)
-            ->get();
+        return back()->with('success', 'Bukti pembayaran berhasil diunggah dan diteruskan ke admin. Silakan tunggu ACC admin.');
     }
 
     private function generateOrderCode(): string
@@ -968,25 +1069,70 @@ class HomeController extends Controller
         return false;
     }
 
-    public function tracking(Request $request): View
+    public function tracking(Request $request): View|RedirectResponse
     {
-        return view('home.tracking', [
-            ...$this->cartSummary($request),
-        ]);
-    }
-
-    public function checkTracking(Request $request)
-    {
-        $validated = $request->validate([
-            'order_code' => ['required', 'string', 'max:255'],
-        ]);
-
         $user = $request->user();
         if (!$user) {
             abort(403);
         }
 
+        $filters = $request->validate([
+            'status' => ['nullable', 'in:all,pending,processing,shipped,completed,cancelled'],
+            'q' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $prefilledOrderCode = strtoupper(trim((string) $request->query('order_code', '')));
+        if ($prefilledOrderCode !== '') {
+            return redirect()->route('home.tracking.show', $prefilledOrderCode);
+        }
+
+        $status = $filters['status'] ?? 'all';
+
+        $orders = Order::query()
+            ->with([
+                'items',
+                'payments' => fn($query) => $query->latest(),
+                'address',
+            ])
+            ->where('user_id', $user->id)
+            ->when($status !== 'all', fn($query) => $query->where('status', $status))
+            ->when($filters['q'] ?? null, function ($query, $keyword) {
+                $query->where(function ($searchQuery) use ($keyword) {
+                    $searchQuery
+                        ->where('order_code', 'like', '%' . $keyword . '%')
+                        ->orWhereHas('items', fn($itemQuery) => $itemQuery->where('product_name', 'like', '%' . $keyword . '%'));
+                });
+            })
+            ->latest()
+            ->paginate(8)
+            ->withQueryString();
+
+        return view('home.tracking', [
+            'orders' => $orders,
+            'filters' => $filters,
+            ...$this->cartSummary($request),
+        ]);
+    }
+
+    public function checkTracking(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'order_code' => ['required', 'string', 'max:255'],
+        ]);
+
         $normalizedOrderCode = strtoupper(trim($validated['order_code']));
+
+        return redirect()->route('home.tracking.show', $normalizedOrderCode);
+    }
+
+    public function showTracking(Request $request, string $orderCode): View|RedirectResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            abort(403);
+        }
+
+        $normalizedOrderCode = strtoupper(trim($orderCode));
 
         $order = Order::with(['items', 'payments', 'address'])
             ->where('order_code', $normalizedOrderCode)
@@ -995,7 +1141,6 @@ class HomeController extends Controller
 
         if (!$order) {
             return redirect()->route('home.tracking')
-                ->withInput()
                 ->with('error', 'Pesanan tidak ditemukan di akun Anda. Pastikan kode pesanan benar.');
         }
 

@@ -24,7 +24,7 @@
         <div class="mb-6">
             <a href="{{ route('home') }}" class="inline-flex items-center">
                 <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
-                    class="h-10 w-10 object-contain">
+                    class="h-12 w-auto object-contain sm:h-14">
             </a>
         </div>
 

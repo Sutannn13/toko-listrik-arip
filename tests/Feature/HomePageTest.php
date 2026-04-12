@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Address;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -347,19 +348,186 @@ class HomePageTest extends TestCase
         $this->assertSame(27, (int) $product->stock);
     }
 
-    public function test_tracking_page_prefills_order_code_from_query_param(): void
+    public function test_checkout_can_use_selected_saved_address_without_reentering_new_address_fields(): void
     {
         Role::findOrCreate('user', 'web');
 
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'name' => 'User Default Alamat',
+            'email' => 'default-address@example.com',
+        ]);
         $user->assignRole('user');
 
-        $orderCode = 'ORD-ARIP-20260410-ABC123';
+        $defaultAddress = Address::create([
+            'user_id' => $user->id,
+            'label' => 'Rumah Utama',
+            'recipient_name' => 'User Default Alamat',
+            'phone' => '081111111111',
+            'address_line' => 'Jl. Cendana No. 88',
+            'city' => 'Bandung',
+            'province' => 'Jawa Barat',
+            'postal_code' => '40123',
+            'is_default' => true,
+        ]);
+
+        $category = Category::create([
+            'name' => 'Kabel',
+            'slug' => 'kabel',
+        ]);
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Kabel NYA 1.5',
+            'slug' => 'kabel-nya-1-5',
+            'description' => 'Kabel listrik untuk instalasi rumah.',
+            'price' => 18000,
+            'stock' => 20,
+            'unit' => 'roll',
+            'is_active' => true,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->withSession([
+                'simple_cart' => [
+                    $product->id => [
+                        'product_id' => $product->id,
+                        'name' => $product->name,
+                        'slug' => $product->slug,
+                        'price' => (int) $product->price,
+                        'unit' => $product->unit,
+                        'qty' => 2,
+                    ],
+                ],
+            ])
+            ->post(route('home.cart.checkout'), [
+                'address_id' => $defaultAddress->id,
+                'payment_method' => 'cod',
+                'customer_name' => $user->name,
+                'customer_email' => $user->email,
+                'customer_phone' => '081111111111',
+            ]);
+
+        $response->assertRedirect(route('home.cart'));
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('orders', [
+            'user_id' => $user->id,
+            'address_id' => $defaultAddress->id,
+            'customer_name' => 'User Default Alamat',
+            'customer_email' => 'default-address@example.com',
+            'subtotal' => 36000,
+            'total_amount' => 36000,
+        ]);
+    }
+
+    public function test_tracking_page_lists_users_orders_without_order_code_input(): void
+    {
+        Role::findOrCreate('user', 'web');
+
+        $user = User::factory()->create([
+            'name' => 'User Tracking',
+            'email' => 'tracking-user@example.com',
+        ]);
+        $user->assignRole('user');
+
+        $otherUser = User::factory()->create();
+        $otherUser->assignRole('user');
+
+        $category = Category::create([
+            'name' => 'Tracking',
+            'slug' => 'tracking',
+        ]);
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Lampu Tracking',
+            'slug' => 'lampu-tracking',
+            'description' => 'Produk untuk test tracking otomatis',
+            'price' => 22000,
+            'stock' => 100,
+            'unit' => 'pcs',
+            'is_active' => true,
+        ]);
+
+        $myOrder = Order::create([
+            'order_code' => 'ORD-ARIP-20260412-MY0001',
+            'user_id' => $user->id,
+            'customer_name' => $user->name,
+            'customer_email' => $user->email,
+            'customer_phone' => '081234567890',
+            'status' => 'processing',
+            'payment_status' => 'paid',
+            'warranty_status' => 'active',
+            'subtotal' => 22000,
+            'shipping_cost' => 0,
+            'discount_amount' => 0,
+            'total_amount' => 22000,
+            'placed_at' => now(),
+        ]);
+
+        $myOrder->items()->create([
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'product_slug' => $product->slug,
+            'unit' => 'pcs',
+            'price' => 22000,
+            'quantity' => 1,
+            'subtotal' => 22000,
+            'warranty_days' => 7,
+            'warranty_expires_at' => now()->addDays(7),
+        ]);
+
+        $myOrder->payments()->create([
+            'payment_code' => 'PAY-ARIP-20260412-MY0001',
+            'method' => 'bank_transfer',
+            'amount' => 22000,
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        $otherOrder = Order::create([
+            'order_code' => 'ORD-ARIP-20260412-OT0001',
+            'user_id' => $otherUser->id,
+            'customer_name' => $otherUser->name,
+            'customer_email' => $otherUser->email,
+            'customer_phone' => '081234567891',
+            'status' => 'pending',
+            'payment_status' => 'pending',
+            'warranty_status' => 'active',
+            'subtotal' => 10000,
+            'shipping_cost' => 0,
+            'discount_amount' => 0,
+            'total_amount' => 10000,
+            'placed_at' => now(),
+        ]);
+
+        $otherOrder->items()->create([
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'product_slug' => $product->slug,
+            'unit' => 'pcs',
+            'price' => 10000,
+            'quantity' => 1,
+            'subtotal' => 10000,
+            'warranty_days' => 7,
+            'warranty_expires_at' => now()->addDays(7),
+        ]);
+
+        $otherOrder->payments()->create([
+            'payment_code' => 'PAY-ARIP-20260412-OT0001',
+            'method' => 'dummy',
+            'amount' => 10000,
+            'status' => 'pending',
+        ]);
 
         $response = $this->actingAs($user)
-            ->get(route('home.tracking', ['order_code' => $orderCode]));
+            ->get(route('home.tracking'));
 
         $response->assertOk();
-        $response->assertSee('value="' . $orderCode . '"', false);
+        $response->assertSee('ORD-ARIP-20260412-MY0001');
+        $response->assertDontSee('ORD-ARIP-20260412-OT0001');
+        $response->assertSee(route('home.tracking.show', 'ORD-ARIP-20260412-MY0001'));
     }
 }

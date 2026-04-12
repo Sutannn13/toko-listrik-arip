@@ -52,7 +52,7 @@
                         <a href="{{ route('home') }}" class="flex items-center transition-transform hover:scale-105">
                             <img src="{{ asset('img/gemini_generated_image.png') }}"
                                 alt="{{ \App\Models\Setting::get('store_name', 'Toko') }}"
-                                class="h-10 w-10 object-contain sm:h-11 sm:w-11">
+                                class="h-12 w-auto object-contain sm:h-14">
                         </a>
 
                         <div class="flex flex-1 items-center justify-end gap-3 sm:gap-4">

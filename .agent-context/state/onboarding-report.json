@@ -1,0 +1,45 @@
+{
+  "cliVersion": "2.0.13",
+  "generatedAt": "2026-04-13T13:52:13.634Z",
+  "operationMode": "init",
+  "selectedProfile": "balanced",
+  "selectedProfilePack": null,
+  "selectedPreset": "php-laravel-api",
+  "selectedStack": "php.md",
+  "selectedBlueprint": "laravel-api.md",
+  "ciGuardrailsEnabled": true,
+  "setupDurationMs": 10875,
+  "selectedSkillDomains": [
+    "backend",
+    "fullstack",
+    "cli"
+  ],
+  "compatibilityWarnings": [],
+  "autoDetection": {
+    "recommendedStack": "php.md",
+    "recommendedBlueprint": "laravel-api.md",
+    "confidenceLabel": "high",
+    "confidenceScore": 0.95,
+    "confidenceGap": 0.13,
+    "detectionReasoning": "Top signal Php won with confidence 0.95 from markers: composer.json.",
+    "rankedCandidates": [
+      {
+        "stackFileName": "php.md",
+        "confidenceScore": 0.95,
+        "evidence": [
+          "composer.json"
+        ]
+      },
+      {
+        "stackFileName": "typescript.md",
+        "confidenceScore": 0.82,
+        "evidence": [
+          "package.json"
+        ]
+      }
+    ],
+    "evidence": [
+      "composer.json"
+    ]
+  }
+}

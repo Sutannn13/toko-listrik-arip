@@ -163,6 +163,13 @@ class ProductController extends Controller
         $product = Product::findOrFail($id);
         $name    = $product->name;
 
+        // Guard: Jangan hapus produk yang sudah pernah dipesan.
+        // Ini menjaga integritas data order history dan warranty claims.
+        if ($product->orderItems()->exists()) {
+            return redirect()->route('admin.products.index')
+                ->with('error', "Produk \"{$name}\" tidak bisa dihapus karena sudah memiliki riwayat pesanan. Nonaktifkan saja produk ini.");
+        }
+
         if (! empty($product->image_path)) {
             Storage::disk('public')->delete($product->image_path);
         }

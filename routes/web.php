@@ -28,7 +28,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/keranjang', [HomeController::class, 'cart'])->name('home.cart');
     Route::patch('/keranjang/{productId}', [HomeController::class, 'updateCart'])->name('home.cart.update');
     Route::delete('/keranjang/{productId}', [HomeController::class, 'removeFromCart'])->name('home.cart.remove');
-    Route::post('/keranjang/checkout', [HomeController::class, 'checkout'])
+    Route::get('/checkout', [HomeController::class, 'checkoutPage'])->name('home.checkout');
+    Route::post('/checkout', [HomeController::class, 'checkout'])
         ->middleware('throttle:12,1')
         ->name('home.cart.checkout');
 

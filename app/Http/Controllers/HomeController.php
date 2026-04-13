@@ -61,7 +61,7 @@ class HomeController extends Controller
                 });
             })
             ->latest()
-            ->paginate(8)
+            ->paginate(18)
             ->withQueryString();
 
         return view('home.index', [
@@ -188,60 +188,134 @@ class HomeController extends Controller
 
     public function buy(Request $request, string $slug): RedirectResponse
     {
-        $product = Product::query()
-            ->where('is_active', true)
-            ->where('slug', $slug)
-            ->firstOrFail();
-
-        if ($product->stock < 1) {
-            return back()->with('error', 'Stok produk habis. Silakan pilih produk lain.');
-        }
-
         $validated = $request->validate([
             'qty' => ['nullable', 'integer', 'min:1', 'max:99'],
         ]);
 
         $qty = (int) ($validated['qty'] ?? 1);
-        $simpleCart = $request->session()->get('simple_cart', []);
 
-        // FIX LOGIKA 1: Bersihin array session biar ID-nya jadi Key yang mutlak.
-        // Ini buat nyegah bug item masuk ke keranjang jadi 2 baris (dobel).
-        $cleanCart = [];
-        foreach ($simpleCart as $item) {
-            if (isset($item['product_id'])) {
-                $cleanCart[$item['product_id']] = $item;
-            }
+        // ATOMIC STOCK CHECK: Gunakan DB transaction + lockForUpdate
+        // untuk mencegah race condition dimana 2 user bisa add-to-cart
+        // stok terakhir secara bersamaan.
+        try {
+            $result = DB::transaction(function () use ($slug, $qty, $request) {
+                $product = Product::query()
+                    ->where('is_active', true)
+                    ->where('slug', $slug)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$product) {
+                    throw new \RuntimeException('PRODUCT_NOT_FOUND');
+                }
+
+                if ((int) $product->stock < 1) {
+                    throw new \RuntimeException('OUT_OF_STOCK');
+                }
+
+                $simpleCart = $request->session()->get('simple_cart', []);
+
+                // Bersihin array session biar ID-nya jadi Key yang mutlak.
+                // Ini buat nyegah bug item masuk ke keranjang jadi 2 baris (dobel).
+                $cleanCart = [];
+                foreach ($simpleCart as $item) {
+                    if (isset($item['product_id'])) {
+                        $cleanCart[$item['product_id']] = $item;
+                    }
+                }
+                $simpleCart = $cleanCart;
+
+                $existingQty = isset($simpleCart[$product->id]) ? (int) $simpleCart[$product->id]['qty'] : 0;
+
+                if ($existingQty >= (int) $product->stock) {
+                    throw new \RuntimeException('STOCK_LIMIT_REACHED');
+                }
+
+                $newQty = min($existingQty + $qty, (int) $product->stock);
+
+                // Timpa data pakai ID sebagai key, jadi kuantitasnya aja yang nambah, bukan barisnya.
+                $simpleCart[$product->id] = [
+                    'product_id' => $product->id,
+                    'name' => $product->name,
+                    'slug' => $product->slug,
+                    'price' => (int) $product->price,
+                    'unit' => $product->unit,
+                    'qty' => $newQty,
+                ];
+
+                $request->session()->put('simple_cart', $simpleCart);
+
+                return $product->name;
+            });
+
+            return back()->with('success', $result . ' berhasil ditambahkan ke keranjang.');
+        } catch (\RuntimeException $e) {
+            return match ($e->getMessage()) {
+                'PRODUCT_NOT_FOUND' => back()->with('error', 'Produk tidak ditemukan atau sudah tidak aktif.'),
+                'OUT_OF_STOCK' => back()->with('error', 'Stok produk habis. Silakan pilih produk lain.'),
+                'STOCK_LIMIT_REACHED' => back()->with('error', 'Jumlah produk di keranjang sudah mencapai stok tersedia.'),
+                default => back()->with('error', 'Gagal menambahkan ke keranjang.'),
+            };
         }
-        $simpleCart = $cleanCart;
-
-        $existingQty = isset($simpleCart[$product->id]) ? (int) $simpleCart[$product->id]['qty'] : 0;
-
-        if ($existingQty >= (int) $product->stock) {
-            return back()->with('error', 'Jumlah produk di keranjang sudah mencapai stok tersedia.');
-        }
-
-        $newQty = min($existingQty + $qty, (int) $product->stock);
-
-        // Timpa data pakai ID sebagai key, jadi kuantitasnya aja yang nambah, bukan barisnya.
-        $simpleCart[$product->id] = [
-            'product_id' => $product->id,
-            'name' => $product->name,
-            'slug' => $product->slug,
-            'price' => (int) $product->price,
-            'unit' => $product->unit,
-            'qty' => $newQty,
-        ];
-
-        $request->session()->put('simple_cart', $simpleCart);
-
-        // FIX LOGIKA 2: Pakai back() biar user tetep di halaman saat ini
-        // (gak dialihin maksa ke halaman detail produk). Belanja jadi ga keganggu.
-        return back()->with('success', $product->name . ' berhasil ditambahkan ke keranjang.');
     }
 
     public function cart(Request $request): View
     {
         $simpleCart = $request->session()->get('simple_cart', []);
+        $productIds = array_map('intval', array_keys($simpleCart));
+
+        $products = Product::query()
+            ->whereIn('id', $productIds)
+            ->get()
+            ->keyBy('id');
+
+        $cartItems = collect($simpleCart)
+            ->map(function ($item, $productId) use ($products) {
+                $product = $products->get((int) $productId);
+                $qty = max(1, (int) ($item['qty'] ?? 1));
+                $price = (int) ($item['price'] ?? ($product?->price ?? 0));
+                $stock = max(0, (int) ($product?->stock ?? 0));
+                $isAvailable = (bool) ($product?->is_active) && $stock > 0;
+
+                return [
+                    'product_id' => (int) ($item['product_id'] ?? $productId),
+                    'name' => (string) ($item['name'] ?? ($product?->name ?? 'Produk tidak ditemukan')),
+                    'slug' => (string) ($item['slug'] ?? ($product?->slug ?? '')),
+                    'unit' => (string) ($item['unit'] ?? ($product?->unit ?? 'pcs')),
+                    'price' => $price,
+                    'qty' => $qty,
+                    'stock' => $stock,
+                    'is_available' => $isAvailable,
+                    'subtotal' => $price * $qty,
+                ];
+            })
+            ->values();
+
+        $subtotal = (int) $cartItems->sum('subtotal');
+        $totalQuantity = (int) $cartItems->sum('qty');
+        $shippingCostPerItem = $this->shippingCostPerItem();
+        $shippingCost = $this->calculateShippingCost($totalQuantity);
+        $totalAmount = $subtotal + $shippingCost;
+
+        return view('home.cart', [
+            'cartItems' => $cartItems,
+            'subtotal' => $subtotal,
+            'totalQuantity' => $totalQuantity,
+            'shippingCostPerItem' => $shippingCostPerItem,
+            'shippingCost' => $shippingCost,
+            'totalAmount' => $totalAmount,
+            ...$this->cartSummary($request),
+        ]);
+    }
+
+    public function checkoutPage(Request $request): View|RedirectResponse
+    {
+        $simpleCart = $request->session()->get('simple_cart', []);
+
+        if (count($simpleCart) === 0) {
+            return redirect()->route('home.cart')->with('error', 'Keranjang masih kosong, belum bisa checkout.');
+        }
+
         $productIds = array_map('intval', array_keys($simpleCart));
 
         $products = Product::query()
@@ -294,7 +368,7 @@ class HomeController extends Controller
             $selectedAddress = $userAddresses->firstWhere('id', $defaultAddressId);
         }
 
-        return view('home.cart', [
+        return view('home.checkout', [
             'cartItems' => $cartItems,
             'subtotal' => $subtotal,
             'totalQuantity' => $totalQuantity,
@@ -431,7 +505,7 @@ class HomeController extends Controller
             $address = $user->addresses()->whereKey((int) $validated['address_id'])->first();
 
             if (!$address) {
-                return redirect()->route('home.cart')
+                return redirect()->route('home.checkout')
                     ->withInput()
                     ->with('error', 'Alamat yang dipilih tidak valid.');
             }
@@ -451,7 +525,7 @@ class HomeController extends Controller
                 ->filter(fn($field) => blank($validated[$field] ?? null));
 
             if ($missingAddressFields->isNotEmpty()) {
-                return redirect()->route('home.cart')
+                return redirect()->route('home.checkout')
                     ->withInput()
                     ->with('error', 'Lengkapi data alamat baru sebelum checkout.');
             }
@@ -482,7 +556,7 @@ class HomeController extends Controller
         }
 
         if (!$address) {
-            return redirect()->route('home.cart')
+            return redirect()->route('home.checkout')
                 ->withInput()
                 ->with('error', 'Pilih alamat default atau isi alamat baru sebelum checkout.');
         }

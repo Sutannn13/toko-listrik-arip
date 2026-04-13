@@ -94,19 +94,6 @@
                 Reset
             </a>
         </form>
-
-        <div class="mt-5 flex flex-wrap gap-2 pt-4 border-t border-gray-100">
-            <a href="{{ route('home', $baseSearchQuery) }}"
-                class="rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ request('category') ? 'border border-gray-200 text-gray-600 hover:bg-gray-50' : 'bg-primary-100 text-primary-700' }}">
-                Semua Produk
-            </a>
-            @foreach ($categories as $category)
-                <a href="{{ route('home', array_filter(['q' => $keyword, 'category' => $category->id])) }}"
-                    class="rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ (int) request('category') === $category->id ? 'bg-primary-100 text-primary-700' : 'border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
-                    {{ $category->name }} <span class="pl-1 text-gray-400">({{ $category->active_products_count }})</span>
-                </a>
-            @endforeach
-        </div>
     </section>
 
     <!-- Product Grid -->
@@ -118,102 +105,71 @@
 
         @forelse ($products as $product)
             @if ($loop->first)
-                <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
             @endif
 
             <article
-                class="group flex flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-primary-200 hover:shadow-lg">
+                class="group flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-primary-200 hover:shadow-lg overflow-hidden">
                 <a href="{{ route('home.products.show', $product->slug) }}"
-                    class="mb-4 block overflow-hidden rounded-xl border border-gray-100 bg-gray-50 aspect-[4/3]">
+                    class="block overflow-hidden bg-gray-50 aspect-square relative">
                     <img src="{{ $product->image_url }}" alt="{{ $product->name }}" loading="lazy"
-                        class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                        class="h-full w-full object-cover transition duration-300 group-hover:scale-110">
                 </a>
 
-                <div class="mb-3 flex items-start justify-between gap-3">
-                    <div>
-                        <h3 class="text-base font-bold text-gray-900 group-hover:text-primary-700">
-                            {{ $product->name }}</h3>
-                        <p class="mt-0.5 text-xs text-gray-500">
-                            {{ $product->category->name ?? 'Uncategorized' }}</p>
+                <div class="p-3 flex flex-col flex-1">
+                    <h3 class="text-sm font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-primary-700">
+                        {{ $product->name }}
+                    </h3>
+                    <p class="mt-0.5 text-[11px] text-gray-500">{{ $product->category->name ?? 'Uncategorized' }}</p>
 
-                        @php
-                            $avgRating = $product->average_rating;
-                            $reviewsCount = $product->reviews_total;
-                        @endphp
-                        <div class="mt-1.5 flex items-center gap-1.5">
-                            <div class="flex items-center text-amber-400">
-                                @for ($star = 1; $star <= 5; $star++)
-                                    <svg class="h-3.5 w-3.5 {{ $star <= round($avgRating) ? 'fill-current' : 'fill-none text-gray-300' }}"
-                                        viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                                        <path
-                                            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.539 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.783.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.07-3.292z" />
-                                    </svg>
-                                @endfor
-                            </div>
-                            <span class="text-[11px] font-medium text-gray-500">
-                                @if ($reviewsCount > 0)
-                                    {{ number_format($avgRating, 1) }} ({{ $reviewsCount }} ulasan)
-                                @else
-                                    Belum ada ulasan
-                                @endif
-                            </span>
-                        </div>
-                    </div>
-                    <span
-                        class="whitespace-nowrap rounded font-bold bg-gray-100 px-2 py-1 text-[10px] uppercase tracking-wider text-gray-600">{{ $product->unit }}</span>
-                </div>
-
-                <p class="line-clamp-3 min-h-[60px] text-sm leading-relaxed text-gray-600">
-                    {{ $product->description ?: 'Barang berkualitas dari Toko HS ELECTRIC.' }}
-                </p>
-
-                <div class="mt-auto pt-4 flex flex-col gap-3">
-                    <div class="flex items-center justify-between border-t border-gray-100 pt-3">
-                        <p class="text-lg font-black text-gray-900">
+                    <div class="mt-auto pt-2">
+                        <p class="text-sm font-black text-gray-900">
                             Rp {{ number_format($product->price, 0, ',', '.') }}
                         </p>
-                        @if ($product->stock > 0)
-                            <p class="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded">Sisa:
-                                {{ number_format($product->stock) }}</p>
-                        @else
-                            <p class="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded">Habis</p>
-                        @endif
+                        <div class="mt-1 flex items-center justify-between">
+                            @if ($product->stock > 0)
+                                <span class="text-[10px] font-semibold text-green-600">Stok: {{ number_format($product->stock) }}</span>
+                            @else
+                                <span class="text-[10px] font-semibold text-red-600">Habis</span>
+                            @endif
+                            <span class="text-[10px] font-bold uppercase text-gray-400">{{ $product->unit }}</span>
+                        </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="mt-2 flex items-center gap-1.5">
                         <a href="{{ route('home.products.show', $product->slug) }}"
-                            class="inline-flex w-1/3 items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-primary-600">
+                            class="inline-flex flex-1 items-center justify-center rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-primary-600">
                             Detail
                         </a>
 
                         @auth
-                            <form method="POST" action="{{ route('home.products.buy', $product->slug) }}" class="w-2/3">
+                            <form method="POST" action="{{ route('home.products.buy', $product->slug) }}" class="flex-1">
                                 @csrf
                                 <button type="submit" {{ $product->stock < 1 ? 'disabled' : '' }}
-                                    class="inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition {{ $product->stock < 1 ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400' : 'bg-primary-600 text-white shadow-md shadow-primary-500/20 hover:bg-primary-700' }}">
+                                    class="inline-flex w-full items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold transition {{ $product->stock < 1 ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400' : 'bg-primary-600 text-white shadow-sm hover:bg-primary-700' }}">
                                     @if ($product->stock < 1)
-                                        Stok Habis
+                                        Habis
                                     @else
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 4v16m8-8H4"></path>
                                         </svg>
-                                        Keranjang
+                                        Beli
                                     @endif
                                 </button>
                             </form>
                         @else
                             <button type="button"
                                 onclick="alert('Silakan login ke akun Anda terlebih dahulu untuk menambah barang ke keranjang dan melakukan pembayaran.')"
-                                class="w-2/3 inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition {{ $product->stock < 1 ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400' : 'bg-primary-600 text-white shadow-md shadow-primary-500/20 hover:bg-primary-700' }}">
+                                class="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold transition {{ $product->stock < 1 ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400' : 'bg-primary-600 text-white shadow-sm hover:bg-primary-700' }}">
                                 @if ($product->stock < 1)
-                                    Stok Habis
+                                    Habis
                                 @else
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M12 4v16m8-8H4"></path>
                                     </svg>
-                                    Keranjang
+                                    Beli
                                 @endif
                             </button>
                         @endauth

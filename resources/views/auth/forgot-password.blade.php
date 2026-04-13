@@ -9,118 +9,97 @@
     <title>Reset Password - Toko HS ELECTRIC</title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=manrope:400,500,600,700,800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <style>
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+        }
+    </style>
 </head>
 
-<body class="min-h-screen text-slate-900 antialiased"
-    style="font-family: 'Manrope', sans-serif; background-image: linear-gradient(120deg, rgba(8, 47, 73, 0.82) 0%, rgba(12, 74, 110, 0.72) 42%, rgba(15, 23, 42, 0.68) 100%), url('{{ asset('img/image_loginpage.png') }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
-    <div class="pointer-events-none fixed inset-0 bg-slate-950/30"></div>
-    <div class="pointer-events-none fixed inset-0 overflow-hidden">
-        <div class="absolute -left-16 -top-20 h-72 w-72 rounded-full bg-cyan-200/20 blur-3xl"></div>
-        <div class="absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-blue-200/20 blur-3xl"></div>
+<body class="min-h-screen antialiased">
+    {{-- Background Layer --}}
+    <div class="fixed inset-0 z-0">
+        <img src="{{ asset('img/image_loginpage.png') }}" alt="" class="h-full w-full object-cover" />
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/70 to-slate-800/75"></div>
     </div>
 
-    <main data-auth-shell
-        class="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-10">
-        <div data-auth-grid class="grid w-full items-stretch gap-6 lg:grid-cols-[1.12fr,0.88fr] lg:gap-10">
-            <section
-                class="hidden rounded-3xl border border-white/25 bg-gradient-to-b from-sky-900/72 to-slate-950/60 p-10 text-white shadow-[0_30px_80px_rgba(2,6,23,0.45)] backdrop-blur-md lg:flex lg:flex-col lg:justify-between">
-                <div>
-                    <a href="{{ route('home') }}" class="inline-flex items-center gap-3">
-                        <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
-                            class="h-11 w-11 rounded-xl border border-white/30 bg-white/20 p-1.5 object-contain">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100">Toko HS
-                                ELECTRIC</p>
-                            <p class="text-sm font-medium text-white/85">Pemulihan akun aman</p>
-                        </div>
-                    </a>
-
-                    <div class="mt-10 max-w-xl">
-                        <span
-                            class="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cyan-50">
-                            Lupa Password
-                        </span>
-                        <h1 class="mt-4 text-[2.15rem] font-extrabold leading-tight tracking-tight text-white">
-                            Pemulihan akun yang cepat, aman, dan tetap nyaman di mata.
-                        </h1>
-                        <p class="mt-4 text-base leading-relaxed text-cyan-50">
-                            Masukkan email terdaftar untuk menerima tautan reset password. Prosesnya singkat, dan Anda
-                            bisa kembali menggunakan akun tanpa ribet.
-                        </p>
+    {{-- Main Content --}}
+    <main class="relative z-10 flex min-h-screen items-center justify-center px-4 py-8">
+        <div class="w-full max-w-md">
+            {{-- Logo --}}
+            <div class="mb-8 text-center">
+                <a href="{{ route('home') }}" class="inline-flex items-center gap-3">
+                    <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
+                        class="h-12 w-12 rounded-xl border-2 border-white/30 bg-white/20 p-1.5 object-contain shadow-lg backdrop-blur-sm">
+                    <div class="text-left">
+                        <p class="text-sm font-bold tracking-wide text-white">TOKO HS ELECTRIC</p>
+                        <p class="text-xs font-medium text-white/70">Pemulihan akun aman</p>
                     </div>
+                </a>
+            </div>
+
+            {{-- Card --}}
+            <div class="rounded-2xl border border-gray-200/80 bg-white p-7 shadow-2xl sm:p-9">
+                <div class="mb-2">
+                    {{-- Lock Icon --}}
+                    <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50">
+                        <svg class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-extrabold text-gray-900">Lupa Password?</h1>
+                    <p class="mt-2 text-sm leading-relaxed text-gray-500">
+                        Masukkan alamat email yang terdaftar. Kami akan mengirimkan link untuk
+                        mereset password Anda.
+                    </p>
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="rounded-2xl border border-white/30 bg-white/18 p-4 sm:col-span-2">
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">Tips Keamanan</p>
-                        <p class="mt-2 text-sm text-white">Gunakan password baru yang unik, minimal 8 karakter, dan
-                            jangan membagikan tautan reset kepada orang lain.</p>
-                    </div>
-                    <div class="rounded-2xl border border-white/30 bg-white/18 p-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">Email Valid</p>
-                        <p class="mt-2 text-sm text-white">Pastikan email sesuai dengan akun yang terdaftar.</p>
-                    </div>
-                    <div class="rounded-2xl border border-white/30 bg-white/18 p-4">
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">Cek Inbox</p>
-                        <p class="mt-2 text-sm text-white">Lihat folder spam jika email reset belum terlihat.</p>
-                    </div>
-                </div>
-            </section>
+                <x-auth-session-status
+                    class="mt-4 mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+                    :status="session('status')" />
 
-            <section class="w-full max-w-md place-self-center">
-                <div class="mb-5 text-center lg:hidden">
-                    <a href="{{ route('home') }}"
-                        class="inline-flex items-center gap-2 rounded-full bg-white/25 px-4 py-2 text-white backdrop-blur-sm">
-                        <img src="{{ asset('img/gemini_generated_image.png') }}" alt="Toko HS ELECTRIC"
-                            class="h-7 w-7 object-contain">
-                        <span class="text-sm font-semibold">Toko HS ELECTRIC</span>
-                    </a>
-                </div>
+                <form method="POST" action="{{ route('password.email') }}" class="mt-6 space-y-5" data-ui-form
+                    data-auth-form>
+                    @csrf
 
-                <div data-auth-card
-                    class="rounded-3xl border border-white/95 bg-white/97 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.35)] backdrop-blur-md sm:p-8">
+                    {{-- Email --}}
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Reset Password</p>
-                        <h2 data-auth-title class="mt-2 text-[1.9rem] font-extrabold leading-tight text-slate-900">Minta
-                            tautan reset</h2>
-                        <p data-auth-subtitle class="mt-2 text-sm leading-relaxed text-slate-600">Kami akan mengirimkan
-                            link reset ke email Anda dalam beberapa detik.</p>
+                        <label for="email" class="mb-1.5 block text-sm font-semibold text-gray-700">Email</label>
+                        <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus
+                            class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-900 transition placeholder:text-gray-400 focus:border-green-500 focus:bg-white focus:outline-none focus:ring-3 focus:ring-green-500/15"
+                            placeholder="contoh@email.com">
+                        <x-input-error :messages="$errors->get('email')" class="mt-1.5 text-xs text-red-600" />
                     </div>
 
-                    <x-auth-session-status
-                        class="mt-5 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700"
-                        :status="session('status')" />
+                    {{-- Submit --}}
+                    <button type="submit" data-loading-text="Mengirim tautan..."
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-green-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-600/20 transition hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-500/30 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-80">
+                        Kirim Link Reset Password
+                    </button>
+                </form>
 
-                    <form method="POST" action="{{ route('password.email') }}" class="mt-6 space-y-5" data-ui-form
-                        data-auth-form>
-                        @csrf
-
-                        <div>
-                            <label for="email"
-                                class="mb-1.5 block text-sm font-semibold text-slate-700">Email</label>
-                            <input id="email" name="email" type="email" value="{{ old('email') }}" required
-                                autofocus
-                                class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/15"
-                                placeholder="contoh@email.com">
-                            <x-input-error :messages="$errors->get('email')" class="mt-1.5 text-xs text-red-600" />
-                        </div>
-
-                        <button type="submit" data-loading-text="Mengirim tautan..."
-                            class="inline-flex w-full items-center justify-center rounded-2xl bg-sky-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-sky-600/25 transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-500/35 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-80">
-                            Kirim Link Reset Password
-                        </button>
-                    </form>
-
-                    <div class="mt-6 border-t border-slate-200 pt-5 text-center text-sm text-slate-600">
-                        <a href="{{ route('login') }}" class="font-semibold text-sky-700 transition hover:text-sky-800">
-                            Kembali ke halaman login
-                        </a>
-                    </div>
+                {{-- Back to Login --}}
+                <div class="mt-6 border-t border-gray-100 pt-5 text-center text-sm text-gray-500">
+                    <a href="{{ route('login') }}"
+                        class="inline-flex items-center gap-1.5 font-semibold text-green-600 transition hover:text-green-700">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Kembali ke halaman login
+                    </a>
                 </div>
-            </section>
+            </div>
+
+            {{-- Footer --}}
+            <p class="mt-6 text-center text-xs text-white/50">
+                &copy; {{ date('Y') }} Toko HS ELECTRIC. Hak cipta dilindungi.
+            </p>
         </div>
     </main>
 

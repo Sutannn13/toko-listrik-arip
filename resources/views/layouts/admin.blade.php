@@ -383,7 +383,7 @@
                 </div>
 
                 {{-- Storefront link --}}
-                <a href="{{ route('landing') }}" class="ta-nav-item ta-nav-idle w-full"
+                <a href="{{ route('home') }}" class="ta-nav-item ta-nav-idle w-full"
                     :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''"
                     :title="sidebarCollapsed ? 'Lihat Toko' : ''">
                     <svg class="ta-nav-icon ta-nav-icon-idle" fill="none" stroke="currentColor"
@@ -639,7 +639,7 @@
                                     </svg>
                                     Edit Profile
                                 </a>
-                                <a href="{{ route('landing') }}" class="ta-dropdown-item">
+                                <a href="{{ route('home') }}" class="ta-dropdown-item">
                                     <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

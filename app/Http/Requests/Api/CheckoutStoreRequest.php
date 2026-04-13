@@ -82,13 +82,12 @@ class CheckoutStoreRequest extends FormRequest
     private function validateItemsSource(\Illuminate\Validation\Validator $validator): void
     {
         $items = $this->input('items');
-        $sessionCart = $this->session()->get('simple_cart', []);
-
         $hasItemsPayload = is_array($items) && count($items) > 0;
-        $hasSessionCart = is_array($sessionCart) && count($sessionCart) > 0;
+        $authenticatedUser = $this->user();
+        $hasPersistentCartItems = $authenticatedUser && $authenticatedUser->cart()->whereHas('items')->exists();
 
-        if (! $hasItemsPayload && ! $hasSessionCart) {
-            $validator->errors()->add('items', 'Keranjang kosong. Kirim items pada payload atau isi simple_cart di session.');
+        if (! $hasItemsPayload && ! $hasPersistentCartItems) {
+            $validator->errors()->add('items', 'Keranjang kosong. Tambahkan item melalui API cart atau kirim field items.');
         }
     }
 

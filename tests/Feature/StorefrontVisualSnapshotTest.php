@@ -13,14 +13,14 @@ class StorefrontVisualSnapshotTest extends TestCase
     use AssertsStorefrontSnapshots;
     use RefreshDatabase;
 
-    public function test_landing_page_visual_snapshot_matches_baseline(): void
+    public function test_root_url_visual_snapshot_matches_catalog_baseline(): void
     {
         $this->seedStorefrontProducts();
 
-        $response = $this->get(route('landing'));
+        $response = $this->get('/');
 
         $response->assertOk();
-        $this->assertMatchesStorefrontSnapshot($response->getContent(), 'landing-main');
+        $this->assertMatchesStorefrontSnapshot($response->getContent(), 'catalog-main');
     }
 
     public function test_catalog_page_visual_snapshot_matches_baseline(): void

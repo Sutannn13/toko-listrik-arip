@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\AdminNewOrderNotification;
+use App\Services\CartService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Notifications\Notification as NotificationMessage;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,10 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
+    public function __construct(
+        private readonly CartService $cartService,
+    ) {}
+
     public function store(CheckoutStoreRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -32,23 +37,15 @@ class CheckoutController extends Controller
             ], 401);
         }
 
-        $checkoutItems = $this->resolveCheckoutItems(
-            $validated['items'] ?? null,
-            $request->session()->get('simple_cart', []),
-        );
-
-        if (count($checkoutItems) === 0) {
-            return response()->json([
-                'message' => 'Validasi checkout gagal.',
-                'errors' => [
-                    'items' => ['Keranjang kosong. Tidak ada item untuk diproses.'],
-                ],
-            ], 422);
-        }
-
         $paymentMethod = (string) ($validated['payment_method'] ?? 'dummy');
+        $checkoutItems = [];
 
         try {
+            $checkoutItems = $this->cartService->resolveCheckoutItems(
+                $authenticatedUser,
+                $validated['items'] ?? null,
+            );
+
             [$order, $payment] = DB::transaction(function () use ($authenticatedUser, $validated, $checkoutItems, $paymentMethod) {
                 $orderItemsPayload = [];
                 $subtotalAmount = 0;
@@ -153,9 +150,7 @@ class CheckoutController extends Controller
             ], 500);
         }
 
-        if (! isset($validated['items'])) {
-            $request->session()->forget('simple_cart');
-        }
+        $this->cartService->removePurchasedItems($authenticatedUser, $checkoutItems);
 
         $this->notifyAdminsWhenEnabled('notif_order_new', new AdminNewOrderNotification($order));
 
@@ -206,39 +201,6 @@ class CheckoutController extends Controller
                 ])->values(),
             ],
         ], 201);
-    }
-
-    private function resolveCheckoutItems(mixed $itemsPayload, array $sessionCart): array
-    {
-        $normalizedItems = [];
-
-        if (is_array($itemsPayload) && count($itemsPayload) > 0) {
-            foreach ($itemsPayload as $itemPayload) {
-                $productId = (int) ($itemPayload['product_id'] ?? 0);
-                $quantity = max(1, (int) ($itemPayload['quantity'] ?? 1));
-
-                if ($productId < 1) {
-                    continue;
-                }
-
-                $normalizedItems[$productId] = ($normalizedItems[$productId] ?? 0) + $quantity;
-            }
-
-            return $normalizedItems;
-        }
-
-        foreach ($sessionCart as $cartKey => $cartItem) {
-            $productId = (int) ($cartItem['product_id'] ?? $cartKey);
-            $quantity = max(1, (int) ($cartItem['qty'] ?? 1));
-
-            if ($productId < 1) {
-                continue;
-            }
-
-            $normalizedItems[$productId] = ($normalizedItems[$productId] ?? 0) + $quantity;
-        }
-
-        return $normalizedItems;
     }
 
     private function resolveCheckoutAddress(User $user, array $validated): Address

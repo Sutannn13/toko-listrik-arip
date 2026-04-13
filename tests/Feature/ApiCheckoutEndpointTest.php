@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ApiCheckoutEndpointTest extends TestCase
@@ -16,28 +18,28 @@ class ApiCheckoutEndpointTest extends TestCase
     public function test_api_checkout_creates_order_and_payment_from_payload_items(): void
     {
         [$customer, $product] = $this->createCustomerAndProduct();
+        Sanctum::actingAs($customer);
 
-        $response = $this->actingAs($customer)
-            ->postJson(route('api.checkout.store'), [
-                'payment_method' => 'bank_transfer',
-                'customer_name' => $customer->name,
-                'customer_email' => $customer->email,
-                'customer_phone' => '081200001111',
-                'items' => [
-                    [
-                        'product_id' => $product->id,
-                        'quantity' => 2,
-                    ],
+        $response = $this->postJson(route('api.checkout.store'), [
+            'payment_method' => 'bank_transfer',
+            'customer_name' => $customer->name,
+            'customer_email' => $customer->email,
+            'customer_phone' => '081200001111',
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 2,
                 ],
-                'address_label' => 'Rumah',
-                'recipient_name' => $customer->name,
-                'address_phone' => '081200001111',
-                'address_line' => 'Jl. Cihampelas No. 10',
-                'city' => 'Bandung',
-                'province' => 'Jawa Barat',
-                'postal_code' => '40112',
-                'address_notes' => 'Patokan dekat minimarket.',
-            ]);
+            ],
+            'address_label' => 'Rumah',
+            'recipient_name' => $customer->name,
+            'address_phone' => '081200001111',
+            'address_line' => 'Jl. Cihampelas No. 10',
+            'city' => 'Bandung',
+            'province' => 'Jawa Barat',
+            'postal_code' => '40112',
+            'address_notes' => 'Patokan dekat minimarket.',
+        ]);
 
         $response->assertCreated();
         $response->assertJsonPath('message', 'Checkout berhasil dibuat.');
@@ -67,63 +69,64 @@ class ApiCheckoutEndpointTest extends TestCase
         $this->assertSame(8, (int) $product->fresh()->stock);
     }
 
-    public function test_api_checkout_can_use_simple_cart_session_when_items_payload_is_missing(): void
+    public function test_api_checkout_can_use_persistent_cart_when_items_payload_is_missing(): void
     {
         [$customer, $product] = $this->createCustomerAndProduct();
+        Sanctum::actingAs($customer);
 
-        $response = $this->actingAs($customer)
-            ->withSession([
-                'simple_cart' => [
-                    $product->id => [
-                        'product_id' => $product->id,
-                        'name' => $product->name,
-                        'slug' => $product->slug,
-                        'price' => (int) $product->price,
-                        'unit' => $product->unit,
-                        'qty' => 3,
-                    ],
-                ],
-            ])
-            ->postJson(route('api.checkout.store'), [
-                'payment_method' => 'cod',
-                'customer_name' => $customer->name,
-                'customer_email' => $customer->email,
-                'customer_phone' => '081200002222',
-                'address_label' => 'Kantor',
-                'recipient_name' => $customer->name,
-                'address_phone' => '081200002222',
-                'address_line' => 'Jl. Asia Afrika No. 99',
-                'city' => 'Bandung',
-                'province' => 'Jawa Barat',
-                'postal_code' => '40115',
-            ]);
+        $cart = Cart::create([
+            'user_id' => $customer->id,
+        ]);
+
+        $cart->items()->create([
+            'product_id' => $product->id,
+            'quantity' => 3,
+        ]);
+
+        $response = $this->postJson(route('api.checkout.store'), [
+            'payment_method' => 'cod',
+            'customer_name' => $customer->name,
+            'customer_email' => $customer->email,
+            'customer_phone' => '081200002222',
+            'address_label' => 'Kantor',
+            'recipient_name' => $customer->name,
+            'address_phone' => '081200002222',
+            'address_line' => 'Jl. Asia Afrika No. 99',
+            'city' => 'Bandung',
+            'province' => 'Jawa Barat',
+            'postal_code' => '40115',
+        ]);
 
         $response->assertCreated();
-        $response->assertSessionMissing('simple_cart');
         $response->assertJsonPath('data.payment.method', 'cod');
         $response->assertJsonPath('data.totals.subtotal', 45000);
         $response->assertJsonPath('data.totals.shipping_cost', 15000);
         $response->assertJsonPath('data.totals.total_amount', 60000);
+
+        $this->assertDatabaseMissing('cart_items', [
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+        ]);
     }
 
-    public function test_api_checkout_returns_validation_error_when_items_and_session_cart_are_empty(): void
+    public function test_api_checkout_returns_validation_error_when_items_and_persistent_cart_are_empty(): void
     {
         [$customer] = $this->createCustomerAndProduct();
+        Sanctum::actingAs($customer);
 
-        $response = $this->actingAs($customer)
-            ->postJson(route('api.checkout.store'), [
-                'payment_method' => 'ewallet',
-                'customer_name' => $customer->name,
-                'customer_email' => $customer->email,
-                'customer_phone' => '081200003333',
-                'address_label' => 'Rumah',
-                'recipient_name' => $customer->name,
-                'address_phone' => '081200003333',
-                'address_line' => 'Jl. Braga No. 7',
-                'city' => 'Bandung',
-                'province' => 'Jawa Barat',
-                'postal_code' => '40111',
-            ]);
+        $response = $this->postJson(route('api.checkout.store'), [
+            'payment_method' => 'ewallet',
+            'customer_name' => $customer->name,
+            'customer_email' => $customer->email,
+            'customer_phone' => '081200003333',
+            'address_label' => 'Rumah',
+            'recipient_name' => $customer->name,
+            'address_phone' => '081200003333',
+            'address_line' => 'Jl. Braga No. 7',
+            'city' => 'Bandung',
+            'province' => 'Jawa Barat',
+            'postal_code' => '40111',
+        ]);
 
         $response->assertUnprocessable();
         $response->assertJsonValidationErrors(['items']);

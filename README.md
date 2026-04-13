@@ -7,13 +7,44 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## API Authentication (Sanctum)
+
+Checkout dan Cart API menggunakan Bearer Token Sanctum.
+
+### Generate Token
+
+- Method: `POST`
+- Path: `/api/auth/token`
+
+Request body:
+
+```json
+{
+    "email": "mobile-user@example.com",
+    "password": "secret-pass-123",
+    "device_name": "android-app"
+}
+```
+
+### Revoke Current Token
+
+- Method: `DELETE`
+- Path: `/api/auth/token`
+- Auth: `Authorization: Bearer {token}`
+
+### Get Current User Profile
+
+- Method: `GET`
+- Path: `/api/me`
+- Auth: `Authorization: Bearer {token}`
+
 ## Checkout API Endpoint
 
 Endpoint ini dipakai untuk membuat order checkout via JSON.
 
 - Method: `POST`
 - Path: `/api/checkout`
-- Auth: wajib login (`auth` middleware, guard web/session)
+- Auth: wajib Bearer Token (`auth:sanctum`)
 - Throttle: `12 request / menit`
 
 ### Request Body
@@ -45,7 +76,7 @@ Endpoint ini dipakai untuk membuat order checkout via JSON.
 
 Catatan:
 
-- Field `items` boleh dikosongkan jika `simple_cart` pada session user masih ada.
+- Field `items` boleh dikosongkan jika user sudah punya item di persistent cart API.
 - Jika `address_id` tidak dikirim, maka endpoint akan pakai alamat default user atau membuat alamat baru dari field alamat.
 - `payment_method` yang didukung: `cod`, `bank_transfer`, `ewallet`, `dummy`.
 
@@ -76,10 +107,69 @@ Catatan:
     "message": "Validasi checkout gagal.",
     "errors": {
         "items": [
-            "Keranjang kosong. Kirim items pada payload atau isi simple_cart di session."
+            "Keranjang kosong. Tambahkan item melalui API cart atau kirim field items."
         ]
     }
 }
+```
+
+## Cart API Endpoints
+
+Semua endpoint cart bersifat stateless dan wajib Bearer Token (`auth:sanctum`).
+
+### 1) List Cart
+
+- Method: `GET`
+- Path: `/api/cart`
+
+### 2) Add Item ke Cart
+
+- Method: `POST`
+- Path: `/api/cart/items`
+
+Request body:
+
+```json
+{
+    "product_id": 1,
+    "quantity": 2
+}
+```
+
+### 3) Update Quantity Item
+
+- Method: `PATCH`
+- Path: `/api/cart/items/{productId}`
+
+Request body:
+
+```json
+{
+    "quantity": 5
+}
+```
+
+### 4) Remove Item dari Cart
+
+- Method: `DELETE`
+- Path: `/api/cart/items/{productId}`
+
+## Mobile Flow (Token -> Cart -> Checkout)
+
+Urutan integrasi yang disarankan untuk mobile app:
+
+1. Login token via `POST /api/auth/token`.
+2. Simpan `access_token` secara aman di client.
+3. Panggil `GET /api/me` untuk bootstrap profil user.
+4. Kelola keranjang via endpoint `/api/cart`.
+5. Checkout via `POST /api/checkout` (boleh kirim `items`, atau biarkan checkout memakai isi cart yang sudah tersimpan).
+6. Logout token via `DELETE /api/auth/token` jika user logout dari device.
+
+Contoh header untuk semua endpoint yang butuh auth:
+
+```http
+Authorization: Bearer {access_token}
+Accept: application/json
 ```
 
 ## About Laravel

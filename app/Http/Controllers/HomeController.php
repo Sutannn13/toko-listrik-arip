@@ -28,27 +28,6 @@ use Illuminate\View\View;
 
 class HomeController extends Controller
 {
-    public function landing(Request $request): View
-    {
-        $featuredCategories = Category::query()
-            ->withCount([
-                'products as active_products_count' => fn($query) => $query->where('is_active', true),
-            ])
-            ->orderByDesc('active_products_count')
-            ->orderBy('name')
-            ->get();
-
-        $storeOperatingStatus = $this->resolveStoreOperatingStatus();
-
-        return view('home.landing', [
-            'featuredCategories' => $featuredCategories,
-            'totalProducts' => Product::where('is_active', true)->count(),
-            'totalCategories' => Category::count(),
-            'storeOperatingStatus' => $storeOperatingStatus,
-            ...$this->cartSummary($request),
-        ]);
-    }
-
     public function index(Request $request): View|RedirectResponse
     {
         $keyword = trim((string) $request->query('q', ''));
@@ -1075,100 +1054,6 @@ class HomeController extends Controller
         );
 
         return back()->with('success', 'Bukti pembayaran berhasil diunggah dan diteruskan ke admin. Silakan tunggu ACC admin.');
-    }
-
-    private function resolveStoreOperatingStatus(): array
-    {
-        $now = now();
-        $dayOfWeekIso = (int) $now->dayOfWeekIso;
-
-        $hoursSettingKey = match ($dayOfWeekIso) {
-            6 => 'hours_saturday',
-            7 => 'hours_sunday',
-            default => 'hours_weekday',
-        };
-
-        $dayLabel = match ($dayOfWeekIso) {
-            1 => 'Senin',
-            2 => 'Selasa',
-            3 => 'Rabu',
-            4 => 'Kamis',
-            5 => 'Jumat',
-            6 => 'Sabtu',
-            default => 'Minggu',
-        };
-
-        $todayHours = trim((string) Setting::get($hoursSettingKey, '09:00 - 20:00'));
-        $hoursNote = trim((string) Setting::get('hours_note', ''));
-
-        $isOpen = $this->isStoreOpenBySchedule($todayHours, $now->format('H:i'));
-
-        return [
-            'is_open' => $isOpen,
-            'status_label' => $isOpen ? 'Toko Buka' : 'Toko Tutup',
-            'day_label' => $dayLabel,
-            'hours_text' => $todayHours !== '' ? $todayHours : 'Jam operasional belum diatur',
-            'note' => $hoursNote,
-        ];
-    }
-
-    private function isStoreOpenBySchedule(string $hoursText, string $currentTime): bool
-    {
-        $normalized = strtolower(trim($hoursText));
-
-        if ($normalized === '' || str_contains($normalized, 'tutup')) {
-            return false;
-        }
-
-        if (str_contains($normalized, '24 jam') || str_contains($normalized, '24jam')) {
-            return true;
-        }
-
-        $hoursText = str_replace('—', '-', $hoursText);
-        $hoursText = str_replace('–', '-', $hoursText);
-
-        if (!preg_match('/^\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\s*$/', $hoursText, $matches)) {
-            return true;
-        }
-
-        $startMinutes = $this->timeToMinutes($matches[1]);
-        $endMinutes = $this->timeToMinutes($matches[2]);
-        $currentMinutes = $this->timeToMinutes($currentTime);
-
-        if ($startMinutes === null || $endMinutes === null || $currentMinutes === null) {
-            return true;
-        }
-
-        if ($startMinutes === $endMinutes) {
-            return true;
-        }
-
-        if ($endMinutes > $startMinutes) {
-            return $currentMinutes >= $startMinutes && $currentMinutes < $endMinutes;
-        }
-
-        return $currentMinutes >= $startMinutes || $currentMinutes < $endMinutes;
-    }
-
-    private function timeToMinutes(string $time): ?int
-    {
-        $parts = explode(':', trim($time));
-        if (count($parts) !== 2) {
-            return null;
-        }
-
-        $hour = filter_var($parts[0], FILTER_VALIDATE_INT);
-        $minute = filter_var($parts[1], FILTER_VALIDATE_INT);
-
-        if ($hour === false || $minute === false) {
-            return null;
-        }
-
-        if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59) {
-            return null;
-        }
-
-        return ($hour * 60) + $minute;
     }
 
     private function generateOrderCode(): string

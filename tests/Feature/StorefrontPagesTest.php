@@ -113,32 +113,6 @@ class StorefrontPagesTest extends TestCase
         $response->assertSee('Lihat Semua Notifikasi');
     }
 
-    public function test_custom_landing_header_shows_notification_preview_for_user(): void
-    {
-        $user = User::factory()->create();
-
-        $product = $this->createProduct([
-            'name' => 'Kabel Landing Preview',
-            'slug' => 'kabel-landing-preview',
-            'price' => 120000,
-            'is_electronic' => true,
-        ]);
-
-        $order = $this->createOrderWithSingleItem($user, $product, [
-            'status' => 'completed',
-            'payment_status' => 'paid',
-        ]);
-
-        $user->notify(new OrderCompletedNotification($order));
-
-        $response = $this->actingAs($user)->get(route('landing'));
-
-        $response->assertOk();
-        $response->assertSee('Notifikasi');
-        $response->assertSee($order->order_code);
-        $response->assertSee('Lihat Semua Notifikasi');
-    }
-
     public function test_opening_user_notification_preview_marks_it_as_read(): void
     {
         $user = User::factory()->create();

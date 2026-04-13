@@ -40,7 +40,7 @@
     <div class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="gap-8 md:flex md:justify-between">
             <div class="mb-8 md:mb-0">
-                <a href="{{ route('landing') }}" class="flex items-center gap-3">
+                <a href="{{ route('home') }}" class="flex items-center gap-3">
                     <span class="self-center whitespace-nowrap text-2xl font-semibold text-white">
                         {{ $storeName }}
                     </span>

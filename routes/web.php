@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\WarrantyClaimController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Api\CheckoutController as ApiCheckoutController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileAddressController;
 
@@ -31,6 +32,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/keranjang/checkout', [HomeController::class, 'checkout'])
         ->middleware('throttle:12,1')
         ->name('home.cart.checkout');
+    Route::post('/api/checkout', [ApiCheckoutController::class, 'store'])
+        ->middleware('throttle:12,1')
+        ->name('api.checkout.store');
 
     Route::get('/cek-pesanan', [HomeController::class, 'tracking'])->name('home.tracking');
     Route::post('/cek-pesanan', [HomeController::class, 'checkTracking'])

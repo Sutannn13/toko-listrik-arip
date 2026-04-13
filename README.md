@@ -7,6 +7,81 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Checkout API Endpoint
+
+Endpoint ini dipakai untuk membuat order checkout via JSON.
+
+- Method: `POST`
+- Path: `/api/checkout`
+- Auth: wajib login (`auth` middleware, guard web/session)
+- Throttle: `12 request / menit`
+
+### Request Body
+
+```json
+{
+    "payment_method": "bank_transfer",
+    "customer_name": "Budi Santoso",
+    "customer_email": "budi@example.com",
+    "customer_phone": "081234567890",
+    "items": [
+        {
+            "product_id": 1,
+            "quantity": 2
+        }
+    ],
+    "address_label": "Rumah",
+    "recipient_name": "Budi Santoso",
+    "address_phone": "081234567890",
+    "address_line": "Jl. Merdeka No. 10",
+    "city": "Bandung",
+    "province": "Jawa Barat",
+    "postal_code": "40111",
+    "address_notes": "Patokan dekat minimarket",
+    "set_as_default": true,
+    "notes": "Tolong kirim sore hari"
+}
+```
+
+Catatan:
+
+- Field `items` boleh dikosongkan jika `simple_cart` pada session user masih ada.
+- Jika `address_id` tidak dikirim, maka endpoint akan pakai alamat default user atau membuat alamat baru dari field alamat.
+- `payment_method` yang didukung: `cod`, `bank_transfer`, `ewallet`, `dummy`.
+
+### Response 201 (Created)
+
+```json
+{
+    "message": "Checkout berhasil dibuat.",
+    "data": {
+        "order_id": 123,
+        "order_code": "ORD-ARIP-20260413-ABC123",
+        "status": "pending",
+        "payment_status": "pending",
+        "payment": {
+            "payment_code": "PAY-ARIP-20260413-XYZ789",
+            "method": "bank_transfer",
+            "status": "pending",
+            "amount": 40000
+        }
+    }
+}
+```
+
+### Response 422 (Validation Error)
+
+```json
+{
+    "message": "Validasi checkout gagal.",
+    "errors": {
+        "items": [
+            "Keranjang kosong. Kirim items pada payload atau isi simple_cart di session."
+        ]
+    }
+}
+```
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

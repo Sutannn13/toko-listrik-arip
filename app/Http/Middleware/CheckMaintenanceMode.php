@@ -5,11 +5,16 @@ namespace App\Http\Middleware;
 use App\Models\Setting;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class CheckMaintenanceMode
 {
     public function handle(Request $request, Closure $next)
     {
+        if (!Schema::hasTable('system_settings')) {
+            return $next($request);
+        }
+
         // Jika maintenance mode aktif, dan URL BUKAN admin atau login
         if (Setting::get('maintenance_mode') === true) {
             if (! $request->is('admin/*') && ! $request->is('admin') && ! $request->is('login') && ! $request->is('register') && ! $request->is('forgot-password') && ! $request->is('reset-password/*')) {

@@ -78,7 +78,7 @@ Catatan:
 
 - Field `items` boleh dikosongkan jika user sudah punya item di persistent cart API.
 - Jika `address_id` tidak dikirim, maka endpoint akan pakai alamat default user atau membuat alamat baru dari field alamat.
-- `payment_method` yang didukung: `cod`, `bank_transfer`, `ewallet`, `dummy`.
+- `payment_method` yang didukung: `cod`, `bank_transfer`, `ewallet`, `dummy`, `bayargg`.
 
 ### Response 201 (Created)
 
@@ -94,10 +94,149 @@ Catatan:
             "payment_code": "PAY-ARIP-20260413-XYZ789",
             "method": "bank_transfer",
             "status": "pending",
-            "amount": 40000
+            "amount": 40000,
+            "gateway_provider": null,
+            "gateway_invoice_id": null,
+            "gateway_status": null,
+            "gateway_payment_url": null,
+            "gateway_expires_at": null
         }
     }
 }
+```
+
+## Integrasi Bayar.gg (Payment Gateway Otomatis)
+
+Project ini sudah mendukung metode `bayargg` untuk pembayaran otomatis.
+
+### 1) Konfigurasi Environment
+
+Isi variabel berikut pada file `.env`:
+
+```env
+BAYARGG_BASE_URL=https://www.bayar.gg/api
+BAYARGG_API_KEY=isi_api_key_anda
+BAYARGG_WEBHOOK_SECRET=isi_webhook_secret_anda
+BAYARGG_WEBHOOK_TOLERANCE_SECONDS=300
+BAYARGG_WEBHOOK_REPLAY_TTL_SECONDS=600
+BAYARGG_PAYMENT_METHOD=qris
+BAYARGG_USE_QRIS_CONVERTER=false
+BAYARGG_TIMEOUT=15
+```
+
+Keterangan cepat:
+
+- `BAYARGG_API_KEY`: ambil dari dashboard Bayar.gg.
+- `BAYARGG_WEBHOOK_SECRET`: ambil dari menu Pengaturan Webhook Bayar.gg.
+- `BAYARGG_WEBHOOK_TOLERANCE_SECONDS`: batas toleransi usia timestamp callback (detik).
+- `BAYARGG_WEBHOOK_REPLAY_TTL_SECONDS`: masa simpan nonce callback untuk proteksi replay (detik).
+- `BAYARGG_PAYMENT_METHOD`: salah satu dari `qris`, `qris_user`, `gopay_qris`, `ovo`.
+
+### 2) Endpoint Callback yang Harus Dipasang di Bayar.gg
+
+Set callback URL ke endpoint berikut:
+
+- Method: `POST`
+- URL: `/api/webhooks/bayar-gg`
+
+Endpoint ini sudah memverifikasi signature `X-Webhook-Signature` dan `X-Webhook-Timestamp`, termasuk validasi window timestamp dan proteksi replay callback.
+
+### 3) Cara Pakai di Storefront
+
+1. User checkout dan pilih metode `Bayar.gg`.
+2. Sistem membuat order + payment lokal, lalu meminta invoice ke Bayar.gg.
+3. User diarahkan ke halaman tracking order dan klik tombol `Bayar Sekarang di Bayar.gg`.
+4. Saat Bayar.gg kirim callback status `paid`, sistem otomatis update:
+    - payment `status = paid`
+    - order `payment_status = paid`
+
+Jika link gateway gagal dibuat, user bisa klik tombol `Buat Link Bayar.gg Lagi` pada halaman tracking order.
+
+### 4) Cara Pakai via API Checkout
+
+Kirim `payment_method: "bayargg"` ke endpoint `POST /api/checkout`.
+
+Pada response, periksa field berikut:
+
+- `data.payment.gateway_payment_url`
+- `data.payment.gateway_invoice_id`
+- `data.payment.gateway_status`
+
+Client mobile dapat membuka `gateway_payment_url` di browser/webview untuk menyelesaikan pembayaran.
+
+## AI Assistant Phase 1 (FAQ + Tracking + Rekomendasi)
+
+Project ini sudah memiliki endpoint backend awal untuk asisten AI:
+
+- Method: `POST`
+- Path: `/api/ai/chat`
+- Route name: `api.ai.chat`
+
+### Request Body
+
+```json
+{
+    "session_id": "web-uuid",
+    "message": "status pesanan ORD-ARIP-20260414-ABC123",
+    "customer_email": "opsional@example.com",
+    "customer_phone_last4": "opsional_4_digit",
+    "budget_max": 50000,
+    "category": "opsional",
+    "context": {
+        "locale": "id",
+        "channel": "storefront"
+    }
+}
+```
+
+### Response Shape
+
+```json
+{
+    "reply": "...",
+    "intent": "faq|order_tracking|product_recommendation",
+    "used_tools": ["FaqAnswerTool"],
+    "suggestions": ["..."],
+    "data": {
+        "...": "..."
+    }
+}
+```
+
+### Catatan Keamanan Tracking
+
+- Untuk guest, tracking order butuh verifikasi tambahan (`customer_email` atau 4 digit akhir nomor telepon).
+- Untuk user login pemilik order, verifikasi tambahan tidak diwajibkan.
+
+### Apakah Wajib API Key Gemini / DeepSeek?
+
+- Phase 1 saat ini berjalan dengan mode `rule_based` (tanpa provider eksternal), jadi **tidak wajib** API key.
+- Jika nanti ingin pakai model eksternal (Gemini/DeepSeek), isi env berikut:
+    - `AI_PROVIDER`
+    - `AI_GEMINI_API_KEY`
+    - `AI_DEEPSEEK_API_KEY`
+
+### Penempatan API Key yang Benar (`.env` vs `.env.example`)
+
+- Simpan API key asli hanya di file `.env` lokal atau secret manager deployment.
+- File `.env.example` wajib berisi placeholder kosong (tidak boleh berisi key asli).
+- Jika API key sempat terekspos, lakukan rotasi key di dashboard provider lalu update file `.env`.
+
+Contoh konfigurasi runtime provider eksternal di `.env`:
+
+```env
+AI_PROVIDER=gemini
+AI_MODEL_FAST=gemini-2.5-flash
+AI_MODEL_FALLBACK=deepseek-chat
+AI_GEMINI_API_KEY=isi_key_baru_gemini
+AI_DEEPSEEK_API_KEY=isi_key_baru_deepseek
+```
+
+Setelah ubah `.env`, jalankan:
+
+```bash
+php artisan config:clear
+php artisan cache:clear
 ```
 
 ### Response 422 (Validation Error)

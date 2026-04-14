@@ -42,6 +42,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/cek-pesanan/{orderCode}/payment-proof', [HomeController::class, 'uploadPaymentProof'])
         ->middleware('throttle:6,1')
         ->name('home.tracking.proof');
+    Route::post('/cek-pesanan/{orderCode}/bayargg/regenerate', [HomeController::class, 'regenerateBayarGgPaymentLink'])
+        ->middleware('throttle:10,1')
+        ->name('home.tracking.bayargg.regenerate');
 });
 
 // 2. DASHBOARD LEGACY (Breeze) -> redirect ke halaman yang sesuai role

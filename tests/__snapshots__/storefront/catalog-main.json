@@ -10,13 +10,13 @@
     ],
     "primary_actions": [
         "Cari Produk",
-        "Keranjang",
-        "Keranjang"
+        "Beli",
+        "Beli"
     ],
     "structure": {
         "section_count": 3,
         "article_count": 2,
         "form_count": 1
     },
-    "main_text_hash": "ad665ff1f8dcd8d0dbe6c6e43ffaa70ef547d6d7b4dda441eb96f8283bfa4331"
+    "main_text_hash": "bb176ac69e252f6c760c39e89739cf0b95a5cdc1a8c5cea6598d2523be984d57"
 }

@@ -35,4 +35,31 @@ return [
         ],
     ],
 
+    'bayargg' => [
+        'base_url' => env('BAYARGG_BASE_URL', 'https://www.bayar.gg/api'),
+        'api_key' => env('BAYARGG_API_KEY'),
+        'webhook_secret' => env('BAYARGG_WEBHOOK_SECRET'),
+        'webhook_tolerance_seconds' => (int) env('BAYARGG_WEBHOOK_TOLERANCE_SECONDS', 300),
+        'webhook_replay_ttl_seconds' => (int) env('BAYARGG_WEBHOOK_REPLAY_TTL_SECONDS', 600),
+        'callback_url' => env('BAYARGG_CALLBACK_URL'),
+        'redirect_url' => env('BAYARGG_REDIRECT_URL'),
+        'payment_method' => env('BAYARGG_PAYMENT_METHOD', 'qris'),
+        'use_qris_converter' => filter_var(env('BAYARGG_USE_QRIS_CONVERTER', false), FILTER_VALIDATE_BOOLEAN),
+        'timeout' => (int) env('BAYARGG_TIMEOUT', 15),
+    ],
+
+    'ai' => [
+        'assistant_enabled' => filter_var(env('AI_ASSISTANT_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        'provider' => env('AI_PROVIDER', 'rule_based'),
+        'model_fast' => env('AI_MODEL_FAST', 'gemini-2.5-flash'),
+        'model_fallback' => env('AI_MODEL_FALLBACK', 'deepseek-chat'),
+        'request_timeout' => (int) env('AI_REQUEST_TIMEOUT', 20),
+        'max_input_tokens' => (int) env('AI_MAX_INPUT_TOKENS', 2500),
+        'max_output_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 500),
+        'daily_budget_idr' => (int) env('AI_DAILY_BUDGET_IDR', 50000),
+        'faq_cache_ttl_seconds' => (int) env('AI_FAQ_CACHE_TTL_SECONDS', 3600),
+        'gemini_api_key' => env('AI_GEMINI_API_KEY'),
+        'deepseek_api_key' => env('AI_DEEPSEEK_API_KEY'),
+    ],
+
 ];

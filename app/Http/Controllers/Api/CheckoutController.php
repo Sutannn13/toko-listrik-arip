@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\AdminNewOrderNotification;
+use App\Services\BayarGgGatewayService;
 use App\Services\CartService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Notifications\Notification as NotificationMessage;
@@ -24,6 +25,7 @@ class CheckoutController extends Controller
 {
     public function __construct(
         private readonly CartService $cartService,
+        private readonly BayarGgGatewayService $bayarGgGatewayService,
     ) {}
 
     public function store(CheckoutStoreRequest $request): JsonResponse
@@ -130,6 +132,7 @@ class CheckoutController extends Controller
                 $payment = $order->payments()->create([
                     'payment_code' => $this->generatePaymentCode(),
                     'method' => $paymentMethod,
+                    'gateway_provider' => $paymentMethod === 'bayargg' ? 'bayargg' : null,
                     'amount' => $totalAmount,
                     'status' => 'pending',
                     'notes' => $this->resolvePaymentNotes($paymentMethod),
@@ -137,6 +140,12 @@ class CheckoutController extends Controller
 
                 return [$order->fresh(['items', 'address']), $payment];
             }, 3);
+
+            if ($paymentMethod === 'bayargg') {
+                $this->syncBayarGgPaymentLink($order, $payment);
+                $payment = $payment->fresh();
+                $order = $order->fresh(['items', 'address']);
+            }
         } catch (ValidationException $exception) {
             return response()->json([
                 'message' => 'Validasi checkout gagal.',
@@ -166,6 +175,11 @@ class CheckoutController extends Controller
                     'method' => $payment->method,
                     'status' => $payment->status,
                     'amount' => (int) $payment->amount,
+                    'gateway_provider' => $payment->gateway_provider,
+                    'gateway_invoice_id' => $payment->gateway_invoice_id,
+                    'gateway_status' => $payment->gateway_status,
+                    'gateway_payment_url' => $payment->gateway_payment_url,
+                    'gateway_expires_at' => $payment->gateway_expires_at?->toISOString(),
                 ],
                 'customer' => [
                     'name' => $order->customer_name,
@@ -307,8 +321,58 @@ class CheckoutController extends Controller
             'cod' => 'Bayar di tempat saat barang sampai (COD).',
             'bank_transfer' => 'Menunggu transfer bank dan upload bukti pembayaran. Setelah upload, status menunggu ACC admin.',
             'ewallet' => 'Menunggu pembayaran e-wallet dan upload bukti pembayaran. Setelah upload, status menunggu ACC admin.',
+            'bayargg' => 'Link pembayaran Bayar.gg sedang disiapkan.',
             default => 'Menunggu pembayaran.',
         };
+    }
+
+    private function syncBayarGgPaymentLink(Order $order, Payment $payment): void
+    {
+        if ($payment->method !== 'bayargg') {
+            return;
+        }
+
+        if (! $this->bayarGgGatewayService->isConfigured()) {
+            $payment->update([
+                'notes' => 'Link Bayar.gg gagal dibuat: konfigurasi API belum lengkap.',
+            ]);
+
+            return;
+        }
+
+        try {
+            $gatewayPayment = $this->bayarGgGatewayService->createPayment($order, $payment);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            $payment->update([
+                'notes' => 'Link Bayar.gg gagal dibuat otomatis. Silakan buat ulang dari aplikasi storefront.',
+            ]);
+
+            return;
+        }
+
+        $gatewayStatus = $gatewayPayment['gateway_status'];
+        $isPaid = $gatewayStatus === 'paid';
+
+        $payment->update([
+            'gateway_provider' => 'bayargg',
+            'gateway_invoice_id' => $gatewayPayment['invoice_id'],
+            'gateway_payment_url' => $gatewayPayment['payment_url'],
+            'gateway_status' => $gatewayStatus,
+            'gateway_expires_at' => $gatewayPayment['expires_at'],
+            'gateway_payload' => $gatewayPayment['payload'],
+            'status' => $isPaid ? 'paid' : 'pending',
+            'paid_at' => $isPaid ? now() : null,
+            'notes' => $isPaid
+                ? 'Pembayaran Bayar.gg sudah lunas.'
+                : 'Pembayaran via Bayar.gg. Gunakan gateway_payment_url untuk melanjutkan transaksi.',
+        ]);
+
+        $order->update([
+            'payment_status' => $isPaid ? 'paid' : 'pending',
+            'paid_at' => $isPaid ? now() : null,
+        ]);
     }
 
     private function generateOrderCode(): string

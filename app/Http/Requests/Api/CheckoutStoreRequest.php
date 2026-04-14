@@ -17,7 +17,7 @@ class CheckoutStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'payment_method' => ['nullable', 'string', Rule::in(['cod', 'bank_transfer', 'ewallet', 'dummy'])],
+            'payment_method' => ['nullable', 'string', Rule::in(['cod', 'bank_transfer', 'ewallet', 'dummy', 'bayargg'])],
             'items' => ['nullable', 'array', 'min:1'],
             'items.*.product_id' => ['required_with:items', 'integer'],
             'items.*.quantity' => ['required_with:items', 'integer', 'min:1', 'max:99'],

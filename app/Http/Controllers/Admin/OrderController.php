@@ -120,6 +120,11 @@ class OrderController extends Controller
         if ($validated['payment_status'] === 'paid') {
             $latestPayment = $order->payments()->latest('id')->first();
 
+            if (!$latestPayment) {
+                return redirect()->route('admin.orders.show', $order)
+                    ->with('error', 'Data pembayaran terbaru tidak ditemukan. Periksa data order sebelum menandai paid.');
+            }
+
             if ($latestPayment && in_array($latestPayment->method, ['bank_transfer', 'ewallet', 'dummy'], true) && blank($latestPayment->proof_url)) {
                 return redirect()->route('admin.orders.show', $order)
                     ->with('error', 'Pembayaran transfer/e-wallet hanya bisa diubah ke paid setelah pelanggan upload bukti dan diverifikasi admin.');
@@ -243,6 +248,11 @@ class OrderController extends Controller
             abort(404);
         }
 
+        if (!$this->isLatestOrderPayment($order, $payment)) {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Verifikasi hanya dapat dilakukan untuk pembayaran terbaru pada pesanan ini.');
+        }
+
         $validated = $request->validate([
             'admin_notes' => ['nullable', 'string', 'max:1000'],
         ]);
@@ -279,6 +289,11 @@ class OrderController extends Controller
                     throw new \RuntimeException('NOT_FOUND');
                 }
 
+                $latestPaymentId = (int) $lockedOrder->payments()->latest('id')->value('id');
+                if ($latestPaymentId !== (int) $lockedPayment->id) {
+                    throw new \RuntimeException('NOT_LATEST_PAYMENT');
+                }
+
                 if (blank($lockedPayment->proof_url)) {
                     throw new \RuntimeException('NO_PROOF');
                 }
@@ -308,6 +323,7 @@ class OrderController extends Controller
                 'NO_PROOF' => 'Bukti pembayaran tidak ditemukan untuk diverifikasi.',
                 'FINAL_STATUS' => 'Status pembayaran ini sudah final dan tidak bisa diverifikasi ulang.',
                 'ORDER_CANCELLED' => 'Pesanan yang sudah cancelled tidak dapat diubah menjadi paid.',
+                'NOT_LATEST_PAYMENT' => 'Pembayaran yang Anda verifikasi bukan pembayaran terbaru pada pesanan ini.',
                 default => 'Data pesanan/pembayaran tidak ditemukan saat proses verifikasi.',
             };
 
@@ -335,6 +351,11 @@ class OrderController extends Controller
     {
         if ($payment->order_id !== $order->id) {
             abort(404);
+        }
+
+        if (!$this->isLatestOrderPayment($order, $payment)) {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'Penolakan hanya dapat dilakukan untuk pembayaran terbaru pada pesanan ini.');
         }
 
         $validated = $request->validate([
@@ -373,6 +394,11 @@ class OrderController extends Controller
                     throw new \RuntimeException('NOT_FOUND');
                 }
 
+                $latestPaymentId = (int) $lockedOrder->payments()->latest('id')->value('id');
+                if ($latestPaymentId !== (int) $lockedPayment->id) {
+                    throw new \RuntimeException('NOT_LATEST_PAYMENT');
+                }
+
                 if (blank($lockedPayment->proof_url)) {
                     throw new \RuntimeException('NO_PROOF');
                 }
@@ -400,6 +426,7 @@ class OrderController extends Controller
                 'NO_PROOF' => 'Bukti pembayaran tidak ditemukan untuk ditolak.',
                 'FINAL_STATUS' => 'Status pembayaran ini sudah final dan tidak bisa ditolak.',
                 'ORDER_COMPLETED' => 'Pesanan yang sudah completed tidak dapat diubah menjadi failed.',
+                'NOT_LATEST_PAYMENT' => 'Pembayaran yang Anda tolak bukan pembayaran terbaru pada pesanan ini.',
                 default => 'Data pesanan/pembayaran tidak ditemukan saat proses penolakan.',
             };
 
@@ -498,5 +525,12 @@ class OrderController extends Controller
         }
 
         return $baseNote;
+    }
+
+    private function isLatestOrderPayment(Order $order, Payment $payment): bool
+    {
+        $latestPaymentId = (int) $order->payments()->latest('id')->value('id');
+
+        return $latestPaymentId > 0 && $latestPaymentId === (int) $payment->id;
     }
 }

@@ -81,27 +81,44 @@ class NotificationController extends Controller
             return redirect()->route('admin.notifications.index');
         }
 
-        if (Str::startsWith($targetUrl, '/')) {
-            return redirect()->to($targetUrl);
-        }
-
-        $appUrl = rtrim((string) config('app.url'), '/');
-        if ($appUrl !== '' && Str::startsWith($targetUrl, $appUrl)) {
-            return redirect()->to($targetUrl);
-        }
-
-        $targetHost = parse_url($targetUrl, PHP_URL_HOST);
-        $currentHost = parse_url((string) url('/'), PHP_URL_HOST);
-        if (
-            is_string($targetHost) &&
-            $targetHost !== '' &&
-            is_string($currentHost) &&
-            $currentHost !== '' &&
-            strcasecmp($targetHost, $currentHost) === 0
-        ) {
+        if ($this->isAllowedNotificationRedirectUrl($targetUrl)) {
             return redirect()->to($targetUrl);
         }
 
         return redirect()->route('admin.notifications.index');
+    }
+
+    private function isAllowedNotificationRedirectUrl(string $targetUrl): bool
+    {
+        if (Str::startsWith($targetUrl, '//')) {
+            return false;
+        }
+
+        if (Str::startsWith($targetUrl, '/')) {
+            return true;
+        }
+
+        $parsedUrl = parse_url($targetUrl);
+        if (!is_array($parsedUrl)) {
+            return false;
+        }
+
+        $scheme = strtolower((string) ($parsedUrl['scheme'] ?? ''));
+        $host = strtolower((string) ($parsedUrl['host'] ?? ''));
+
+        if ($scheme === '' || $host === '') {
+            return false;
+        }
+
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return false;
+        }
+
+        $allowedHosts = array_filter([
+            strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST)),
+            strtolower((string) parse_url((string) url('/'), PHP_URL_HOST)),
+        ]);
+
+        return in_array($host, $allowedHosts, true);
     }
 }

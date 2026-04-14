@@ -24,18 +24,22 @@
     {{-- Progress Steps --}}
     <div class="mb-8">
         <div class="flex items-center justify-center gap-2 sm:gap-4">
-            <a href="{{ route('home.cart') }}" class="flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 transition">
-                <span class="grid h-8 w-8 place-items-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">1</span>
+            <a href="{{ route('home.cart') }}"
+                class="flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 transition">
+                <span
+                    class="grid h-8 w-8 place-items-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">1</span>
                 <span class="hidden sm:inline font-medium">Keranjang</span>
             </a>
             <div class="h-px w-8 sm:w-16 bg-primary-400"></div>
             <div class="flex items-center gap-2 text-sm">
-                <span class="grid h-8 w-8 place-items-center rounded-full bg-primary-600 text-xs font-bold text-white shadow-md shadow-primary-500/30">2</span>
+                <span
+                    class="grid h-8 w-8 place-items-center rounded-full bg-primary-600 text-xs font-bold text-white shadow-md shadow-primary-500/30">2</span>
                 <span class="hidden sm:inline font-bold text-primary-700">Checkout</span>
             </div>
             <div class="h-px w-8 sm:w-16 bg-gray-200"></div>
             <div class="flex items-center gap-2 text-sm text-gray-400">
-                <span class="grid h-8 w-8 place-items-center rounded-full bg-gray-100 text-xs font-bold text-gray-400">3</span>
+                <span
+                    class="grid h-8 w-8 place-items-center rounded-full bg-gray-100 text-xs font-bold text-gray-400">3</span>
                 <span class="hidden sm:inline font-medium">Selesai</span>
             </div>
         </div>
@@ -53,7 +57,8 @@
         <a href="{{ route('home.cart') }}"
             class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 flex items-center gap-2">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
+                </path>
             </svg>
             Kembali ke Keranjang
         </a>
@@ -69,21 +74,28 @@
                 {{-- Ringkasan Item --}}
                 <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                     <h2 class="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
-                        <span class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        <span
+                            class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z">
+                                </path>
                             </svg>
                         </span>
                         Ringkasan Pesanan ({{ $totalQuantity }} item)
                     </h2>
                     <div class="space-y-3">
                         @foreach ($cartItems as $item)
-                            <div class="flex items-center justify-between gap-3 py-2 {{ !$loop->last ? 'border-b border-gray-50' : '' }}">
+                            <div
+                                class="flex items-center justify-between gap-3 py-2 {{ !$loop->last ? 'border-b border-gray-50' : '' }}">
                                 <div class="min-w-0 flex-1">
                                     <p class="text-sm font-semibold text-gray-900 truncate">{{ $item['name'] }}</p>
-                                    <p class="text-xs text-gray-500">{{ $item['qty'] }} × Rp {{ number_format($item['price'], 0, ',', '.') }}</p>
+                                    <p class="text-xs text-gray-500">{{ $item['qty'] }} × Rp
+                                        {{ number_format($item['price'], 0, ',', '.') }}</p>
                                 </div>
-                                <p class="text-sm font-bold text-gray-900 shrink-0">Rp {{ number_format($item['subtotal'], 0, ',', '.') }}</p>
+                                <p class="text-sm font-bold text-gray-900 shrink-0">Rp
+                                    {{ number_format($item['subtotal'], 0, ',', '.') }}</p>
                             </div>
                         @endforeach
                     </div>
@@ -92,7 +104,8 @@
                 {{-- Data Pelanggan --}}
                 <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                     <h2 class="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
-                        <span class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">1</span>
+                        <span
+                            class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">1</span>
                         Data Pelanggan
                     </h2>
                     <div class="grid gap-4">
@@ -125,14 +138,16 @@
                 {{-- Alamat Pengiriman --}}
                 <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                     <h2 class="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
-                        <span class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">2</span>
+                        <span
+                            class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">2</span>
                         Alamat Pengiriman
                     </h2>
 
                     @php
                         $selectedAddressId = old('address_id', $defaultAddressId);
                         $selectedAddressId = filled($selectedAddressId) ? (int) $selectedAddressId : null;
-                        $selectedAddressForPreview = $userAddresses->firstWhere('id', $selectedAddressId) ?? $selectedAddress;
+                        $selectedAddressForPreview =
+                            $userAddresses->firstWhere('id', $selectedAddressId) ?? $selectedAddress;
                     @endphp
 
                     <div class="space-y-4">
@@ -144,8 +159,7 @@
                                         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all">
                                         <option value="">+ Pakai alamat baru</option>
                                         @foreach ($userAddresses as $address)
-                                            <option value="{{ $address->id }}"
-                                                data-label="{{ $address->label ?: 'Alamat' }}"
+                                            <option value="{{ $address->id }}" data-label="{{ $address->label ?: 'Alamat' }}"
                                                 data-recipient="{{ $address->recipient_name }}"
                                                 data-phone="{{ $address->phone }}"
                                                 data-location="{{ $address->city }}, {{ $address->province }} {{ $address->postal_code }}"
@@ -160,7 +174,8 @@
 
                                     <div id="selected_address_preview"
                                         class="{{ $selectedAddressForPreview ? '' : 'hidden' }} rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-3 text-sm text-cyan-900">
-                                        <p class="text-xs font-bold uppercase tracking-wider text-cyan-700">Alamat Dipakai Checkout</p>
+                                        <p class="text-xs font-bold uppercase tracking-wider text-cyan-700">Alamat Dipakai
+                                            Checkout</p>
                                         <p class="mt-1 font-semibold" data-address-recipient>
                                             {{ $selectedAddressForPreview?->recipient_name ?? '-' }}
                                             @if ($selectedAddressForPreview?->phone)
@@ -191,11 +206,13 @@
 
                         {{-- Form alamat baru --}}
                         <div id="new_address_fields" class="space-y-3 {{ $selectedAddressId ? 'opacity-60' : '' }}">
-                            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Isi Hanya Jika Ingin Pakai Alamat Baru</p>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Isi Hanya Jika Ingin
+                                Pakai Alamat Baru</p>
 
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
-                                    <label class="mb-1.5 block text-xs font-bold text-gray-700">Label (Rumah/Kantor)</label>
+                                    <label class="mb-1.5 block text-xs font-bold text-gray-700">Label
+                                        (Rumah/Kantor)</label>
                                     <input type="text" name="address_label" value="{{ old('address_label') }}"
                                         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
                                         placeholder="Contoh: Rumah">
@@ -253,8 +270,7 @@
 
                             @auth
                                 <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                                    <input type="checkbox" name="set_as_default" value="1"
-                                        @checked(old('set_as_default'))
+                                    <input type="checkbox" name="set_as_default" value="1" @checked(old('set_as_default'))
                                         class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
                                     Jadikan sebagai alamat default
                                 </label>
@@ -266,18 +282,23 @@
                 {{-- Metode Pembayaran --}}
                 <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                     <h2 class="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
-                        <span class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">3</span>
+                        <span
+                            class="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-600">3</span>
                         Metode Pembayaran
                     </h2>
 
-                    <div class="grid sm:grid-cols-3 gap-3">
+                    <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
                         <label class="relative cursor-pointer">
-                            <input type="radio" name="payment_method" value="bank_transfer" class="peer sr-only" required>
-                            <div class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
+                            <input type="radio" name="payment_method" value="bank_transfer" class="peer sr-only"
+                                required>
+                            <div
+                                class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
                                 <div class="flex flex-col items-center text-center gap-2">
                                     <div class="rounded-full bg-blue-100 p-2.5 text-blue-600">
                                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
+                                            </path>
                                         </svg>
                                     </div>
                                     <div>
@@ -292,11 +313,14 @@
 
                         <label class="relative cursor-pointer">
                             <input type="radio" name="payment_method" value="ewallet" class="peer sr-only" required>
-                            <div class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
+                            <div
+                                class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
                                 <div class="flex flex-col items-center text-center gap-2">
                                     <div class="rounded-full bg-teal-100 p-2.5 text-teal-600">
                                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z">
+                                            </path>
                                         </svg>
                                     </div>
                                     <div>
@@ -310,12 +334,36 @@
                         </label>
 
                         <label class="relative cursor-pointer">
-                            <input type="radio" name="payment_method" value="cod" class="peer sr-only" checked required>
-                            <div class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
+                            <input type="radio" name="payment_method" value="bayargg" class="peer sr-only" required>
+                            <div
+                                class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
+                                <div class="flex flex-col items-center text-center gap-2">
+                                    <div class="rounded-full bg-indigo-100 p-2.5 text-indigo-600">
+                                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-900">Bayar.gg</p>
+                                        <p class="text-[10px] text-gray-500 mt-1">QRIS otomatis, tanpa upload bukti</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="payment_method" value="cod" class="peer sr-only" checked
+                                required>
+                            <div
+                                class="h-full rounded-xl border-2 border-gray-200 bg-white p-4 hover:bg-gray-50 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-focus:ring-2 peer-focus:ring-primary-500 transition-all">
                                 <div class="flex flex-col items-center text-center gap-2">
                                     <div class="rounded-full bg-orange-100 p-2.5 text-orange-600">
                                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z">
+                                            </path>
                                         </svg>
                                     </div>
                                     <div>
@@ -337,22 +385,27 @@
                     <div class="space-y-3">
                         <div class="flex items-center justify-between text-sm">
                             <span class="text-gray-600">Subtotal ({{ $totalQuantity }} item)</span>
-                            <span class="font-semibold text-gray-900">Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
+                            <span class="font-semibold text-gray-900">Rp
+                                {{ number_format($subtotal, 0, ',', '.') }}</span>
                         </div>
                         <div class="flex items-center justify-between text-sm">
-                            <span class="text-gray-600">Ongkir ({{ $totalQuantity }} × Rp {{ number_format($shippingCostPerItem, 0, ',', '.') }})</span>
-                            <span class="font-semibold text-gray-900">Rp {{ number_format($shippingCost, 0, ',', '.') }}</span>
+                            <span class="text-gray-600">Ongkir ({{ $totalQuantity }} × Rp
+                                {{ number_format($shippingCostPerItem, 0, ',', '.') }})</span>
+                            <span class="font-semibold text-gray-900">Rp
+                                {{ number_format($shippingCost, 0, ',', '.') }}</span>
                         </div>
                         <div class="border-t border-gray-100 pt-3 flex items-center justify-between">
                             <span class="text-lg font-bold text-gray-900">Total</span>
-                            <span class="text-2xl font-black text-primary-700">Rp {{ number_format($totalAmount, 0, ',', '.') }}</span>
+                            <span class="text-2xl font-black text-primary-700">Rp
+                                {{ number_format($totalAmount, 0, ',', '.') }}</span>
                         </div>
                     </div>
 
                     <button type="submit"
                         class="w-full mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-4 text-base font-bold text-white shadow-lg shadow-primary-500/30 transition hover:bg-primary-700 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-primary-500/30 active:scale-[0.98]">
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                         </svg>
                         Bayar Sekarang
                     </button>
@@ -362,8 +415,10 @@
                 <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
                     <div class="flex items-center gap-3">
                         <div class="rounded-full bg-green-100 p-1.5 text-green-600">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                             </svg>
                         </div>
                         <div>

@@ -25,6 +25,85 @@
         </div>
     @endif
 
+    <div x-data="catalogWarrantyBanner()" x-init="start()" x-show="isOpen" x-cloak class="mb-6 block sm:mb-8">
+        <div class="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <button type="button" @click="close()"
+                class="absolute right-2.5 top-2.5 z-20 inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Tutup banner">
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd" />
+                </svg>
+            </button>
+
+            <div class="relative h-[96px] sm:h-[88px]">
+                <div x-show="active === 0" x-transition:enter="transform transition duration-500 ease-out"
+                    x-transition:enter-start="translate-y-8 opacity-0" x-transition:enter-end="translate-y-0 opacity-100"
+                    x-transition:leave="transform transition duration-400 ease-in"
+                    x-transition:leave-start="translate-y-0 opacity-100" x-transition:leave-end="-translate-y-8 opacity-0"
+                    class="absolute inset-0 flex items-center justify-between gap-3 bg-white px-4 pr-12 sm:gap-4 sm:px-5 sm:pr-12">
+                    <div class="flex min-w-0 items-center gap-3 sm:gap-4">
+                        <div
+                            class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-600 sm:h-12 sm:w-12">
+                            <svg class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs font-extrabold uppercase tracking-wide text-teal-700 sm:text-sm">Garansi Resmi
+                            </p>
+                            <p class="line-clamp-2 text-xs font-semibold text-gray-800 sm:text-sm">Klaim garansi produk
+                                elektronik hingga 7 hari</p>
+                        </div>
+                    </div>
+
+                    <a href="{{ route('home.warranty') }}"
+                        class="inline-flex flex-shrink-0 items-center rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-700 transition hover:bg-teal-100 sm:px-4 sm:py-2 sm:text-sm">
+                        Klaim →
+                    </a>
+                </div>
+
+                <div x-show="active === 1" x-transition:enter="transform transition duration-500 ease-out"
+                    x-transition:enter-start="translate-y-8 opacity-0" x-transition:enter-end="translate-y-0 opacity-100"
+                    x-transition:leave="transform transition duration-400 ease-in"
+                    x-transition:leave-start="translate-y-0 opacity-100" x-transition:leave-end="-translate-y-8 opacity-0"
+                    class="absolute inset-0 flex items-center justify-between gap-3 bg-white px-4 pr-12 sm:gap-4 sm:px-5 sm:pr-12">
+                    <div class="flex min-w-0 items-center gap-3 sm:gap-4">
+                        <div
+                            class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 sm:h-12 sm:w-12">
+                            <svg class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M17 8h2a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m10 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m10 0H7" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs font-extrabold uppercase tracking-wide text-cyan-700 sm:text-sm">Review Admin
+                                Cepat</p>
+                            <p class="line-clamp-2 text-xs font-semibold text-gray-800 sm:text-sm">Upload bukti kerusakan,
+                                tim admin memproses maksimal 48 jam</p>
+                        </div>
+                    </div>
+
+                    <a href="{{ route('home.warranty-claims.index') }}"
+                        class="inline-flex flex-shrink-0 items-center rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-bold text-cyan-700 transition hover:bg-cyan-100 sm:px-4 sm:py-2 sm:text-sm">
+                        Lihat Klaim →
+                    </a>
+                </div>
+
+                <div class="absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">
+                    <button type="button" @click="goTo(0)" :class="active === 0 ? 'w-5 bg-teal-500' : 'w-2 bg-gray-300'"
+                        class="h-2 rounded-full transition-all duration-300" aria-label="Slide banner 1"></button>
+                    <button type="button" @click="goTo(1)" :class="active === 1 ? 'w-5 bg-cyan-500' : 'w-2 bg-gray-300'"
+                        class="h-2 rounded-full transition-all duration-300" aria-label="Slide banner 2"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Page Header -->
     <section
         class="mb-8 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8 flex flex-col md:flex-row gap-6 md:items-center justify-between">
@@ -128,7 +207,8 @@
                         </p>
                         <div class="mt-1 flex items-center justify-between">
                             @if ($product->stock > 0)
-                                <span class="text-[10px] font-semibold text-green-600">Stok: {{ number_format($product->stock) }}</span>
+                                <span class="text-[10px] font-semibold text-green-600">Stok:
+                                    {{ number_format($product->stock) }}</span>
                             @else
                                 <span class="text-[10px] font-semibold text-red-600">Habis</span>
                             @endif
@@ -203,3 +283,42 @@
         @endif
     </section>
 @endsection
+
+@push('scripts')
+    <script>
+        function catalogWarrantyBanner() {
+            return {
+                isOpen: true,
+                active: 0,
+                total: 2,
+                intervalId: null,
+                start() {
+                    this.stop();
+                    this.intervalId = setInterval(() => {
+                        if (!this.isOpen) {
+                            return;
+                        }
+
+                        this.active = (this.active + 1) % this.total;
+                    }, 5000);
+                },
+                stop() {
+                    if (this.intervalId === null) {
+                        return;
+                    }
+
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                },
+                goTo(index) {
+                    this.active = index;
+                    this.start();
+                },
+                close() {
+                    this.isOpen = false;
+                    this.stop();
+                }
+            };
+        }
+    </script>
+@endpush

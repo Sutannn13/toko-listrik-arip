@@ -57,7 +57,44 @@
     @endif
 
     @php
-        $latestPayment = $order->payments->sortByDesc('created_at')->first();
+        $latestPayment = $order->payments->sortByDesc('id')->first();
+        $proofMethods = ['bank_transfer', 'ewallet', 'dummy'];
+        $isProofPaymentMethod = $latestPayment && in_array($latestPayment->method, $proofMethods, true);
+        $isCodMethod = $latestPayment && $latestPayment->method === 'cod';
+        $isBayarGgMethod = $latestPayment && $latestPayment->method === 'bayargg';
+
+        $isWaitingAdminApproval =
+            $latestPayment &&
+            in_array($latestPayment->method, ['bank_transfer', 'ewallet', 'dummy'], true) &&
+            $latestPayment->status === 'pending' &&
+            filled($latestPayment->proof_url);
+
+        $isWaitingGatewayPayment =
+            $latestPayment && $latestPayment->method === 'bayargg' && $order->payment_status !== 'paid';
+
+        $bankTransferAccounts = array_values(
+            array_filter(
+                [
+                    [
+                        'name' => \App\Models\Setting::get('bank_1_name', 'BCA'),
+                        'number' => \App\Models\Setting::get('bank_1_account'),
+                        'holder' => \App\Models\Setting::get('bank_1_holder'),
+                    ],
+                    [
+                        'name' => \App\Models\Setting::get('bank_2_name', 'BRI'),
+                        'number' => \App\Models\Setting::get('bank_2_account'),
+                        'holder' => \App\Models\Setting::get('bank_2_holder'),
+                    ],
+                ],
+                fn(array $account) => filled($account['name']) && filled($account['number']),
+            ),
+        );
+
+        $ewalletAccount = [
+            'name' => \App\Models\Setting::get('bank_3_name', 'DANA'),
+            'number' => \App\Models\Setting::get('bank_3_account'),
+            'holder' => \App\Models\Setting::get('bank_3_holder'),
+        ];
     @endphp
 
     <!-- Resi Display -->
@@ -75,37 +112,46 @@
     <!-- Payment Proof Form -->
     @if ($order->status !== 'cancelled' && $order->payment_status !== 'paid')
         @if ($latestPayment)
-            @php
-                $proofMethods = ['bank_transfer', 'ewallet', 'dummy'];
-                $isProofPaymentMethod = in_array($latestPayment->method, $proofMethods, true);
-                $isCodMethod = $latestPayment->method === 'cod';
+            @if ($isBayarGgMethod)
+                <div class="mb-6 rounded-xl border border-indigo-200 bg-indigo-50 p-6 shadow-sm">
+                    <h3 class="text-sm font-bold text-indigo-900 mb-2">Pembayaran Otomatis via Bayar.gg</h3>
+                    <p class="text-xs text-indigo-700 mb-3">
+                        Metode ini tidak memerlukan upload bukti pembayaran manual. Silakan lanjutkan pembayaran melalui
+                        halaman Bayar.gg agar status order terkonfirmasi otomatis.
+                    </p>
 
-                $bankTransferAccounts = array_values(
-                    array_filter(
-                        [
-                            [
-                                'name' => \App\Models\Setting::get('bank_1_name', 'BCA'),
-                                'number' => \App\Models\Setting::get('bank_1_account'),
-                                'holder' => \App\Models\Setting::get('bank_1_holder'),
-                            ],
-                            [
-                                'name' => \App\Models\Setting::get('bank_2_name', 'BRI'),
-                                'number' => \App\Models\Setting::get('bank_2_account'),
-                                'holder' => \App\Models\Setting::get('bank_2_holder'),
-                            ],
-                        ],
-                        fn(array $account) => filled($account['name']) && filled($account['number']),
-                    ),
-                );
+                    <div class="mb-4 grid gap-2 rounded-lg border border-indigo-200 bg-white p-3 text-xs text-gray-700">
+                        <p><span class="font-semibold">Invoice Gateway:</span>
+                            {{ $latestPayment->gateway_invoice_id ?: '-' }}</p>
+                        <p><span class="font-semibold">Status Gateway:</span>
+                            {{ strtoupper($latestPayment->gateway_status ?: 'pending') }}</p>
+                        @if ($latestPayment->gateway_expires_at)
+                            <p><span class="font-semibold">Batas Waktu:</span>
+                                {{ $latestPayment->gateway_expires_at->format('d M Y H:i') }}</p>
+                        @endif
+                    </div>
 
-                $ewalletAccount = [
-                    'name' => \App\Models\Setting::get('bank_3_name', 'DANA'),
-                    'number' => \App\Models\Setting::get('bank_3_account'),
-                    'holder' => \App\Models\Setting::get('bank_3_holder'),
-                ];
-            @endphp
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        @if (filled($latestPayment->gateway_payment_url))
+                            <a href="{{ $latestPayment->gateway_payment_url }}" target="_blank" rel="noopener noreferrer"
+                                class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 shadow-md">
+                                Bayar Sekarang di Bayar.gg
+                            </a>
+                        @else
+                            <p class="text-xs text-indigo-700">Link pembayaran belum tersedia. Klik tombol buat ulang di
+                                samping.</p>
+                        @endif
 
-            @if ($isProofPaymentMethod && !$latestPayment->proof_url)
+                        <form action="{{ route('home.tracking.bayargg.regenerate', $order->order_code) }}" method="POST">
+                            @csrf
+                            <button type="submit"
+                                class="inline-flex items-center justify-center rounded-xl border border-indigo-300 bg-white px-5 py-2.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
+                                Buat Link Bayar.gg Lagi
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @elseif($isProofPaymentMethod && !$latestPayment->proof_url)
                 <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
                     <h3 class="text-sm font-bold text-blue-900 mb-2">Segera Upload Bukti Pembayaran</h3>
                     <p class="text-xs text-blue-700 mb-3">
@@ -274,17 +320,14 @@
         </div>
 
         @php
-            $isWaitingAdminApproval =
-                $latestPayment &&
-                in_array($latestPayment->method, ['bank_transfer', 'ewallet', 'dummy'], true) &&
-                $latestPayment->status === 'pending' &&
-                filled($latestPayment->proof_url);
             $paymentBoxClass =
                 $order->payment_status === 'paid'
                     ? 'bg-green-50 border border-green-200'
                     : ($isWaitingAdminApproval
                         ? 'bg-blue-50 border border-blue-200'
-                        : 'bg-orange-50 border border-orange-200');
+                        : ($isWaitingGatewayPayment
+                            ? 'bg-indigo-50 border border-indigo-200'
+                            : 'bg-orange-50 border border-orange-200'));
         @endphp
         <div class="w-full sm:w-auto p-4 rounded-xl {{ $paymentBoxClass }}">
             <p class="text-[10px] uppercase font-bold text-gray-500 mb-1">Status Pembayaran</p>
@@ -300,6 +343,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg> Menunggu ACC Admin</p>
+            @elseif($isWaitingGatewayPayment)
+                <p class="text-sm font-bold text-indigo-700 flex items-center gap-1.5"><svg class="w-4 h-4"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg> Menunggu Pembayaran Gateway</p>
             @else
                 <p class="text-sm font-bold text-orange-700 flex items-center gap-1.5"><svg class="w-4 h-4"
                         fill="none" viewBox="0 0 24 24" stroke="currentColor">

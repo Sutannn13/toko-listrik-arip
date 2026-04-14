@@ -15,6 +15,7 @@ use App\Models\WarrantyClaim;
 use App\Notifications\AdminNewOrderNotification;
 use App\Notifications\AdminPaymentProofUploadedNotification;
 use App\Notifications\WarrantyClaimSubmittedNotification;
+use App\Services\BayarGgGatewayService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\Notification as NotificationMessage;
@@ -28,6 +29,10 @@ use Illuminate\View\View;
 
 class HomeController extends Controller
 {
+    public function __construct(
+        private readonly BayarGgGatewayService $bayarGgGatewayService,
+    ) {}
+
     public function index(Request $request): View|RedirectResponse
     {
         $keyword = trim((string) $request->query('q', ''));
@@ -429,7 +434,7 @@ class HomeController extends Controller
         $simpleCart = $request->session()->get('simple_cart', []);
 
         $validated = $request->validate([
-            'payment_method' => ['nullable', 'string', 'in:cod,bank_transfer,ewallet,dummy'],
+            'payment_method' => ['nullable', 'string', 'in:cod,bank_transfer,ewallet,dummy,bayargg'],
             'address_id' => ['nullable', 'integer'],
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_email' => ['required', 'email', 'max:255'],
@@ -653,20 +658,32 @@ class HomeController extends Controller
                 $order->payments()->create([
                     'payment_code' => $paymentCode,
                     'method' => $paymentMethod,
+                    'gateway_provider' => $paymentMethod === 'bayargg' ? 'bayargg' : null,
                     'amount' => $totalAmount,
                     'status' => 'pending',
                     'notes' => match ($paymentMethod) {
                         'cod' => 'Bayar di tempat saat barang sampai (COD).',
                         'bank_transfer' => 'Menunggu transfer bank dan upload bukti pembayaran. Setelah upload, status menunggu ACC admin.',
                         'ewallet' => 'Menunggu pembayaran e-wallet dan upload bukti pembayaran. Setelah upload, status menunggu ACC admin.',
+                        'bayargg' => 'Link pembayaran Bayar.gg sedang disiapkan.',
                         default => 'Menunggu pembayaran.',
                     },
                 ]);
 
                 return $order;
             });
-        } catch (\Exception $e) {
-            return redirect()->route('home.cart')->with('error', 'Checkout gagal: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('home.cart')
+                ->with('error', 'Checkout gagal diproses. Silakan coba lagi atau hubungi admin.');
+        }
+
+        $latestPayment = $order->payments()->latest('id')->first();
+        $hasBayarGgPaymentLink = false;
+
+        if ($paymentMethod === 'bayargg' && $latestPayment) {
+            $hasBayarGgPaymentLink = $this->syncBayarGgPaymentLink($order, $latestPayment);
         }
 
         $this->notifyAdminsWhenEnabled('notif_order_new', new AdminNewOrderNotification($order));
@@ -676,8 +693,17 @@ class HomeController extends Controller
         $successMsg = 'Checkout berhasil. Kode: ' . $order->order_code . '. ';
         if ($paymentMethod === 'cod') {
             $successMsg .= 'Silakan siapkan uang pas saat kurir tiba.';
+        } elseif ($paymentMethod === 'bayargg') {
+            $successMsg .= $hasBayarGgPaymentLink
+                ? 'Lanjutkan pembayaran otomatis via Bayar.gg dari halaman detail pesanan.'
+                : 'Order tersimpan, tetapi link Bayar.gg belum berhasil dibuat. Coba tombol "Buat Link Bayar.gg Lagi" di halaman detail pesanan.';
         } else {
             $successMsg .= 'Segera lakukan pembayaran, upload bukti melalui Tracking Pesanan, lalu tunggu ACC admin.';
+        }
+
+        if ($paymentMethod === 'bayargg') {
+            return redirect()->route('home.tracking.show', $order->order_code)
+                ->with('success', $successMsg);
         }
 
         return redirect()->route('home.cart')
@@ -1004,24 +1030,7 @@ class HomeController extends Controller
             return redirect()->route('home.notifications.index');
         }
 
-        if (Str::startsWith($targetUrl, '/')) {
-            return redirect()->to($targetUrl);
-        }
-
-        $appUrl = rtrim((string) config('app.url'), '/');
-        if ($appUrl !== '' && Str::startsWith($targetUrl, $appUrl)) {
-            return redirect()->to($targetUrl);
-        }
-
-        $targetHost = parse_url($targetUrl, PHP_URL_HOST);
-        $currentHost = parse_url((string) url('/'), PHP_URL_HOST);
-        if (
-            is_string($targetHost) &&
-            $targetHost !== '' &&
-            is_string($currentHost) &&
-            $currentHost !== '' &&
-            strcasecmp($targetHost, $currentHost) === 0
-        ) {
+        if ($this->isAllowedNotificationRedirectUrl($targetUrl)) {
             return redirect()->to($targetUrl);
         }
 
@@ -1087,6 +1096,10 @@ class HomeController extends Controller
                 return back()->with('error', 'Metode COD tidak memerlukan upload bukti pembayaran.');
             }
 
+            if ($payment->method === 'bayargg') {
+                return back()->with('error', 'Pesanan Bayar.gg tidak memerlukan upload bukti. Gunakan tombol Bayar Sekarang dari link Bayar.gg.');
+            }
+
             return back()->with('error', 'Metode pembayaran pada pesanan ini tidak mendukung upload bukti.');
         }
 
@@ -1130,6 +1143,102 @@ class HomeController extends Controller
         return back()->with('success', 'Bukti pembayaran berhasil diunggah dan diteruskan ke admin. Silakan tunggu ACC admin.');
     }
 
+    public function regenerateBayarGgPaymentLink(Request $request, string $orderCode): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            abort(403);
+        }
+
+        $normalizedOrderCode = strtoupper(trim($orderCode));
+
+        $order = Order::with('payments')
+            ->where('order_code', $normalizedOrderCode)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        if ($order->status === 'cancelled') {
+            return back()->with('error', 'Pesanan dibatalkan, link Bayar.gg tidak dapat dibuat ulang.');
+        }
+
+        $payment = $order->payments()->latest('id')->first();
+        if (! $payment || $payment->method !== 'bayargg') {
+            return back()->with('error', 'Pesanan ini tidak menggunakan metode Bayar.gg.');
+        }
+
+        if ($payment->status === 'paid' || $order->payment_status === 'paid') {
+            return back()->with('success', 'Pembayaran sudah lunas. Tidak perlu membuat ulang link Bayar.gg.');
+        }
+
+        $replacementPayment = $order->payments()->create([
+            'payment_code' => $this->generatePaymentCode(),
+            'method' => 'bayargg',
+            'gateway_provider' => 'bayargg',
+            'amount' => (int) $order->total_amount,
+            'status' => 'pending',
+            'paid_at' => null,
+            'notes' => 'Link pembayaran Bayar.gg dibuat ulang atas permintaan pelanggan.',
+        ]);
+
+        $isCreated = $this->syncBayarGgPaymentLink($order, $replacementPayment);
+        if (! $isCreated) {
+            return back()->with('error', 'Link Bayar.gg belum berhasil dibuat. Silakan cek konfigurasi API key/webhook secret dan coba lagi.');
+        }
+
+        return back()->with('success', 'Link Bayar.gg berhasil diperbarui. Lanjutkan pembayaran sekarang.');
+    }
+
+    private function syncBayarGgPaymentLink(Order $order, Payment $payment): bool
+    {
+        if ($payment->method !== 'bayargg') {
+            return false;
+        }
+
+        if (! $this->bayarGgGatewayService->isConfigured()) {
+            $payment->update([
+                'notes' => 'Link Bayar.gg gagal dibuat: konfigurasi API belum lengkap.',
+            ]);
+
+            return false;
+        }
+
+        try {
+            $gatewayPayment = $this->bayarGgGatewayService->createPayment($order, $payment);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            $payment->update([
+                'notes' => 'Link Bayar.gg gagal dibuat otomatis. Gunakan tombol buat link ulang dari halaman tracking.',
+            ]);
+
+            return false;
+        }
+
+        $gatewayStatus = $gatewayPayment['gateway_status'];
+        $isPaid = $gatewayStatus === 'paid';
+
+        $payment->update([
+            'gateway_provider' => 'bayargg',
+            'gateway_invoice_id' => $gatewayPayment['invoice_id'],
+            'gateway_payment_url' => $gatewayPayment['payment_url'],
+            'gateway_status' => $gatewayStatus,
+            'gateway_expires_at' => $gatewayPayment['expires_at'],
+            'gateway_payload' => $gatewayPayment['payload'],
+            'status' => $isPaid ? 'paid' : 'pending',
+            'paid_at' => $isPaid ? now() : null,
+            'notes' => $isPaid
+                ? 'Pembayaran Bayar.gg sudah lunas.'
+                : 'Pembayaran via Bayar.gg. Buka link pembayaran untuk melanjutkan transaksi.',
+        ]);
+
+        $order->update([
+            'payment_status' => $isPaid ? 'paid' : 'pending',
+            'paid_at' => $isPaid ? now() : null,
+        ]);
+
+        return true;
+    }
+
     private function generateOrderCode(): string
     {
         do {
@@ -1169,6 +1278,10 @@ class HomeController extends Controller
 
     private function shippingCostPerItem(): int
     {
+        if (!Schema::hasTable('system_settings')) {
+            return 5000;
+        }
+
         $rawValue = (string) Setting::get('shipping_cost_per_item', '5000');
         $normalized = preg_replace('/[^0-9]/', '', $rawValue);
 
@@ -1186,6 +1299,10 @@ class HomeController extends Controller
 
     private function notifyAdminsWhenEnabled(string $toggleSettingKey, NotificationMessage $notification): void
     {
+        if (!Schema::hasTable('system_settings')) {
+            return;
+        }
+
         if (!Setting::get($toggleSettingKey, true)) {
             return;
         }
@@ -1209,6 +1326,40 @@ class HomeController extends Controller
         } catch (\Throwable $e) {
             report($e);
         }
+    }
+
+    private function isAllowedNotificationRedirectUrl(string $targetUrl): bool
+    {
+        if (Str::startsWith($targetUrl, '//')) {
+            return false;
+        }
+
+        if (Str::startsWith($targetUrl, '/')) {
+            return true;
+        }
+
+        $parsedUrl = parse_url($targetUrl);
+        if (!is_array($parsedUrl)) {
+            return false;
+        }
+
+        $scheme = strtolower((string) ($parsedUrl['scheme'] ?? ''));
+        $host = strtolower((string) ($parsedUrl['host'] ?? ''));
+
+        if ($scheme === '' || $host === '') {
+            return false;
+        }
+
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return false;
+        }
+
+        $allowedHosts = array_filter([
+            strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST)),
+            strtolower((string) parse_url((string) url('/'), PHP_URL_HOST)),
+        ]);
+
+        return in_array($host, $allowedHosts, true);
     }
 
     private function hasAddressFormInput(array $validated): bool

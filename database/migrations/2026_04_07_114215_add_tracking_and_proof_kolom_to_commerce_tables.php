@@ -28,11 +28,5 @@ return new class extends Migration
                 $table->dropColumn('tracking_number');
             });
         }
-
-        if (Schema::hasColumn('payments', 'payment_proof_path')) {
-            Schema::table('payments', function (Blueprint $table) {
-                $table->dropColumn('payment_proof_path');
-            });
-        }
     }
 };

@@ -3,7 +3,17 @@
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\AuthTokenController;
+use App\Http\Controllers\Api\AiAssistantController;
+use App\Http\Controllers\Api\BayarGgWebhookController;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/webhooks/bayar-gg', [BayarGgWebhookController::class, 'handle'])
+    ->middleware('throttle:60,1')
+    ->name('api.webhooks.bayar-gg');
+
+Route::post('/ai/chat', [AiAssistantController::class, 'chat'])
+    ->middleware('throttle:20,1')
+    ->name('api.ai.chat');
 
 Route::post('/auth/token', [AuthTokenController::class, 'store'])
     ->middleware('throttle:10,1')

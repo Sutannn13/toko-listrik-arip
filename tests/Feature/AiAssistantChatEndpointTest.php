@@ -112,6 +112,30 @@ class AiAssistantChatEndpointTest extends TestCase
         }
     }
 
+    public function test_ai_chat_understands_natural_budget_phrase_for_lampu_kamar_tidur(): void
+    {
+        $this->createProductFixtures();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-reco-natural-001',
+            'message' => 'saya punya uang 40ribu, kira-kira lampu yang cocok untuk ruangan kamar tidur apa',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+
+        $products = $response->json('data.products');
+        $this->assertIsArray($products);
+        $this->assertNotEmpty($products);
+
+        foreach ($products as $product) {
+            $this->assertLessThanOrEqual(40000, (int) $product['price']);
+        }
+
+        $topProductName = strtolower((string) data_get($products, '0.name', ''));
+        $this->assertStringContainsString('lampu', $topProductName);
+    }
+
     public function test_ai_chat_uses_gemini_provider_when_enabled(): void
     {
         $this->configureExternalAiProviderForTest([
@@ -145,7 +169,9 @@ class AiAssistantChatEndpointTest extends TestCase
         $response->assertJsonPath('reply', 'Ini jawaban dari Gemini.');
         $response->assertJsonPath('data.llm.provider', 'gemini');
         $response->assertJsonPath('data.llm.model', 'gemini-2.5-flash');
+        $response->assertJsonPath('data.llm.status', 'primary_success');
         $response->assertJsonPath('data.llm.fallback_used', false);
+        $response->assertJsonPath('data.llm.attempts.0.success', true);
     }
 
     public function test_ai_chat_falls_back_to_deepseek_when_gemini_fails(): void
@@ -182,7 +208,48 @@ class AiAssistantChatEndpointTest extends TestCase
         $response->assertJsonPath('reply', 'Ini jawaban fallback dari DeepSeek.');
         $response->assertJsonPath('data.llm.provider', 'deepseek');
         $response->assertJsonPath('data.llm.model', 'deepseek-chat');
+        $response->assertJsonPath('data.llm.status', 'fallback_success');
         $response->assertJsonPath('data.llm.fallback_used', true);
+        $response->assertJsonPath('data.llm.attempts.0.provider', 'gemini');
+        $response->assertJsonPath('data.llm.attempts.0.success', false);
+        $response->assertJsonPath('data.llm.attempts.1.provider', 'deepseek');
+        $response->assertJsonPath('data.llm.attempts.1.success', true);
+    }
+
+    public function test_ai_chat_keeps_rule_reply_and_exposes_failure_metadata_when_all_llm_providers_fail(): void
+    {
+        $this->configureExternalAiProviderForTest([
+            'provider' => 'gemini',
+            'model_fast' => 'gemini-2.5-flash',
+            'model_fallback' => 'deepseek-chat',
+            'gemini_api_key' => 'test-gemini-key',
+            'deepseek_api_key' => 'test-deepseek-key',
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'error' => ['message' => 'Gemini down'],
+            ], 500),
+            'https://api.deepseek.com/chat/completions' => Http::response([
+                'error' => ['message' => 'DeepSeek down'],
+            ], 503),
+        ]);
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-fallback-failed-001',
+            'message' => 'Ongkir berapa?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'faq');
+        $this->assertStringContainsString('Ongkir', (string) $response->json('reply'));
+        $response->assertJsonPath('data.llm.provider', 'deepseek');
+        $response->assertJsonPath('data.llm.status', 'fallback_failed');
+        $response->assertJsonPath('data.llm.fallback_used', false);
+        $response->assertJsonPath('data.llm.attempts.0.provider', 'gemini');
+        $response->assertJsonPath('data.llm.attempts.0.success', false);
+        $response->assertJsonPath('data.llm.attempts.1.provider', 'deepseek');
+        $response->assertJsonPath('data.llm.attempts.1.success', false);
     }
 
     private function createOrderFixture(): array
@@ -231,6 +298,23 @@ class AiAssistantChatEndpointTest extends TestCase
 
         Product::create([
             'category_id' => $category->id,
+            'name' => 'Lampu LED Warm White 9W',
+            'slug' => 'lampu-led-warm-white-9w-ai',
+            'description' => 'Lampu LED hemat energi yang nyaman untuk kamar tidur.',
+            'price' => 38000,
+            'stock' => 12,
+            'unit' => 'pcs',
+            'specifications' => [
+                'watt' => '9W',
+                'warna' => 'Warm White',
+                'cocok_untuk' => 'Kamar Tidur',
+            ],
+            'is_active' => true,
+            'is_electronic' => true,
+        ]);
+
+        Product::create([
+            'category_id' => $category->id,
             'name' => 'Kabel NYA 2.5mm',
             'slug' => 'kabel-nya-2-5mm-ai',
             'description' => 'Kabel berkualitas untuk instalasi rumah.',
@@ -239,6 +323,18 @@ class AiAssistantChatEndpointTest extends TestCase
             'unit' => 'roll',
             'is_active' => true,
             'is_electronic' => false,
+        ]);
+
+        Product::create([
+            'category_id' => $category->id,
+            'name' => 'Stop Kontak Basic 2 Lubang',
+            'slug' => 'stop-kontak-basic-ai',
+            'description' => 'Stop kontak dinding untuk kebutuhan umum.',
+            'price' => 28000,
+            'stock' => 24,
+            'unit' => 'pcs',
+            'is_active' => true,
+            'is_electronic' => true,
         ]);
 
         Product::create([

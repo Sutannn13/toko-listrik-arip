@@ -15,6 +15,10 @@ Route::post('/ai/chat', [AiAssistantController::class, 'chat'])
     ->middleware('throttle:20,1')
     ->name('api.ai.chat');
 
+Route::post('/ai/feedback', [AiAssistantController::class, 'feedback'])
+    ->middleware('throttle:40,1')
+    ->name('api.ai.feedback');
+
 Route::post('/auth/token', [AuthTokenController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('api.auth.token.store');

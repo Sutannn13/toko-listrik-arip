@@ -4,10 +4,10 @@
 @section('header_subtitle', 'Alamat Pengiriman')
 
 @section('header_actions')
-    <a href="{{ route('profile.edit') }}" class="ui-btn ui-btn-secondary">
+    <a href="{{ route('profile.edit') }}" class="ui-btn ui-btn-secondary hidden lg:inline-flex">
         Kembali ke Profil
     </a>
-    <a href="{{ route('home') }}" class="ui-btn ui-btn-soft">
+    <a href="{{ route('home') }}" class="ui-btn ui-btn-soft hidden lg:inline-flex">
         Katalog
     </a>
 @endsection

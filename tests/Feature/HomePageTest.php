@@ -49,6 +49,16 @@ class HomePageTest extends TestCase
         $response->assertSee('Daftar');
     }
 
+    public function test_home_page_contains_ai_assistant_widget_shell(): void
+    {
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('storefrontAiAssistant');
+        $response->assertSee('api\\/ai\\/chat', false);
+        $response->assertSee('api\\/ai\\/feedback', false);
+    }
+
     public function test_home_page_shows_authenticated_user_navigation(): void
     {
         Role::findOrCreate('user', 'web');

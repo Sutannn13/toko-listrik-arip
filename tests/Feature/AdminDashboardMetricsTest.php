@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AiAssistantFeedback;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -105,6 +106,48 @@ class AdminDashboardMetricsTest extends TestCase
             'updated_at' => $today,
         ]);
 
+        AiAssistantFeedback::create([
+            'session_id' => 'sess-dashboard-ai-001',
+            'message_id' => 'msg-dashboard-ai-001',
+            'intent' => 'product_recommendation',
+            'rating' => 1,
+            'reason' => 'Rekomendasi pas budget.',
+            'metadata' => [
+                'provider' => 'gemini',
+                'status' => 'primary_success',
+            ],
+            'created_at' => $today,
+            'updated_at' => $today,
+        ]);
+
+        AiAssistantFeedback::create([
+            'session_id' => 'sess-dashboard-ai-002',
+            'message_id' => 'msg-dashboard-ai-002',
+            'intent' => 'faq',
+            'rating' => -1,
+            'reason' => 'Jawaban kurang tepat.',
+            'metadata' => [
+                'provider' => 'deepseek',
+                'status' => 'fallback_failed',
+            ],
+            'created_at' => $dayOne,
+            'updated_at' => $dayOne,
+        ]);
+
+        AiAssistantFeedback::create([
+            'session_id' => 'sess-dashboard-ai-003',
+            'message_id' => 'msg-dashboard-ai-003',
+            'intent' => 'faq',
+            'rating' => 1,
+            'reason' => 'Lebih jelas.',
+            'metadata' => [
+                'provider' => 'gemini',
+                'status' => 'fallback_success',
+            ],
+            'created_at' => $dayThree,
+            'updated_at' => $dayThree,
+        ]);
+
         $admin->notify(new OrderCompletedNotification($completedOrder));
 
         $response = $this->actingAs($admin)->get(route('admin.dashboard'));
@@ -147,9 +190,32 @@ class AdminDashboardMetricsTest extends TestCase
                 && $revenueTrend->every(fn($point) => isset($point['label'], $point['short_label'], $point['value'], $point['height']));
         });
 
+        $response->assertViewHas('aiFeedbackSummary', function (array $summary): bool {
+            return (int) ($summary['total_feedback_7d'] ?? 0) === 3
+                && (int) ($summary['helpful_feedback_7d'] ?? 0) === 2
+                && (int) ($summary['not_helpful_feedback_7d'] ?? 0) === 1
+                && abs((float) ($summary['helpful_rate_7d'] ?? 0) - 66.7) < 0.001;
+        });
+
+        $response->assertViewHas('aiFeedbackByIntent', function (array $rows): bool {
+            $indexedRows = collect($rows)->keyBy('label');
+
+            return (int) data_get($indexedRows, 'faq.total', 0) === 2
+                && (int) data_get($indexedRows, 'faq.not_helpful', 0) === 1
+                && (int) data_get($indexedRows, 'product_recommendation.total', 0) === 1;
+        });
+
+        $response->assertViewHas('aiFeedbackByProvider', function (array $rows): bool {
+            $indexedRows = collect($rows)->keyBy('label');
+
+            return (int) data_get($indexedRows, 'gemini.total', 0) === 2
+                && (int) data_get($indexedRows, 'deepseek.total', 0) === 1;
+        });
+
         $response->assertSee('proof=uploaded');
         $response->assertSee('age_bucket=sla_overdue');
         $response->assertSee('Trend 7 Hari (Mini Chart)');
+        $response->assertSee('Feedback AI Assistant (7 Hari)');
     }
 
     private function createOrderWithPayment(

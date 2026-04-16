@@ -946,7 +946,7 @@ class HomeController extends Controller
 
         $orders = Order::query()
             ->with([
-                'items',
+                'items.product:id,image_path',
                 'payments' => fn($query) => $query->latest(),
                 'address',
             ])

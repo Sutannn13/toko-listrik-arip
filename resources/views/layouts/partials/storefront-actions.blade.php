@@ -6,7 +6,7 @@
 
     @if (Route::has('register'))
         <a href="{{ route('register') }}"
-            class="hidden sm:inline-flex rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary-500/20 transition hover:bg-primary-700">
+            class="hidden lg:inline-flex rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary-500/20 transition hover:bg-primary-700">
             Daftar
         </a>
     @endif
@@ -60,7 +60,7 @@
 
     @if (!$isAdminUser)
         <a href="{{ route('home.cart') }}"
-            class="relative rounded-lg p-2 transition {{ ($cartQuantity ?? 0) > 0 ? 'bg-primary-50 text-primary-600' : 'text-gray-500 hover:bg-gray-100 hover:text-primary-600' }}">
+            class="hidden lg:flex relative rounded-lg p-2 transition {{ ($cartQuantity ?? 0) > 0 ? 'bg-primary-50 text-primary-600' : 'text-gray-500 hover:bg-gray-100 hover:text-primary-600' }}">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                 stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -72,7 +72,7 @@
             @endif
         </a>
 
-        <div x-data="{ notificationOpen: false }" class="relative">
+        <div x-data="{ notificationOpen: false }" class="relative hidden lg:block">
             <button x-on:click="notificationOpen = !notificationOpen" x-on:keydown.escape.window="notificationOpen = false"
                 class="relative rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-primary-600"
                 aria-label="Notifikasi akun" x-bind:aria-expanded="notificationOpen.toString()">

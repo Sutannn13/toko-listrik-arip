@@ -192,9 +192,122 @@
         </div>
     </div>
 
+    <div class="mb-8 ui-card ui-card-pad">
+        <h3 class="text-base font-extrabold text-gray-900">Feedback AI Assistant (7 Hari)</h3>
+        <p class="mt-1 text-sm text-gray-600">Gunakan angka ini untuk iterasi prompt, aturan intent, dan kualitas
+            rekomendasi produk.</p>
+
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <article class="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-cyan-700">Total Feedback</p>
+                <p class="mt-1 text-2xl font-black text-cyan-800">
+                    {{ number_format((int) ($aiFeedbackSummary['total_feedback_7d'] ?? 0)) }}</p>
+                <p class="mt-1 text-xs text-cyan-700">Interaksi yang diberi rating.</p>
+            </article>
+
+            <article class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Membantu</p>
+                <p class="mt-1 text-2xl font-black text-emerald-800">
+                    {{ number_format((int) ($aiFeedbackSummary['helpful_feedback_7d'] ?? 0)) }}</p>
+                <p class="mt-1 text-xs text-emerald-700">Rating positif dari pengguna.</p>
+            </article>
+
+            <article class="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Kurang Tepat</p>
+                <p class="mt-1 text-2xl font-black text-rose-800">
+                    {{ number_format((int) ($aiFeedbackSummary['not_helpful_feedback_7d'] ?? 0)) }}</p>
+                <p class="mt-1 text-xs text-rose-700">Rating negatif yang perlu ditriase.</p>
+            </article>
+
+            <article class="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Helpful Rate</p>
+                <p class="mt-1 text-2xl font-black text-indigo-800">
+                    {{ number_format((float) ($aiFeedbackSummary['helpful_rate_7d'] ?? 0), 1, ',', '.') }}%</p>
+                <p class="mt-1 text-xs text-indigo-700">Persentase feedback membantu.</p>
+            </article>
+        </div>
+
+        <div class="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <article class="rounded-xl border border-gray-200 bg-white p-4">
+                <h4 class="text-sm font-extrabold text-gray-900">Breakdown per Intent</h4>
+                <div class="mt-3 overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-700">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-gray-500">
+                                <th class="py-2 pr-3 font-semibold">Intent</th>
+                                <th class="py-2 pr-3 font-semibold">Total</th>
+                                <th class="py-2 pr-3 font-semibold">Membantu</th>
+                                <th class="py-2 pr-3 font-semibold">Kurang Tepat</th>
+                                <th class="py-2 font-semibold">Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($aiFeedbackByIntent as $row)
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-2 pr-3 font-semibold text-gray-900">
+                                        {{ strtoupper((string) ($row['label'] ?? '-')) }}</td>
+                                    <td class="py-2 pr-3">{{ number_format((int) ($row['total'] ?? 0)) }}</td>
+                                    <td class="py-2 pr-3 text-emerald-700">
+                                        {{ number_format((int) ($row['helpful'] ?? 0)) }}</td>
+                                    <td class="py-2 pr-3 text-rose-700">
+                                        {{ number_format((int) ($row['not_helpful'] ?? 0)) }}</td>
+                                    <td class="py-2">
+                                        {{ number_format((float) ($row['helpful_rate'] ?? 0), 1, ',', '.') }}%</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="py-4 text-center text-gray-500">Belum ada data feedback
+                                        intent.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+
+            <article class="rounded-xl border border-gray-200 bg-white p-4">
+                <h4 class="text-sm font-extrabold text-gray-900">Breakdown per Provider</h4>
+                <div class="mt-3 overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-700">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-gray-500">
+                                <th class="py-2 pr-3 font-semibold">Provider</th>
+                                <th class="py-2 pr-3 font-semibold">Total</th>
+                                <th class="py-2 pr-3 font-semibold">Membantu</th>
+                                <th class="py-2 pr-3 font-semibold">Kurang Tepat</th>
+                                <th class="py-2 font-semibold">Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($aiFeedbackByProvider as $row)
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-2 pr-3 font-semibold text-gray-900">
+                                        {{ strtoupper((string) ($row['label'] ?? '-')) }}</td>
+                                    <td class="py-2 pr-3">{{ number_format((int) ($row['total'] ?? 0)) }}</td>
+                                    <td class="py-2 pr-3 text-emerald-700">
+                                        {{ number_format((int) ($row['helpful'] ?? 0)) }}</td>
+                                    <td class="py-2 pr-3 text-rose-700">
+                                        {{ number_format((int) ($row['not_helpful'] ?? 0)) }}</td>
+                                    <td class="py-2">
+                                        {{ number_format((float) ($row['helpful_rate'] ?? 0), 1, ',', '.') }}%</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="py-4 text-center text-gray-500">Belum ada data feedback
+                                        provider.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </div>
+    </div>
+
     <div class="ui-card ui-card-pad">
         <h3 class="text-base font-extrabold text-gray-900">Metrik 30 Hari Terakhir</h3>
-        <p class="mt-1 text-sm text-gray-600">Dipakai sebagai baseline Sprint 2 untuk evaluasi perbaikan funnel checkout dan
+        <p class="mt-1 text-sm text-gray-600">Dipakai sebagai baseline Sprint 2 untuk evaluasi perbaikan funnel checkout
+            dan
             operasi admin.</p>
 
         <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

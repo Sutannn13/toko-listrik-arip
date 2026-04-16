@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AiAssistantFeedback;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -125,12 +126,88 @@ class DashboardController extends Controller
             'backlog' => $this->buildTrendSeries($trendDays, $backlog7dByDay),
         ];
 
+        $aiFeedbackSummary = [
+            'total_feedback_7d' => 0,
+            'helpful_feedback_7d' => 0,
+            'not_helpful_feedback_7d' => 0,
+            'helpful_rate_7d' => 0.0,
+        ];
+        $aiFeedbackByIntent = [];
+        $aiFeedbackByProvider = [];
+
+        if (Schema::hasTable('ai_assistant_feedback')) {
+            $feedbackRows = AiAssistantFeedback::query()
+                ->where('created_at', '>=', $period7Days)
+                ->get(['intent', 'rating', 'metadata']);
+
+            $totalFeedbackCount = $feedbackRows->count();
+            $helpfulFeedbackCount = $feedbackRows->where('rating', 1)->count();
+            $notHelpfulFeedbackCount = $feedbackRows->where('rating', -1)->count();
+
+            $aiFeedbackSummary = [
+                'total_feedback_7d' => $totalFeedbackCount,
+                'helpful_feedback_7d' => $helpfulFeedbackCount,
+                'not_helpful_feedback_7d' => $notHelpfulFeedbackCount,
+                'helpful_rate_7d' => $totalFeedbackCount > 0
+                    ? round(($helpfulFeedbackCount / $totalFeedbackCount) * 100, 1)
+                    : 0.0,
+            ];
+
+            $aiFeedbackByIntent = $feedbackRows
+                ->groupBy(fn(AiAssistantFeedback $feedback): string => $this->normalizeIntentKey((string) $feedback->intent))
+                ->map(fn(Collection $items, string $intent): array => $this->buildFeedbackBreakdownRow($intent, $items))
+                ->sortByDesc('total')
+                ->values()
+                ->all();
+
+            $aiFeedbackByProvider = $feedbackRows
+                ->groupBy(fn(AiAssistantFeedback $feedback): string => $this->normalizeProviderKey((string) data_get($feedback->metadata, 'provider', 'rule_based')))
+                ->map(fn(Collection $items, string $provider): array => $this->buildFeedbackBreakdownRow($provider, $items))
+                ->sortByDesc('total')
+                ->values()
+                ->all();
+        }
+
         return view('admin.dashboard', [
             'overview' => $overview,
             'triage' => $triage,
             'metrics' => $metrics,
             'trend7d' => $trend7d,
+            'aiFeedbackSummary' => $aiFeedbackSummary,
+            'aiFeedbackByIntent' => $aiFeedbackByIntent,
+            'aiFeedbackByProvider' => $aiFeedbackByProvider,
         ]);
+    }
+
+    private function normalizeIntentKey(string $intent): string
+    {
+        $normalizedIntent = trim(strtolower($intent));
+
+        return $normalizedIntent !== '' ? $normalizedIntent : 'unknown';
+    }
+
+    private function normalizeProviderKey(string $provider): string
+    {
+        $normalizedProvider = trim(strtolower($provider));
+
+        return $normalizedProvider !== '' ? $normalizedProvider : 'rule_based';
+    }
+
+    private function buildFeedbackBreakdownRow(string $label, Collection $items): array
+    {
+        $totalCount = $items->count();
+        $helpfulCount = $items->where('rating', 1)->count();
+        $notHelpfulCount = $items->where('rating', -1)->count();
+
+        return [
+            'label' => $label,
+            'total' => $totalCount,
+            'helpful' => $helpfulCount,
+            'not_helpful' => $notHelpfulCount,
+            'helpful_rate' => $totalCount > 0
+                ? round(($helpfulCount / $totalCount) * 100, 1)
+                : 0.0,
+        ];
     }
 
     private function buildTrendSeries(Collection $trendDays, Collection $valuesByDay): array

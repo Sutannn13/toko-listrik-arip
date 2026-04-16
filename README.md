@@ -193,12 +193,20 @@ Project ini sudah memiliki endpoint backend awal untuk asisten AI:
 
 ```json
 {
+    "message_id": "uuid",
+    "generated_at": "2026-04-14T22:00:00+07:00",
     "reply": "...",
     "intent": "faq|order_tracking|product_recommendation",
     "used_tools": ["FaqAnswerTool"],
     "suggestions": ["..."],
     "data": {
-        "...": "..."
+        "llm": {
+            "provider": "gemini|deepseek",
+            "model": "gemini-2.5-flash|deepseek-chat",
+            "status": "primary_success|fallback_success|fallback_failed|fallback_unavailable",
+            "fallback_used": false,
+            "attempts": []
+        }
     }
 }
 ```
@@ -239,15 +247,44 @@ php artisan config:clear
 php artisan cache:clear
 ```
 
+## AI Feedback Endpoint
+
+Endpoint ini dipakai untuk mengukur kualitas jawaban asisten AI dari widget atau client lain.
+
+- Method: `POST`
+- Path: `/api/ai/feedback`
+- Route name: `api.ai.feedback`
+
+### Request Body
+
+```json
+{
+    "session_id": "web-uuid",
+    "message_id": "uuid",
+    "intent": "faq",
+    "rating": 1,
+    "reason": "Membantu",
+    "metadata": {
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "fallback_used": false,
+        "status": "primary_success"
+    }
+}
+```
+
+Catatan:
+
+- `rating` yang valid saat ini: `1` (membantu) atau `-1` (kurang tepat).
+- Endpoint ini bersifat sederhana dan aman untuk fase awal evaluasi kualitas.
+
 ### Response 422 (Validation Error)
 
 ```json
 {
-    "message": "Validasi checkout gagal.",
+    "message": "Validasi chat AI gagal.",
     "errors": {
-        "items": [
-            "Keranjang kosong. Tambahkan item melalui API cart atau kirim field items."
-        ]
+        "message": ["The message field is required."]
     }
 }
 ```

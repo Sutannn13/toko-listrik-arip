@@ -274,4 +274,18 @@
     .ta-overlay {
         @apply fixed inset-0 z-overlay bg-black/50 backdrop-blur-sm;
     }
+
+    /* Hide scrollbar for horizontal scroll containers */
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* iOS safe area for bottom nav */
+    .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
 }

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\Ai\Tools\FaqAnswerTool;
 use App\Services\Ai\Tools\OrderTrackingTool;
 use App\Services\Ai\Tools\ProductRecommendationTool;
+use Illuminate\Support\Str;
 
 class AiAssistantOrchestratorService
 {
@@ -22,20 +23,30 @@ class AiAssistantOrchestratorService
         $message = trim((string) ($payload['message'] ?? ''));
         $intent = $this->intentRouter->resolveIntent($message);
 
-        return match ($intent) {
+        $response = match ($intent) {
             'order_tracking' => $this->buildOrderTrackingResponse($payload, $authenticatedUser),
             'product_recommendation' => $this->buildRecommendationResponse($payload),
-            default => $this->buildFaqResponse($message),
+            'store_info' => $this->buildFaqResponse($message, 'store_info'),
+            'website_help' => $this->buildFaqResponse($message, 'website_help'),
+            'troubleshooting' => $this->buildFaqResponse($message, 'troubleshooting'),
+            'emotional_support' => $this->buildFaqResponse($message, 'emotional_support'),
+            'off_topic' => $this->buildFaqResponse($message, 'off_topic'),
+            default => $this->buildFaqResponse($message, 'faq'),
         };
+
+        $response['message_id'] = (string) Str::uuid();
+        $response['generated_at'] = now()->toISOString();
+
+        return $response;
     }
 
-    private function buildFaqResponse(string $message): array
+    private function buildFaqResponse(string $message, string $resolvedIntent = 'faq'): array
     {
         $faqResult = $this->faqAnswerTool->answer($message);
 
         $response = [
             'reply' => $faqResult['answer'],
-            'intent' => 'faq',
+            'intent' => $resolvedIntent,
             'used_tools' => ['FaqAnswerTool'],
             'suggestions' => $faqResult['suggestions'],
             'data' => [
@@ -44,7 +55,7 @@ class AiAssistantOrchestratorService
             ],
         ];
 
-        return $this->decorateWithProviderReply($response, $message);
+        return $this->decorateWithProviderReply($response, $message, $resolvedIntent);
     }
 
     private function buildOrderTrackingResponse(array $payload, ?User $authenticatedUser): array
@@ -63,7 +74,7 @@ class AiAssistantOrchestratorService
             ],
         ];
 
-        return $this->decorateWithProviderReply($response, $message);
+        return $this->decorateWithProviderReply($response, $message, 'order_tracking');
     }
 
     private function buildRecommendationResponse(array $payload): array
@@ -81,27 +92,35 @@ class AiAssistantOrchestratorService
             ],
         ];
 
-        return $this->decorateWithProviderReply($response, $message);
+        return $this->decorateWithProviderReply($response, $message, 'product_recommendation');
     }
 
-    private function decorateWithProviderReply(array $baseResponse, string $message): array
+    private function decorateWithProviderReply(array $baseResponse, string $message, string $intent = 'faq'): array
     {
         $providerResponse = $this->providerResponder->enhanceReply(
-            (string) ($baseResponse['intent'] ?? 'faq'),
+            $intent,
             $message,
             (string) ($baseResponse['reply'] ?? ''),
             is_array($baseResponse['suggestions'] ?? null) ? $baseResponse['suggestions'] : [],
+            (array) ($baseResponse['data'] ?? [])
         );
 
         if ($providerResponse === null) {
             return $baseResponse;
         }
 
-        $baseResponse['reply'] = $providerResponse['reply'];
+        $providerReply = trim((string) ($providerResponse['reply'] ?? ''));
+
+        if ($providerReply !== '') {
+            $baseResponse['reply'] = $providerReply;
+        }
+
         $baseResponse['data']['llm'] = [
             'provider' => $providerResponse['provider'],
             'model' => $providerResponse['model'],
+            'status' => $providerResponse['status'],
             'fallback_used' => $providerResponse['fallback_used'],
+            'attempts' => $providerResponse['attempts'],
         ];
 
         return $baseResponse;

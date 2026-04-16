@@ -17,7 +17,7 @@
 
 @section('header_actions')
     <a href="{{ route('home') }}"
-        class="hidden sm:inline-flex rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-primary-500 hover:text-primary-600 hover:bg-gray-50">
+        class="hidden lg:inline-flex rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-primary-500 hover:text-primary-600 hover:bg-gray-50">
         Katalog Produk
     </a>
 @endsection

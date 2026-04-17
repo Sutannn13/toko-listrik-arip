@@ -26,6 +26,10 @@ class AiAssistantChatEndpointTest extends TestCase
         config()->set('services.ai.model_fallback', 'deepseek-chat');
         config()->set('services.ai.gemini_api_key', null);
         config()->set('services.ai.deepseek_api_key', null);
+        config()->set('services.ai.web_search_enabled', false);
+        config()->set('services.ai.web_search_endpoint', 'https://api.duckduckgo.com/');
+        config()->set('services.ai.web_search_timeout', 8);
+        config()->set('services.ai.web_search_max_results', 3);
     }
 
     public function test_ai_chat_returns_faq_answer_for_shipping_question(): void
@@ -36,7 +40,7 @@ class AiAssistantChatEndpointTest extends TestCase
         ]);
 
         $response->assertOk();
-        $response->assertJsonPath('intent', 'faq');
+        $response->assertJsonPath('intent', 'website_help');
         $response->assertJsonPath('used_tools.0', 'FaqAnswerTool');
 
         $this->assertStringContainsString('Ongkir', (string) $response->json('reply'));
@@ -134,6 +138,63 @@ class AiAssistantChatEndpointTest extends TestCase
 
         $topProductName = strtolower((string) data_get($products, '0.name', ''));
         $this->assertStringContainsString('lampu', $topProductName);
+    }
+
+    public function test_ai_chat_understands_description_driven_product_query(): void
+    {
+        $this->createProductFixtures();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-reco-description-001',
+            'message' => 'Saya cari product A dari deskripsi: lampu LED hemat energi yang nyaman untuk kamar tidur.',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+
+        $products = $response->json('data.products');
+        $this->assertIsArray($products);
+        $this->assertNotEmpty($products);
+
+        $topProductName = strtolower((string) data_get($products, '0.name', ''));
+        $this->assertStringContainsString('lampu', $topProductName);
+
+        $response->assertJsonPath('data.recommendation_meta.description_driven', true);
+    }
+
+    public function test_ai_chat_uses_web_search_fallback_for_explicit_search_engine_request(): void
+    {
+        config()->set('services.ai.web_search_enabled', true);
+        config()->set('services.ai.web_search_max_results', 2);
+
+        Http::fake([
+            'https://api.duckduckgo.com/*' => Http::response([
+                'Heading' => 'Product A',
+                'AbstractText' => 'Product A adalah lampu LED hemat energi dengan umur pakai panjang.',
+                'AbstractURL' => 'https://example.com/product-a',
+                'RelatedTopics' => [
+                    [
+                        'Text' => 'Product A - Cocok untuk penggunaan rumah tangga.',
+                        'FirstURL' => 'https://example.com/product-a-home',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-reco-websearch-001',
+            'message' => 'Tolong search product A di search engine lalu jelaskan deskripsinya.',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+        $response->assertJsonPath('data.web_search.status', 'ok');
+        $response->assertJsonPath('data.web_search.results.0.url', 'https://example.com/product-a');
+
+        $usedTools = (array) $response->json('used_tools');
+        $this->assertContains('WebProductSearchTool', $usedTools);
+
+        $this->assertStringContainsString('Referensi tambahan dari search engine', (string) $response->json('reply'));
     }
 
     public function test_ai_chat_uses_gemini_provider_when_enabled(): void

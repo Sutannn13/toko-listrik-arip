@@ -26,6 +26,12 @@ class AiChatRequest extends FormRequest
             'context' => ['nullable', 'array'],
             'context.locale' => ['nullable', 'string', 'max:10'],
             'context.channel' => ['nullable', 'string', 'max:50'],
+            'context.page_title' => ['nullable', 'string', 'max:180'],
+            'context.page_path' => ['nullable', 'string', 'max:255'],
+            'context.product_name' => ['nullable', 'string', 'max:160'],
+            'context.product_description' => ['nullable', 'string', 'max:2000'],
+            'context.product_keywords' => ['nullable', 'array'],
+            'context.product_keywords.*' => ['nullable', 'string', 'max:80'],
         ];
     }
 

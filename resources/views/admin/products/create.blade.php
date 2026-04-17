@@ -89,6 +89,16 @@
                             elektronik.</span>
                     </span>
                 </label>
+
+                <div class="mt-4 max-w-xs">
+                    <label class="mb-2 block text-sm font-semibold text-gray-800">Masa Garansi (hari)</label>
+                    <input type="number" name="warranty_days" min="1" max="365"
+                        value="{{ old('warranty_days', 7) }}"
+                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Contoh: 30">
+                    <p class="mt-1 text-xs text-gray-600">Isi 1-365 hari. Field ini dipakai jika produk ditandai sebagai
+                        elektronik.</p>
+                </div>
             </div>
 
             <div class="flex justify-end border-t pt-4">

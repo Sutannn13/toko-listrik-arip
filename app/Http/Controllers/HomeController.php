@@ -638,7 +638,7 @@ class HomeController extends Controller
                         throw new \Exception('Stok untuk produk ' . $product->name . ' tidak mencukupi (tersisa: ' . ($freshProduct->stock ?? 0) . ').');
                     }
 
-                    $warrantyDays = $freshProduct->is_electronic ? 7 : 0;
+                    $warrantyDays = (int) $freshProduct->warranty_days_for_claim;
 
                     $order->items()->create([
                         'product_id' => $product->id,

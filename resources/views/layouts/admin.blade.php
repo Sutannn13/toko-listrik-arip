@@ -104,12 +104,71 @@
     sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
     comingSoonToast: false,
     comingSoonLabel: '',
+    confirmModalOpen: false,
+    confirmModalTitle: '',
+    confirmModalContext: '',
+    confirmModalMessage: '',
+    confirmModalImpact: '',
+    confirmModalNote: '',
+    confirmModalConfirmText: 'Ya, Lanjutkan',
+    confirmModalCancelText: 'Tinjau Ulang',
+    confirmModalTone: 'danger',
+    confirmModalOnConfirm: null,
     showComingSoon(label) {
         this.comingSoonLabel = label;
         this.comingSoonToast = true;
         setTimeout(() => this.comingSoonToast = false, 2500);
-    }
-}" x-init="$watch('sidebarCollapsed', val => localStorage.setItem('sidebarCollapsed', val))"
+    },
+    openConfirmModal(options = {}) {
+        const resolvedTone = options.tone ?? 'danger';
+
+        this.confirmModalTitle = options.title ?? 'Konfirmasi Persetujuan';
+        this.confirmModalContext = options.context ?? 'Permintaan ini membutuhkan persetujuan Anda.';
+        this.confirmModalMessage = options.message ?? 'Tinjau detail tindakan sebelum melanjutkan proses.';
+        this.confirmModalImpact = options.impact ?? '';
+        this.confirmModalConfirmText = options.confirmText ?? 'Ya, Lanjutkan';
+        this.confirmModalCancelText = options.cancelText ?? 'Tinjau Ulang';
+        this.confirmModalTone = resolvedTone;
+        this.confirmModalNote = options.note ?? (
+            resolvedTone === 'danger' ?
+            'Aksi ini bersifat permanen dan tidak dapat dibatalkan.' :
+            'Pastikan data sudah diverifikasi sebelum dilanjutkan.'
+        );
+        this.confirmModalOnConfirm = typeof options.onConfirm === 'function' ? options.onConfirm : null;
+        this.confirmModalOpen = true;
+
+        this.$nextTick(() => {
+            this.$refs.confirmModalPrimaryButton?.focus();
+        });
+    },
+    closeConfirmModal() {
+        this.confirmModalOpen = false;
+        this.confirmModalOnConfirm = null;
+    },
+    runConfirmModalAction() {
+        if (typeof this.confirmModalOnConfirm === 'function') {
+            this.confirmModalOnConfirm();
+        }
+        this.closeConfirmModal();
+    },
+    askFormConfirmation(formElement, options = {}) {
+        this.openConfirmModal({
+            ...options,
+            onConfirm: () => formElement.submit(),
+        });
+    },
+    syncMobileScrollLock() {
+        const shouldLockBodyScroll =
+            (this.sidebarOpen && window.innerWidth < 1024) || this.confirmModalOpen;
+
+        document.documentElement.classList.toggle('overflow-hidden', shouldLockBodyScroll);
+        document.body.classList.toggle('overflow-hidden', shouldLockBodyScroll);
+    },
+}" x-init="$watch('sidebarCollapsed', val => localStorage.setItem('sidebarCollapsed', val));
+$watch('sidebarOpen', () => syncMobileScrollLock());
+$watch('confirmModalOpen', () => syncMobileScrollLock());
+syncMobileScrollLock();"
+    @resize.window="if (window.innerWidth >= 1024 && sidebarOpen) sidebarOpen = false; syncMobileScrollLock()"
     class="min-h-screen bg-gray-50 font-sans antialiased text-gray-800 dark:bg-dark-bg dark:text-gray-200">
 
     {{-- ═══════════════════════════════════════════════════════
@@ -136,19 +195,96 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════════
+         CONFIRMATION MODAL — Professional system dialog
+         ═══════════════════════════════════════════════════════ --}}
+    <div x-cloak x-show="confirmModalOpen" x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0" x-on:keydown.escape.window="closeConfirmModal()"
+        class="fixed inset-0 z-modal flex items-center justify-center p-4">
+
+        <div class="absolute inset-0 bg-slate-900/55 backdrop-blur-sm" @click="closeConfirmModal()" aria-hidden="true">
+        </div>
+
+        <div x-cloak x-show="confirmModalOpen" x-transition:enter="transition ease-out duration-200 transform"
+            x-transition:enter-start="opacity-0 translate-y-3 scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+            x-transition:leave="transition ease-in duration-150 transform"
+            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+            x-transition:leave-end="opacity-0 translate-y-2 scale-95"
+            class="relative w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-tailadmin-lg dark:border-dark-border dark:bg-dark-card"
+            role="dialog" aria-modal="true" @click.stop>
+
+            <div class="mb-4 flex items-start gap-3">
+                <div class="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl"
+                    :class="confirmModalTone === 'danger'
+                        ?
+                        'bg-error-50 text-error-600 dark:bg-error-500/10 dark:text-error-400' :
+                        'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400'">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+
+                <div class="min-w-0 flex-1">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500">
+                        Sistem Konfirmasi
+                    </p>
+                    <h3 class="text-base font-bold text-gray-900 dark:text-white" x-text="confirmModalTitle"></h3>
+                    <p class="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400" x-text="confirmModalContext">
+                    </p>
+                    <p class="mt-1 text-sm leading-relaxed text-gray-600 dark:text-gray-300"
+                        x-text="confirmModalMessage"></p>
+
+                    <template x-if="confirmModalImpact !== ''">
+                        <div
+                            class="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-dark-border dark:bg-dark-hover/40">
+                            <p
+                                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                Dampak Operasional
+                            </p>
+                            <p class="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-300"
+                                x-text="confirmModalImpact"></p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5">
+                <p class="mr-auto max-w-[55%] text-[11px] leading-relaxed text-gray-500 dark:text-gray-400"
+                    x-text="confirmModalNote"></p>
+
+                <button type="button" @click="closeConfirmModal()"
+                    class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-dark-border dark:bg-dark-card dark:text-gray-300 dark:hover:bg-dark-hover"
+                    x-text="confirmModalCancelText"></button>
+
+                <button type="button" @click="runConfirmModalAction()" x-ref="confirmModalPrimaryButton"
+                    class="rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition"
+                    :class="confirmModalTone === 'danger'
+                        ?
+                        'bg-error-500 hover:bg-error-600' :
+                        'bg-brand-500 hover:bg-brand-600'"
+                    x-text="confirmModalConfirmText"></button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ═══════════════════════════════════════════════════════
          OVERLAY — Mobile sidebar backdrop
          ═══════════════════════════════════════════════════════ --}}
-    <div x-cloak x-show="sidebarOpen" x-transition:enter="transition-opacity ease-linear duration-300"
-        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-        x-transition:leave="transition-opacity ease-linear duration-300" x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0" class="fixed inset-0 z-[55] bg-black/50 lg:hidden cursor-pointer"
-        @click="sidebarOpen = false" style="touch-action: manipulation;" aria-hidden="true"></div>
+    <div x-cloak x-show="sidebarOpen && window.innerWidth < 1024"
+        x-transition:enter="transition-opacity ease-linear duration-300" x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100" x-transition:leave="transition-opacity ease-linear duration-300"
+        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-overlay bg-black/50 lg:hidden cursor-pointer" @click="sidebarOpen = false"
+        @touchmove.prevent style="touch-action: none;" aria-hidden="true"></div>
 
     {{-- ═══════════════════════════════════════════════════════
          SIDEBAR — TailAdmin Style (Collapsible on Desktop)
          ═══════════════════════════════════════════════════════ --}}
     <aside id="admin-sidebar"
-        class="fixed inset-y-0 left-0 z-sidebar flex flex-col
+        class="fixed inset-y-0 left-0 z-[60] lg:z-sidebar flex flex-col
                   border-r border-gray-200 bg-white shadow-sidebar
                   transition-all duration-[var(--ta-transition)] ease-in-out
                   dark:border-dark-border dark:bg-dark-sidebar"

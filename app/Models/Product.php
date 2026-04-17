@@ -21,13 +21,30 @@ class Product extends Model
         'specifications',
         'is_active',
         'is_electronic',
+        'warranty_days',
     ];
 
     protected $casts = [
         'specifications' => 'array', // Biar JSON otomatis jadi array di PHP
         'is_active' => 'boolean',
         'is_electronic' => 'boolean',
+        'warranty_days' => 'integer',
     ];
+
+    public function getWarrantyDaysForClaimAttribute(): int
+    {
+        if (! $this->is_electronic) {
+            return 0;
+        }
+
+        $days = (int) $this->warranty_days;
+
+        if ($days < 1) {
+            return 7;
+        }
+
+        return min(365, $days);
+    }
 
     public function category(): BelongsTo
     {

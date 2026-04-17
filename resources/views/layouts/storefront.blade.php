@@ -83,51 +83,65 @@
     {{-- ═══════════════════════════════════════════════════════
          MOBILE BOTTOM NAVIGATION — Tokopedia-style sticky nav
          ═══════════════════════════════════════════════════════ --}}
-    <nav class="fixed inset-x-0 bottom-0 z-dropdown border-t border-gray-200 bg-white/95 backdrop-blur-md lg:hidden" id="mobile-bottom-nav">
+    <nav class="fixed inset-x-0 bottom-0 z-dropdown border-t border-gray-200 bg-white/95 backdrop-blur-md lg:hidden"
+        id="mobile-bottom-nav">
         <div class="mx-auto flex max-w-lg items-center justify-around px-2 py-1.5">
             {{-- Home --}}
-            <a href="{{ route('home') }}" class="flex flex-col items-center gap-0.5 px-3 py-1 transition {{ request()->routeIs('home') && !request()->routeIs('home.cart') && !request()->routeIs('home.tracking') ? 'text-primary-600' : 'text-gray-500' }}">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="{{ request()->routeIs('home') && !request()->routeIs('home.cart') && !request()->routeIs('home.tracking') ? '2.2' : '1.8' }}">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            <a href="{{ route('home') }}"
+                class="flex flex-col items-center gap-0.5 px-3 py-1 transition {{ request()->routeIs('home') && !request()->routeIs('home.cart') && !request()->routeIs('home.tracking') ? 'text-primary-600' : 'text-gray-500' }}">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    stroke-width="{{ request()->routeIs('home') && !request()->routeIs('home.cart') && !request()->routeIs('home.tracking') ? '2.2' : '1.8' }}">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
                 <span class="text-[10px] font-semibold">Home</span>
             </a>
 
             {{-- Kategori --}}
-            <a href="{{ route('home') }}#catalog-section" class="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500 transition">
+            <a href="{{ route('home') }}#catalog-section"
+                class="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500 transition">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
                 <span class="text-[10px] font-semibold">Kategori</span>
             </a>
 
             {{-- Keranjang --}}
             @auth
-                <a href="{{ route('home.cart') }}" class="relative flex flex-col items-center gap-0.5 px-3 py-1 transition {{ request()->routeIs('home.cart') ? 'text-primary-600' : 'text-gray-500' }}">
+                <a href="{{ route('home.cart') }}"
+                    class="relative flex flex-col items-center gap-0.5 px-3 py-1 transition {{ request()->routeIs('home.cart') ? 'text-primary-600' : 'text-gray-500' }}">
                     <span class="relative">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="{{ request()->routeIs('home.cart') ? '2.2' : '1.8' }}">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="{{ request()->routeIs('home.cart') ? '2.2' : '1.8' }}">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                         @if (($cartQuantity ?? 0) > 0)
-                            <span class="absolute -top-1.5 -right-2 grid h-4 w-4 place-items-center rounded-full bg-red-500 text-[9px] font-bold text-white">{{ $cartQuantity > 9 ? '9+' : $cartQuantity }}</span>
+                            <span
+                                class="absolute -top-1.5 -right-2 grid h-4 w-4 place-items-center rounded-full bg-red-500 text-[9px] font-bold text-white">{{ $cartQuantity > 9 ? '9+' : $cartQuantity }}</span>
                         @endif
                     </span>
                     <span class="text-[10px] font-semibold">Keranjang</span>
                 </a>
             @else
-                <a href="{{ route('login') }}" class="relative flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500 transition">
+                <a href="{{ route('login') }}"
+                    class="relative flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500 transition">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     <span class="text-[10px] font-semibold">Keranjang</span>
                 </a>
             @endauth
 
             {{-- Chat / AI --}}
-            <button type="button" onclick="document.querySelector('[data-ai-trigger]')?.click()" class="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500 transition">
+            <button type="button" onclick="document.querySelector('[data-ai-trigger]')?.click()"
+                class="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500 transition">
                 <span class="relative">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                     <span class="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-emerald-400"></span>
                 </span>
@@ -136,16 +150,20 @@
 
             {{-- Akun --}}
             @auth
-                <a href="{{ route('profile.edit') }}" class="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500 transition">
+                <a href="{{ route('profile.edit') }}"
+                    class="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500 transition">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     <span class="text-[10px] font-semibold">Akun</span>
                 </a>
             @else
-                <a href="{{ route('login') }}" class="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500 transition">
+                <a href="{{ route('login') }}"
+                    class="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500 transition">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     <span class="text-[10px] font-semibold">Masuk</span>
                 </a>
@@ -153,14 +171,20 @@
         </div>
     </nav>
 
-    <div x-data="storefrontAiAssistant({ chatEndpoint: @js(route('api.ai.chat', [], false)), feedbackEndpoint: @js(route('api.ai.feedback', [], false)) })" x-init="init()" class="fixed bottom-20 right-4 z-modal sm:bottom-6 sm:right-6 lg:bottom-6">
+    <div x-data="storefrontAiAssistant({ chatEndpoint: @js(route('api.ai.chat', [], false)), feedbackEndpoint: @js(route('api.ai.feedback', [], false)) })" x-init="init()"
+        class="fixed bottom-20 right-4 z-modal sm:bottom-6 sm:right-6 lg:bottom-6">
         {{-- Floating Trigger Button — Clean & Professional --}}
         <button x-show="!isOpen" x-cloak @click="openPanel()"
             class="group hidden lg:inline-flex items-center gap-2.5 rounded-full bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-lg shadow-gray-900/10 ring-1 ring-gray-200 transition hover:shadow-xl hover:ring-primary-300 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
             type="button" aria-label="Buka asisten toko" data-ai-trigger>
-            <span class="relative inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-xs font-bold text-white">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                <span class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-white"></span>
+            <span
+                class="relative inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-xs font-bold text-white">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span
+                    class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-white"></span>
             </span>
             <span class="hidden sm:inline">Bantuan</span>
         </button>
@@ -175,9 +199,14 @@
             <header class="relative border-b border-gray-100 bg-white p-4">
                 <div class="flex items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
-                        <div class="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary-600 text-white">
-                            <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                            <span class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-white"></span>
+                        <div
+                            class="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary-600 text-white">
+                            <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <span
+                                class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-white"></span>
                         </div>
                         <div>
                             <p class="text-sm font-bold text-gray-900">HS Electric</p>
@@ -187,7 +216,10 @@
                     <button @click="closePanel()" type="button"
                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
                         aria-label="Tutup panel asisten">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                     </button>
                 </div>
             </header>
@@ -207,11 +239,17 @@
             <div x-ref="messageViewport" class="flex-1 space-y-3 overflow-y-auto bg-gray-50/30 px-3 py-3">
                 <template x-for="message in messages" :key="message.id">
                     <article>
-                        <div :class="message.role === 'user' ? 'justify-end' : 'justify-start'" class="flex gap-2">
+                        <div :class="message.role === 'user' ? 'justify-end' : 'justify-start'"
+                            class="flex gap-2">
                             {{-- Avatar for assistant --}}
                             <div x-show="message.role === 'assistant'" class="shrink-0 mt-1">
-                                <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-primary-600">
-                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                <div
+                                    class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-primary-600">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
                                 </div>
                             </div>
                             <div
@@ -238,27 +276,42 @@
                             <button type="button" @click.prevent.stop="submitFeedback(message, 1)"
                                 :disabled="message.feedbackState === 'sending'"
                                 class="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-medium text-gray-500 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50">
-                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                </svg>
                                 Membantu
                             </button>
                             <button type="button" @click.prevent.stop="submitFeedback(message, -1)"
                                 :disabled="message.feedbackState === 'sending'"
                                 class="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-medium text-gray-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50">
-                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"/></svg>
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                                </svg>
                                 Kurang Tepat
                             </button>
                         </div>
-                        <p x-show="message.feedbackState === 'saved'" class="mt-1.5 ml-8 text-[11px] font-medium text-emerald-600">Terima kasih atas feedbacknya!</p>
-                        <p x-show="message.feedbackState === 'failed'" class="mt-1.5 ml-8 text-[11px] font-medium text-rose-600">Gagal terkirim, coba lagi.</p>
+                        <p x-show="message.feedbackState === 'saved'"
+                            class="mt-1.5 ml-8 text-[11px] font-medium text-emerald-600">Terima kasih atas feedbacknya!
+                        </p>
+                        <p x-show="message.feedbackState === 'failed'"
+                            class="mt-1.5 ml-8 text-[11px] font-medium text-rose-600">Gagal terkirim, coba lagi.</p>
                     </article>
                 </template>
 
                 {{-- Loading Indicator --}}
                 <div x-show="isLoading" class="flex items-center gap-2 ml-8">
-                    <div class="flex gap-1 rounded-2xl rounded-bl-sm border border-gray-200 bg-white px-4 py-3 shadow-sm">
-                        <span class="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style="animation-delay: 0ms"></span>
-                        <span class="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style="animation-delay: 150ms"></span>
-                        <span class="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style="animation-delay: 300ms"></span>
+                    <div
+                        class="flex gap-1 rounded-2xl rounded-bl-sm border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                        <span class="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                            style="animation-delay: 0ms"></span>
+                        <span class="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                            style="animation-delay: 150ms"></span>
+                        <span class="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                            style="animation-delay: 300ms"></span>
                     </div>
                 </div>
             </div>
@@ -271,7 +324,11 @@
                         placeholder="Tulis pesan..."></textarea>
                     <button type="submit" :disabled="isLoading || draftMessage.trim() === ''"
                         class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary-600 text-white transition hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
                     </button>
                 </div>
             </form>
@@ -397,6 +454,29 @@
                     return headers;
                 },
 
+                buildRequestContext() {
+                    const metaDescription = document.querySelector('meta[name="description"]')?.getAttribute('content') ||
+                        '';
+                    const metaKeywordsRaw = document.querySelector('meta[name="keywords"]')?.getAttribute('content') || '';
+                    const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content') || '';
+
+                    const productKeywords = metaKeywordsRaw
+                        .split(',')
+                        .map((keyword) => keyword.trim())
+                        .filter((keyword) => keyword !== '')
+                        .slice(0, 8);
+
+                    return {
+                        locale: 'id',
+                        channel: 'storefront_widget',
+                        page_title: document.title || null,
+                        page_path: window.location.pathname || null,
+                        product_name: ogTitle || null,
+                        product_description: metaDescription || null,
+                        product_keywords: productKeywords,
+                    };
+                },
+
                 buildLlmLabel(llm) {
                     // Never expose AI/bot labels to users — assistant presents as human staff
                     return '';
@@ -425,10 +505,7 @@
                             body: JSON.stringify({
                                 session_id: this.sessionId,
                                 message,
-                                context: {
-                                    locale: 'id',
-                                    channel: 'storefront_widget',
-                                },
+                                context: this.buildRequestContext(),
                             }),
                         });
 
@@ -521,7 +598,9 @@
                     const urlPattern = /(https?:\/\/[^\s<>"')\]]+)/g;
 
                     return escaped.replace(urlPattern, (url) => {
-                        return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="text-primary-600 underline decoration-primary-300 hover:text-primary-800 hover:decoration-primary-500 transition-colors break-all">' + url + '</a>';
+                        return '<a href="' + url +
+                            '" target="_blank" rel="noopener noreferrer" class="text-primary-600 underline decoration-primary-300 hover:text-primary-800 hover:decoration-primary-500 transition-colors break-all">' +
+                            url + '</a>';
                     });
                 },
             };

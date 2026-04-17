@@ -14,7 +14,8 @@ class ProductRecommendationTool
     public function recommend(array $payload): array
     {
         $message = (string) ($payload['message'] ?? '');
-        $query = trim($message);
+        $contextProductText = $this->extractContextProductText($payload);
+        $query = trim($message . ' ' . $contextProductText);
 
         $budgetMax = $this->extractBudget($payload, $message);
         $categoryHint = trim((string) ($payload['category'] ?? ''));
@@ -46,12 +47,15 @@ class ProductRecommendationTool
             ->get();
 
         $rankedProducts = $this->rankProducts($candidates, $userContext, $budgetMax);
+        $matchStrategy = 'ranked';
 
         if ($rankedProducts->isEmpty()) {
             $rankedProducts = (clone $baseProductQuery)
                 ->orderBy('price')
                 ->limit(self::MAX_RESULT_COUNT)
                 ->get();
+
+            $matchStrategy = $rankedProducts->isEmpty() ? 'none' : 'catalog_fallback';
         }
 
         $products = $rankedProducts
@@ -87,6 +91,11 @@ class ProductRecommendationTool
                     'Produk paling murah yang tersedia',
                     'Cari produk tanpa batas budget',
                 ],
+                'meta' => [
+                    'match_strategy' => 'none',
+                    'search_terms' => $userContext['search_terms'],
+                    'description_driven' => $userContext['is_description_driven'],
+                ],
             ];
         }
 
@@ -94,6 +103,11 @@ class ProductRecommendationTool
             'reply' => $this->buildRecommendationReply($products, $budgetMax, $userContext),
             'products' => $products,
             'suggestions' => $this->buildSuggestions($userContext, $budgetMax),
+            'meta' => [
+                'match_strategy' => $matchStrategy,
+                'search_terms' => $userContext['search_terms'],
+                'description_driven' => $userContext['is_description_driven'],
+            ],
         ];
     }
 
@@ -143,8 +157,42 @@ class ProductRecommendationTool
                 continue;
             }
 
+            if ($specificationText !== '' && str_contains($specificationText, $term)) {
+                $score += 6;
+
+                continue;
+            }
+
+            if ($description !== '' && str_contains($description, $term)) {
+                $score += 5;
+
+                continue;
+            }
+
             if ($combinedText !== '' && str_contains($combinedText, $term)) {
                 $score += 3;
+            }
+        }
+
+        if ($userContext['is_description_driven']) {
+            $descriptionMatchCount = 0;
+
+            foreach ($userContext['search_terms'] as $term) {
+                if ($term === '') {
+                    continue;
+                }
+
+                if (($description !== '' && str_contains($description, $term)) || ($specificationText !== '' && str_contains($specificationText, $term))) {
+                    $descriptionMatchCount++;
+                }
+            }
+
+            if ($descriptionMatchCount >= 2) {
+                $score += 8;
+            } elseif ($descriptionMatchCount === 1) {
+                $score += 4;
+            } else {
+                $score -= 2;
             }
         }
 
@@ -324,7 +372,42 @@ class ProductRecommendationTool
             'product_terms' => array_values(array_unique($productTerms)),
             'category_terms' => array_values(array_unique($categoryTerms)),
             'prefers_efficient' => preg_match('/\bhemat\b|\birit\b|\bwatt\b|\bdaya\b/i', $normalizedMessage) === 1,
+            'is_description_driven' => preg_match('/\bdeskripsi\b|\bspesifikasi\b|\bspek\b|\bspec\b|\bfitur\b|\bproduct\s+[a-z0-9]+\b|\bproduk\s+[a-z0-9]+\b/i', $normalizedMessage) === 1,
         ];
+    }
+
+    private function extractContextProductText(array $payload): string
+    {
+        $context = is_array($payload['context'] ?? null) ? $payload['context'] : [];
+
+        $segments = [];
+        $productName = trim((string) ($context['product_name'] ?? ''));
+        $productDescription = trim((string) ($context['product_description'] ?? ''));
+        $pageTitle = trim((string) ($context['page_title'] ?? ''));
+
+        if ($productName !== '') {
+            $segments[] = $productName;
+        }
+
+        if ($productDescription !== '') {
+            $segments[] = $productDescription;
+        }
+
+        if ($pageTitle !== '') {
+            $segments[] = $pageTitle;
+        }
+
+        $keywords = $context['product_keywords'] ?? [];
+        if (is_array($keywords)) {
+            foreach ($keywords as $keyword) {
+                $normalizedKeyword = trim((string) $keyword);
+                if ($normalizedKeyword !== '') {
+                    $segments[] = $normalizedKeyword;
+                }
+            }
+        }
+
+        return trim(implode(' ', $segments));
     }
 
     private function flattenSpecificationText(mixed $specifications): string
@@ -433,6 +516,11 @@ class ProductRecommendationTool
             'k',
             'jt',
             'juta',
+            'product',
+            'produk',
+            'deskripsi',
+            'spesifikasi',
+            'fitur',
         ];
 
         $searchTerms = [];

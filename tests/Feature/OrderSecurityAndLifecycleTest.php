@@ -539,7 +539,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $this->assertTrue(Storage::disk('public')->exists((string) $claim?->damage_proof_url));
     }
 
-    public function test_admin_can_update_order_item_warranty_date_within_1_to_7_day_window(): void
+    public function test_admin_can_update_order_item_warranty_date_within_product_warranty_window(): void
     {
         $admin = $this->createAdminUser();
         $customer = User::factory()->create();
@@ -549,12 +549,13 @@ class OrderSecurityAndLifecycleTest extends TestCase
             'slug' => 'stop-kontak-admin-garansi',
             'price' => 77000,
             'stock' => 6,
+            'warranty_days' => 30,
         ]);
 
         [$order,, $orderItem] = $this->createPendingOrder($customer, $product, 1, now()->subHours(2));
 
         $warrantyStart = ($order->completed_at ?? $order->placed_at ?? $order->created_at)->copy()->startOfDay();
-        $newExpiryDate = $warrantyStart->copy()->addDays(5)->toDateString();
+        $newExpiryDate = $warrantyStart->copy()->addDays(15)->toDateString();
 
         $response = $this->actingAs($admin)
             ->from(route('admin.orders.show', $order))
@@ -566,11 +567,11 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $response->assertSessionHas('success');
 
         $orderItem->refresh();
-        $this->assertSame(5, (int) $orderItem->warranty_days);
+        $this->assertSame(15, (int) $orderItem->warranty_days);
         $this->assertSame($newExpiryDate, $orderItem->warranty_expires_at?->toDateString());
     }
 
-    public function test_admin_cannot_set_order_item_warranty_date_more_than_seven_days(): void
+    public function test_admin_cannot_set_order_item_warranty_date_more_than_product_limit(): void
     {
         $admin = $this->createAdminUser();
         $customer = User::factory()->create();
@@ -580,12 +581,13 @@ class OrderSecurityAndLifecycleTest extends TestCase
             'slug' => 'kabel-admin-garansi',
             'price' => 38000,
             'stock' => 7,
+            'warranty_days' => 30,
         ]);
 
         [$order,, $orderItem] = $this->createPendingOrder($customer, $product, 1, now()->subHours(1));
 
         $warrantyStart = ($order->completed_at ?? $order->placed_at ?? $order->created_at)->copy()->startOfDay();
-        $invalidExpiryDate = $warrantyStart->copy()->addDays(8)->toDateString();
+        $invalidExpiryDate = $warrantyStart->copy()->addDays(31)->toDateString();
 
         $response = $this->actingAs($admin)
             ->from(route('admin.orders.show', $order))
@@ -597,7 +599,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $response->assertSessionHas('error');
 
         $orderItem->refresh();
-        $this->assertSame(7, (int) $orderItem->warranty_days);
+        $this->assertSame(30, (int) $orderItem->warranty_days);
     }
 
     public function test_admin_cannot_update_warranty_for_non_electronic_item(): void
@@ -780,6 +782,11 @@ class OrderSecurityAndLifecycleTest extends TestCase
             'slug' => $overrides['category_slug'] ?? 'kategori-' . Str::lower(Str::random(6)),
         ]);
 
+        $isElectronicProduct = (bool) ($overrides['is_electronic'] ?? true);
+        $warrantyDays = $isElectronicProduct
+            ? max(1, min(365, (int) ($overrides['warranty_days'] ?? 7)))
+            : 0;
+
         return Product::create([
             'category_id' => $category->id,
             'name' => $overrides['name'] ?? 'Produk ' . Str::upper(Str::random(4)),
@@ -789,7 +796,8 @@ class OrderSecurityAndLifecycleTest extends TestCase
             'stock' => $overrides['stock'] ?? 10,
             'unit' => $overrides['unit'] ?? 'pcs',
             'is_active' => $overrides['is_active'] ?? true,
-            'is_electronic' => $overrides['is_electronic'] ?? true,
+            'is_electronic' => $isElectronicProduct,
+            'warranty_days' => $warrantyDays,
         ]);
     }
 
@@ -799,7 +807,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
     private function createPendingOrder(User $user, Product $product, int $quantity, \DateTimeInterface $placedAt): array
     {
         $subtotal = (int) $product->price * $quantity;
-        $warrantyDays = $product->is_electronic ? 7 : 0;
+        $warrantyDays = (int) $product->warranty_days_for_claim;
 
         $order = Order::create([
             'order_code' => 'ORD-ARIP-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),

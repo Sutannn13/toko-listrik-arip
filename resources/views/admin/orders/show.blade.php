@@ -183,19 +183,24 @@
                             ->copy()
                             ->startOfDay();
                         $warrantyMinDate = $warrantyStartAt->copy()->addDay()->toDateString();
-                        $warrantyMaxDate = $warrantyStartAt->copy()->addDays(7)->toDateString();
                     @endphp
 
                     @foreach ($order->items as $item)
                         @php
                             $isWarrantyEligible =
                                 (int) $item->warranty_days > 0 || !is_null($item->warranty_expires_at);
+                            $productWarrantyDays = (int) ($item->product?->warranty_days_for_claim ?? 0);
+                            $itemMaxWarrantyDays = max(
+                                1,
+                                min(365, $productWarrantyDays > 0 ? $productWarrantyDays : (int) $item->warranty_days),
+                            );
+                            $itemWarrantyMaxDate = $warrantyStartAt
+                                ->copy()
+                                ->addDays($itemMaxWarrantyDays)
+                                ->toDateString();
                             $defaultWarrantyDate =
                                 optional($item->warranty_expires_at)->toDateString() ??
-                                $warrantyStartAt
-                                    ->copy()
-                                    ->addDays(max(1, min(7, (int) $item->warranty_days)))
-                                    ->toDateString();
+                                $warrantyStartAt->copy()->addDays($itemMaxWarrantyDays)->toDateString();
                         @endphp
                         <tr class="border-t">
                             <td class="p-3">
@@ -217,11 +222,11 @@
 
                                         <label
                                             class="block text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                                            Atur Tanggal Garansi (1-7 hari)
+                                            Atur Tanggal Garansi (1-{{ $itemMaxWarrantyDays }} hari)
                                         </label>
                                         <input type="date" name="warranty_expires_at"
                                             value="{{ old('warranty_expires_at', $defaultWarrantyDate) }}"
-                                            min="{{ $warrantyMinDate }}" max="{{ $warrantyMaxDate }}"
+                                            min="{{ $warrantyMinDate }}" max="{{ $itemWarrantyMaxDate }}"
                                             class="w-full rounded border-gray-300 text-xs focus:border-blue-500 focus:ring-blue-500"
                                             required>
                                         <button type="submit"

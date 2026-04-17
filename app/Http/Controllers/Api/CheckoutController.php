@@ -112,7 +112,7 @@ class CheckoutController extends Controller
                     $quantity = $itemPayload['quantity'];
                     $lineSubtotal = $itemPayload['line_subtotal'];
 
-                    $warrantyDays = $payloadProduct->is_electronic ? 7 : 0;
+                    $warrantyDays = (int) $payloadProduct->warranty_days_for_claim;
 
                     $order->items()->create([
                         'product_id' => $payloadProduct->id,

@@ -62,7 +62,7 @@
         </svg>
         <p class="text-sm text-blue-800">
             Garansi klaim hanya berlaku untuk <strong>produk elektronik</strong> dengan masa garansi maksimal
-            <strong>7 hari</strong> sejak tanggal pesanan.
+            <strong>365 hari</strong> (sesuai pengaturan tiap produk) sejak tanggal pesanan.
         </p>
     </div>
 
@@ -80,9 +80,11 @@
 
             <article class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
                 {{-- Header item --}}
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 bg-gray-50 px-5 py-4">
+                <div
+                    class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 bg-gray-50 px-5 py-4">
                     <div class="flex items-center gap-3">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full {{ $warrantyActive ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500' }}">
+                        <div
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full {{ $warrantyActive ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500' }}">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -99,12 +101,14 @@
 
                     <div class="text-right">
                         @if ($warrantyActive)
-                            <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+                            <span
+                                class="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
                                 <span class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
                                 Garansi Aktif
                             </span>
                         @else
-                            <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-500">
+                            <span
+                                class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-500">
                                 Garansi Berakhir
                             </span>
                         @endif
@@ -121,7 +125,8 @@
                             </p>
                             <p class="text-xs text-gray-600">
                                 Sisa waktu:
-                                <span class="font-semibold {{ $warrantyActive ? 'text-blue-700' : 'text-red-500' }}" data-warranty-countdown
+                                <span class="font-semibold {{ $warrantyActive ? 'text-blue-700' : 'text-red-500' }}"
+                                    data-warranty-countdown
                                     data-expires-at="{{ optional($item->warranty_expires_at)->toIso8601String() }}">
                                     Menghitung...
                                 </span>
@@ -130,7 +135,8 @@
                             @if ($latestClaim)
                                 <p class="mt-2 text-xs text-gray-500">
                                     Klaim terakhir:
-                                    <span class="font-semibold uppercase
+                                    <span
+                                        class="font-semibold uppercase
                                         {{ in_array($latestClaim->status, ['approved', 'resolved'], true) ? 'text-green-700' : ($latestClaim->status === 'rejected' ? 'text-red-700' : 'text-amber-700') }}">
                                         {{ $latestClaim->status }}
                                     </span>
@@ -151,7 +157,8 @@
                                             placeholder="Contoh: kipas tidak berputar" required>
                                     </div>
                                     <div>
-                                        <label class="mb-1 block text-xs font-semibold text-gray-600">Upload Bukti Kerusakan</label>
+                                        <label class="mb-1 block text-xs font-semibold text-gray-600">Upload Bukti
+                                            Kerusakan</label>
                                         <input type="file" name="damage_proof" accept="image/*,video/*"
                                             class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-gray-700 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                                             required>
@@ -164,12 +171,15 @@
                             @elseif ($hasOpenClaim)
                                 <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
                                     <div class="flex items-start gap-2">
-                                        <svg class="h-4 w-4 shrink-0 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        <svg class="h-4 w-4 shrink-0 text-amber-600 mt-0.5" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                         <div>
                                             <p class="text-sm font-semibold text-amber-800">Klaim Sedang Diproses</p>
-                                            <p class="mt-0.5 text-xs text-amber-700">Tim admin sedang meninjau klaim Anda. Pantau di tab Riwayat Klaim.</p>
+                                            <p class="mt-0.5 text-xs text-amber-700">Tim admin sedang meninjau klaim Anda.
+                                                Pantau di tab Riwayat Klaim.</p>
                                         </div>
                                     </div>
                                     <a href="{{ route('home.warranty-claims.index') }}"
@@ -216,7 +226,10 @@
 
             const renderCountdown = (element) => {
                 const expiresAt = element.getAttribute('data-expires-at');
-                if (!expiresAt) { element.textContent = '-'; return; }
+                if (!expiresAt) {
+                    element.textContent = '-';
+                    return;
+                }
 
                 const diff = new Date(expiresAt).getTime() - Date.now();
                 if (diff <= 0) {

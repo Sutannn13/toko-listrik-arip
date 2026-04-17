@@ -85,74 +85,80 @@
         </div>
     </form>
 
-    <div class="overflow-hidden rounded-lg bg-white shadow">
-        <table class="w-full border-collapse text-left">
-            <thead>
-                <tr class="bg-gray-800 text-sm uppercase tracking-wider text-white">
-                    <th class="p-4 font-medium">Kode</th>
-                    <th class="p-4 font-medium">Customer</th>
-                    <th class="p-4 font-medium">Alamat</th>
-                    <th class="p-4 font-medium">Total</th>
-                    <th class="p-4 font-medium">Payment</th>
-                    <th class="p-4 font-medium">Status</th>
-                    <th class="p-4 font-medium">Tanggal</th>
-                    <th class="p-4 text-right font-medium">Aksi</th>
-                </tr>
-            </thead>
-            <tbody class="text-gray-700">
-                @forelse($orders as $order)
-                    @php
-                        $latestPayment = $order->latestPayment;
-                        $hasLatestProof = filled($latestPayment?->proof_url);
-                    @endphp
-                    <tr class="border-b border-gray-200 hover:bg-gray-50">
-                        <td class="p-4 font-semibold text-gray-900">{{ $order->order_code }}</td>
-                        <td class="p-4">
-                            <p class="font-semibold">{{ $order->customer_name }}</p>
-                            <p class="text-xs text-gray-500">{{ $order->customer_email }}</p>
-                        </td>
-                        <td class="p-4 text-sm text-gray-600">
-                            @if ($order->address)
-                                <p class="font-semibold text-gray-800">{{ $order->address->city ?: '-' }}
-                                    {{ $order->address->province ? ', ' . $order->address->province : '' }}</p>
-                                <p class="text-xs text-gray-500">{{ $order->address->address_line ?: '-' }}</p>
-                            @else
-                                <p class="text-xs text-gray-400 italic">Alamat belum tersedia</p>
-                            @endif
-                        </td>
-                        <td class="p-4 font-bold text-cyan-700">Rp {{ number_format($order->total_amount, 0, ',', '.') }}
-                        </td>
-                        <td class="p-4">
-                            <span
-                                class="rounded-full px-2 py-1 text-xs font-bold uppercase {{ $order->payment_status === 'paid' ? 'bg-emerald-100 text-emerald-700' : ($order->payment_status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">
-                                {{ $order->payment_status }}
-                            </span>
-                            <p
-                                class="mt-1 text-[11px] font-semibold {{ $hasLatestProof ? 'text-cyan-700' : 'text-gray-500' }}">
-                                Proof terbaru: {{ $hasLatestProof ? 'uploaded' : 'missing' }}
-                            </p>
-                        </td>
-                        <td class="p-4">
-                            <span
-                                class="rounded-full px-2 py-1 text-xs font-bold uppercase {{ $order->status === 'completed' ? 'bg-emerald-100 text-emerald-700' : ($order->status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700') }}">
-                                {{ $order->status }}
-                            </span>
-                        </td>
-                        <td class="p-4 text-sm text-gray-500">
-                            {{ optional($order->placed_at)->format('d M Y H:i') ?? $order->created_at->format('d M Y H:i') }}
-                        </td>
-                        <td class="p-4 text-right">
-                            <a href="{{ route('admin.orders.show', $order) }}"
-                                class="font-semibold text-blue-600 transition hover:underline">Detail</a>
-                        </td>
+    <p class="mb-2 text-xs font-medium text-gray-500 sm:hidden">Geser tabel ke samping untuk melihat kolom detail dan aksi.
+    </p>
+    <div class="rounded-lg bg-white shadow">
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[1080px] border-collapse text-left">
+                <thead>
+                    <tr class="bg-gray-800 text-sm uppercase tracking-wider text-white">
+                        <th class="p-4 font-medium">Kode</th>
+                        <th class="p-4 font-medium">Customer</th>
+                        <th class="p-4 font-medium">Alamat</th>
+                        <th class="p-4 font-medium">Total</th>
+                        <th class="p-4 font-medium">Payment</th>
+                        <th class="p-4 font-medium">Status</th>
+                        <th class="p-4 font-medium">Tanggal</th>
+                        <th class="p-4 text-right font-medium">Aksi</th>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="p-6 text-center text-gray-500 italic">Belum ada pesanan tersimpan.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="text-gray-700">
+                    @forelse($orders as $order)
+                        @php
+                            $latestPayment = $order->latestPayment;
+                            $hasLatestProof = filled($latestPayment?->proof_url);
+                        @endphp
+                        <tr class="border-b border-gray-200 hover:bg-gray-50">
+                            <td class="p-4 font-semibold text-gray-900">{{ $order->order_code }}</td>
+                            <td class="p-4">
+                                <p class="font-semibold">{{ $order->customer_name }}</p>
+                                <p class="text-xs text-gray-500">{{ $order->customer_email }}</p>
+                            </td>
+                            <td class="p-4 text-sm text-gray-600">
+                                @if ($order->address)
+                                    <p class="font-semibold text-gray-800">{{ $order->address->city ?: '-' }}
+                                        {{ $order->address->province ? ', ' . $order->address->province : '' }}</p>
+                                    <p class="text-xs text-gray-500">{{ $order->address->address_line ?: '-' }}</p>
+                                @else
+                                    <p class="text-xs text-gray-400 italic">Alamat belum tersedia</p>
+                                @endif
+                            </td>
+                            <td class="p-4 font-bold text-cyan-700">Rp
+                                {{ number_format($order->total_amount, 0, ',', '.') }}
+                            </td>
+                            <td class="p-4">
+                                <span
+                                    class="rounded-full px-2 py-1 text-xs font-bold uppercase {{ $order->payment_status === 'paid' ? 'bg-emerald-100 text-emerald-700' : ($order->payment_status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">
+                                    {{ $order->payment_status }}
+                                </span>
+                                <p
+                                    class="mt-1 text-[11px] font-semibold {{ $hasLatestProof ? 'text-cyan-700' : 'text-gray-500' }}">
+                                    Proof terbaru: {{ $hasLatestProof ? 'uploaded' : 'missing' }}
+                                </p>
+                            </td>
+                            <td class="p-4">
+                                <span
+                                    class="rounded-full px-2 py-1 text-xs font-bold uppercase {{ $order->status === 'completed' ? 'bg-emerald-100 text-emerald-700' : ($order->status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700') }}">
+                                    {{ $order->status }}
+                                </span>
+                            </td>
+                            <td class="p-4 text-sm text-gray-500">
+                                {{ optional($order->placed_at)->format('d M Y H:i') ?? $order->created_at->format('d M Y H:i') }}
+                            </td>
+                            <td class="p-4 text-right">
+                                <a href="{{ route('admin.orders.show', $order) }}"
+                                    class="font-semibold text-blue-600 transition hover:underline">Detail</a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="p-6 text-center text-gray-500 italic">Belum ada pesanan tersimpan.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 
     @if ($orders->hasPages())

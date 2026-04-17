@@ -10,6 +10,7 @@ class AiProviderResponderService
 {
     public function __construct(
         private readonly StoreKnowledgeService $storeKnowledge,
+        private readonly CustomerVoiceInsightService $customerVoiceInsight,
     ) {}
 
     public function enhanceReply(string $intent, string $message, string $toolReply, array $suggestions = [], array $dataContext = []): ?array
@@ -297,6 +298,7 @@ class AiProviderResponderService
     private function buildSystemPrompt(string $intent): string
     {
         $storeContext = $this->storeKnowledge->buildKnowledgeContext();
+        $customerVoiceContext = $this->customerVoiceInsight->buildCustomerVoiceContext();
         $catalogSummary = $this->storeKnowledge->buildProductCatalogSummary();
 
         $personality = implode("\n", [
@@ -336,6 +338,9 @@ class AiProviderResponderService
             '# DATA TOKO (SUMBER KEBENARAN)',
             $storeContext,
             '',
+            '# SUARA USER & MASALAH PRODUK TERBARU',
+            $customerVoiceContext,
+            '',
             $catalogSummary,
         ];
 
@@ -348,6 +353,7 @@ class AiProviderResponderService
             $sections[] = '- Sertakan tips penggunaan jika relevan (misalnya: watt ideal, warm white vs cool daylight, hemat listrik, dll).';
             $sections[] = '- Gunakan pengetahuan umum tentang produk listrik untuk memberikan saran yang bermanfaat dan meyakinkan.';
             $sections[] = '- Jika produk yang pas tidak tersedia, sarankan alternatif terdekat atau hubungi WhatsApp toko.';
+            $sections[] = '- Jika [INTERNAL KNOWLEDGE] menyertakan web_search, gunakan itu sebagai referensi tambahan dan tampilkan sumber URL secara ringkas.';
         }
 
         if ($intent === 'store_info') {
@@ -403,7 +409,7 @@ class AiProviderResponderService
             $sections[] = '- "Paket hilang" → Arahkan cek resi di menu Cek Pesanan. Jika resi valid dan sudah lama, hubungi WA admin.';
             $sections[] = '';
             $sections[] = '## TEMPLATE MASALAH PRODUK';
-            $sections[] = '- "Barang rusak/tidak sesuai" → Cek apakah masih dalam masa garansi (7 hari untuk elektronik). Jika ya, ajukan klaim garansi di menu Garansi. Jelaskan step-by-step cara klaim.';
+            $sections[] = '- "Barang rusak/tidak sesuai" → Cek apakah masih dalam masa garansi (sesuai produk, maksimal 365 hari untuk elektronik). Jika ya, ajukan klaim garansi di menu Garansi. Jelaskan step-by-step cara klaim.';
             $sections[] = '- "Barang kurang/salah" → Minta maaf, dan arahkan WA admin dengan kode pesanan untuk pengecekan.';
             $sections[] = '';
             $sections[] = '## TEMPLATE MASALAH AKUN';
@@ -477,7 +483,7 @@ class AiProviderResponderService
             }
         }
 
-        $rawDataText = count($dataContext) > 0 
+        $rawDataText = count($dataContext) > 0
             ? "[INTERNAL KNOWLEDGE]\n" . json_encode($dataContext, JSON_PRETTY_PRINT) . "\n[/INTERNAL KNOWLEDGE]"
             : '';
 
@@ -494,6 +500,7 @@ class AiProviderResponderService
             'Berikan balasan LANGSUNG kepada pelanggan (sebagai manusia, CS HS Electric).',
             'Jawab dengan gaya kasual, pintar, empati tinggi. JANGAN JADIKAN POIN-POIN KAKU.',
             'Jika ada [INTERNAL KNOWLEDGE], itu adalah otakmu. Pahami nilainya dan sampaikan dengan bahasamu sendiri (jangan sebut kata "knowledge" atau "json").',
+            'Jika ada data web_search di INTERNAL KNOWLEDGE, gunakan sebagai referensi tambahan dan sebutkan sumber URL agar pelanggan bisa cek mandiri.',
         ]);
     }
 

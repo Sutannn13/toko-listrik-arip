@@ -96,141 +96,147 @@
         </div>
     </form>
 
-    <div class="overflow-hidden rounded-lg bg-white shadow">
-        <table class="w-full border-collapse text-left">
-            <thead>
-                <tr class="bg-gray-800 text-sm uppercase tracking-wider text-white">
-                    <th class="p-4 font-medium">Kode Klaim</th>
-                    <th class="p-4 font-medium">Order</th>
-                    <th class="p-4 font-medium">Kategori</th>
-                    <th class="p-4 font-medium">Status & SLA</th>
-                    <th class="p-4 font-medium">Update Terakhir</th>
-                    <th class="p-4 font-medium">Aksi Admin</th>
-                </tr>
-            </thead>
-            <tbody class="text-gray-700">
-                @forelse ($claims as $claim)
-                    <tr class="border-b border-gray-200 align-top hover:bg-gray-50">
-                        <td class="p-4">
-                            <p class="font-semibold text-cyan-700">{{ $claim->claim_code }}</p>
-                            <p class="text-xs text-gray-500">
-                                {{ optional($claim->requested_at)->format('d M Y H:i') ?: $claim->created_at->format('d M Y H:i') }}
-                            </p>
-                        </td>
-                        <td class="p-4">
-                            @if ($claim->order)
-                                <a href="{{ route('admin.orders.show', $claim->order) }}"
-                                    class="font-semibold text-blue-600 hover:underline">
-                                    {{ $claim->order->order_code }}
+    <p class="mb-2 text-xs font-medium text-gray-500 sm:hidden">Geser tabel ke samping untuk melihat seluruh kolom
+        monitoring klaim.</p>
+    <div class="rounded-lg bg-white shadow">
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[1120px] border-collapse text-left">
+                <thead>
+                    <tr class="bg-gray-800 text-sm uppercase tracking-wider text-white">
+                        <th class="p-4 font-medium">Kode Klaim</th>
+                        <th class="p-4 font-medium">Order</th>
+                        <th class="p-4 font-medium">Kategori</th>
+                        <th class="p-4 font-medium">Status & SLA</th>
+                        <th class="p-4 font-medium">Update Terakhir</th>
+                        <th class="p-4 font-medium">Aksi Admin</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-700">
+                    @forelse ($claims as $claim)
+                        <tr class="border-b border-gray-200 align-top hover:bg-gray-50">
+                            <td class="p-4">
+                                <p class="font-semibold text-cyan-700">{{ $claim->claim_code }}</p>
+                                <p class="text-xs text-gray-500">
+                                    {{ optional($claim->requested_at)->format('d M Y H:i') ?: $claim->created_at->format('d M Y H:i') }}
+                                </p>
+                            </td>
+                            <td class="p-4">
+                                @if ($claim->order)
+                                    <a href="{{ route('admin.orders.show', $claim->order) }}"
+                                        class="font-semibold text-blue-600 hover:underline">
+                                        {{ $claim->order->order_code }}
+                                    </a>
+                                    <p class="mt-1 text-[11px] uppercase text-gray-500">Payment:
+                                        {{ $claim->order->payment_status }}</p>
+                                @else
+                                    <p class="text-sm text-gray-500">Order tidak ditemukan</p>
+                                @endif
+
+                                <p class="mt-2 text-xs text-gray-600">
+                                    {{ $claim->orderItem->product_name ?? 'Item tidak ditemukan' }}
+                                </p>
+                                <p class="text-[11px] text-gray-500">Qty: {{ $claim->orderItem->quantity ?? '-' }}</p>
+                            </td>
+
+                            <td class="p-4">
+                                @if ($claim->orderItem?->product?->is_electronic)
+                                    <span
+                                        class="inline-flex rounded bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700">
+                                        Elektronik
+                                    </span>
+                                @else
+                                    <span
+                                        class="inline-flex rounded bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">
+                                        Non-elektronik
+                                    </span>
+                                @endif
+
+                                @php
+                                    $ageHours = (int) ($claim->claim_age_hours ?? 0);
+                                    $ageDays = intdiv($ageHours, 24);
+                                    $ageRemainder = $ageHours % 24;
+                                @endphp
+                                <p class="mt-2 text-[11px] text-gray-500">
+                                    Umur klaim: {{ $ageDays }}h {{ $ageRemainder }}j
+                                </p>
+                            </td>
+
+                            <td class="p-4">
+                                <span
+                                    class="rounded-full px-2 py-1 text-xs font-bold uppercase {{ in_array($claim->status, ['approved', 'resolved'], true) ? 'bg-emerald-100 text-emerald-700' : ($claim->status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">
+                                    {{ $claim->status }}
+                                </span>
+
+                                <p class="mt-2 text-xs text-gray-600">
+                                    SLA deadline:
+                                    {{ optional($claim->sla_deadline)->format('d M Y H:i') ?? '-' }}
+                                </p>
+
+                                @if ($claim->is_sla_overdue)
+                                    <p
+                                        class="mt-1 inline-flex rounded bg-red-100 px-2 py-1 text-[11px] font-semibold text-red-700">
+                                        Melewati SLA 2x24 jam
+                                    </p>
+                                @else
+                                    <p
+                                        class="mt-1 inline-flex rounded bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                                        Dalam SLA
+                                    </p>
+                                @endif
+
+                                <p class="mt-2 text-xs text-gray-600 line-clamp-3">{{ $claim->reason }}</p>
+                            </td>
+
+                            <td class="p-4">
+                                @php $latestActivity = $claim->activities->first(); @endphp
+                                <p class="text-sm font-semibold text-gray-800">
+                                    {{ $latestActivity?->created_at?->format('d M Y H:i') ?? $claim->updated_at->format('d M Y H:i') }}
+                                </p>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    {{ strtoupper($latestActivity?->action ?? 'status') }}
+                                </p>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Oleh: {{ $latestActivity?->actor_name ?? 'System' }}
+                                </p>
+                            </td>
+
+                            <td class="p-4">
+                                <a href="{{ route('admin.warranty-claims.show', $claim) }}"
+                                    class="mb-2 inline-flex text-xs font-semibold text-blue-600 hover:underline">
+                                    Lihat Detail Timeline
                                 </a>
-                                <p class="mt-1 text-[11px] uppercase text-gray-500">Payment:
-                                    {{ $claim->order->payment_status }}</p>
-                            @else
-                                <p class="text-sm text-gray-500">Order tidak ditemukan</p>
-                            @endif
 
-                            <p class="mt-2 text-xs text-gray-600">
-                                {{ $claim->orderItem->product_name ?? 'Item tidak ditemukan' }}
-                            </p>
-                            <p class="text-[11px] text-gray-500">Qty: {{ $claim->orderItem->quantity ?? '-' }}</p>
-                        </td>
-
-                        <td class="p-4">
-                            @if ($claim->orderItem?->product?->is_electronic)
-                                <span class="inline-flex rounded bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700">
-                                    Elektronik
-                                </span>
-                            @else
-                                <span class="inline-flex rounded bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">
-                                    Non-elektronik
-                                </span>
-                            @endif
-
-                            @php
-                                $ageHours = (int) ($claim->claim_age_hours ?? 0);
-                                $ageDays = intdiv($ageHours, 24);
-                                $ageRemainder = $ageHours % 24;
-                            @endphp
-                            <p class="mt-2 text-[11px] text-gray-500">
-                                Umur klaim: {{ $ageDays }}h {{ $ageRemainder }}j
-                            </p>
-                        </td>
-
-                        <td class="p-4">
-                            <span
-                                class="rounded-full px-2 py-1 text-xs font-bold uppercase {{ in_array($claim->status, ['approved', 'resolved'], true) ? 'bg-emerald-100 text-emerald-700' : ($claim->status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">
-                                {{ $claim->status }}
-                            </span>
-
-                            <p class="mt-2 text-xs text-gray-600">
-                                SLA deadline:
-                                {{ optional($claim->sla_deadline)->format('d M Y H:i') ?? '-' }}
-                            </p>
-
-                            @if ($claim->is_sla_overdue)
-                                <p
-                                    class="mt-1 inline-flex rounded bg-red-100 px-2 py-1 text-[11px] font-semibold text-red-700">
-                                    Melewati SLA 2x24 jam
-                                </p>
-                            @else
-                                <p
-                                    class="mt-1 inline-flex rounded bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">
-                                    Dalam SLA
-                                </p>
-                            @endif
-
-                            <p class="mt-2 text-xs text-gray-600 line-clamp-3">{{ $claim->reason }}</p>
-                        </td>
-
-                        <td class="p-4">
-                            @php $latestActivity = $claim->activities->first(); @endphp
-                            <p class="text-sm font-semibold text-gray-800">
-                                {{ $latestActivity?->created_at?->format('d M Y H:i') ?? $claim->updated_at->format('d M Y H:i') }}
-                            </p>
-                            <p class="mt-1 text-xs text-gray-500">
-                                {{ strtoupper($latestActivity?->action ?? 'status') }}
-                            </p>
-                            <p class="mt-1 text-xs text-gray-500">
-                                Oleh: {{ $latestActivity?->actor_name ?? 'System' }}
-                            </p>
-                        </td>
-
-                        <td class="p-4">
-                            <a href="{{ route('admin.warranty-claims.show', $claim) }}"
-                                class="mb-2 inline-flex text-xs font-semibold text-blue-600 hover:underline">
-                                Lihat Detail Timeline
-                            </a>
-
-                            <form action="{{ route('admin.warranty-claims.update-status', $claim) }}" method="POST"
-                                class="space-y-2">
-                                @csrf
-                                @method('PATCH')
-                                <select name="status"
-                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500">
-                                    @foreach (['submitted', 'reviewing', 'approved', 'rejected', 'resolved'] as $status)
-                                        <option value="{{ $status }}" @selected($claim->status === $status)>
-                                            {{ ucfirst($status) }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <textarea name="admin_notes" rows="2"
-                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
-                                    placeholder="Catatan admin (wajib isi jika status rejected)...">{{ $claim->admin_notes }}</textarea>
-                                <button type="submit"
-                                    class="w-full rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700">
-                                    Update Klaim
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6" class="p-6 text-center text-gray-500 italic">Belum ada klaim garansi masuk.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                                <form action="{{ route('admin.warranty-claims.update-status', $claim) }}" method="POST"
+                                    class="space-y-2">
+                                    @csrf
+                                    @method('PATCH')
+                                    <select name="status"
+                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                        @foreach (['submitted', 'reviewing', 'approved', 'rejected', 'resolved'] as $status)
+                                            <option value="{{ $status }}" @selected($claim->status === $status)>
+                                                {{ ucfirst($status) }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <textarea name="admin_notes" rows="2"
+                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                                        placeholder="Catatan admin (wajib isi jika status rejected)...">{{ $claim->admin_notes }}</textarea>
+                                    <button type="submit"
+                                        class="w-full rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700">
+                                        Update Klaim
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="p-6 text-center text-gray-500 italic">Belum ada klaim garansi masuk.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 
     @if ($claims->hasPages())

@@ -76,10 +76,20 @@ class AiIntentRouterService
     private function isConversationalMessage(string $message): bool
     {
         $greetings = [
-            'halo', 'hello', 'hi', 'hai', 'hey',
-            'assalamualaikum', 'assalamu',
-            'selamat pagi', 'selamat siang', 'selamat sore', 'selamat malam',
-            'permisi', 'maaf', 'misi',
+            'halo',
+            'hello',
+            'hi',
+            'hai',
+            'hey',
+            'assalamualaikum',
+            'assalamu',
+            'selamat pagi',
+            'selamat siang',
+            'selamat sore',
+            'selamat malam',
+            'permisi',
+            'maaf',
+            'misi',
         ];
 
         $hasGreeting = false;
@@ -96,12 +106,29 @@ class AiIntentRouterService
 
         // If it has a greeting + casual question pattern, route to FAQ
         $casualPatterns = [
-            'jualan', 'jual ga', 'jual gak', 'jual nggak', 'jual tidak',
-            'ada ga', 'ada gak', 'ada nggak', 'ada tidak',
-            'punya ga', 'punya gak', 'punya tidak',
-            'boleh tanya', 'boleh nanya', 'mau tanya', 'mau nanya',
-            'apakah', 'bisa chat', 'boleh chat',
-            'terima kasih', 'makasih', 'thanks', 'thank you',
+            'jualan',
+            'jual ga',
+            'jual gak',
+            'jual nggak',
+            'jual tidak',
+            'ada ga',
+            'ada gak',
+            'ada nggak',
+            'ada tidak',
+            'punya ga',
+            'punya gak',
+            'punya tidak',
+            'boleh tanya',
+            'boleh nanya',
+            'mau tanya',
+            'mau nanya',
+            'apakah',
+            'bisa chat',
+            'boleh chat',
+            'terima kasih',
+            'makasih',
+            'thanks',
+            'thank you',
         ];
 
         foreach ($casualPatterns as $pattern) {
@@ -257,11 +284,27 @@ class AiIntentRouterService
             return true;
         }
 
+        if ($this->containsExternalSearchHint($message)) {
+            return true;
+        }
+
         $recommendationKeywords = [
             'rekomendasi',
             'saran produk',
+            'produk',
+            'product',
             'produk apa',
             'cari produk',
+            'cari product',
+            'deskripsi produk',
+            'deskripsi',
+            'spesifikasi',
+            'fitur produk',
+            'search engine',
+            'cari di internet',
+            'cari di google',
+            'search produk',
+            'search product',
             'budget',
             'murah',
             'stok',
@@ -295,6 +338,33 @@ class AiIntentRouterService
             if (str_contains($message, $keyword)) {
                 return true;
             }
+        }
+
+        return false;
+    }
+
+    private function containsExternalSearchHint(string $message): bool
+    {
+        $externalSearchKeywords = [
+            'search engine',
+            'search google',
+            'cari di google',
+            'cari di internet',
+            'hasil pencarian',
+            'googling',
+            'googlekan',
+            'cari web',
+            'cek internet',
+        ];
+
+        foreach ($externalSearchKeywords as $keyword) {
+            if (str_contains($message, $keyword)) {
+                return true;
+            }
+        }
+
+        if (preg_match('/\b(?:produk|product)\s+[a-z0-9]{1,10}\b/i', $message) === 1) {
+            return true;
         }
 
         return false;
@@ -374,33 +444,84 @@ class AiIntentRouterService
     {
         $troubleshootingKeywords = [
             // Payment issues
-            'pembayaran ditolak', 'bayar ditolak', 'pembayaran gagal', 'gagal bayar',
-            'tidak bisa bayar', 'ga bisa bayar', 'gak bisa bayar',
-            'bukti ditolak', 'proof ditolak', 'upload gagal', 'gagal upload',
-            'sudah transfer tapi', 'sudah bayar tapi', 'udah bayar tapi', 'udah transfer tapi',
+            'pembayaran ditolak',
+            'bayar ditolak',
+            'pembayaran gagal',
+            'gagal bayar',
+            'tidak bisa bayar',
+            'ga bisa bayar',
+            'gak bisa bayar',
+            'bukti ditolak',
+            'proof ditolak',
+            'upload gagal',
+            'gagal upload',
+            'sudah transfer tapi',
+            'sudah bayar tapi',
+            'udah bayar tapi',
+            'udah transfer tapi',
 
             // Order/delivery issues
-            'pesanan hilang', 'paket hilang', 'barang hilang',
-            'pesanan salah', 'barang salah', 'salah kirim', 'salah alamat',
-            'belum dikirim', 'belum diproses', 'lama sekali', 'lama banget',
-            'tidak direspon', 'ga direspon', 'gak direspon',
-            'pesanan dibatalkan', 'kenapa dibatalkan', 'kenapa batal',
+            'pesanan hilang',
+            'paket hilang',
+            'barang hilang',
+            'pesanan salah',
+            'barang salah',
+            'salah kirim',
+            'salah alamat',
+            'belum dikirim',
+            'belum diproses',
+            'lama sekali',
+            'lama banget',
+            'tidak direspon',
+            'ga direspon',
+            'gak direspon',
+            'pesanan dibatalkan',
+            'kenapa dibatalkan',
+            'kenapa batal',
 
             // Product issues
-            'barang rusak', 'produk rusak', 'cacat', 'pecah', 'retak',
-            'tidak sesuai', 'ga sesuai', 'gak sesuai', 'beda sama', 'beda dengan',
-            'kurang', 'tidak lengkap', 'ga lengkap', 'kurang item',
+            'barang rusak',
+            'produk rusak',
+            'cacat',
+            'pecah',
+            'retak',
+            'tidak sesuai',
+            'ga sesuai',
+            'gak sesuai',
+            'beda sama',
+            'beda dengan',
+            'kurang',
+            'tidak lengkap',
+            'ga lengkap',
+            'kurang item',
 
             // Account issues
-            'tidak bisa login', 'ga bisa login', 'gak bisa login',
-            'akun diblokir', 'akun disuspend', 'tidak bisa masuk',
-            'email salah', 'verifikasi email',
+            'tidak bisa login',
+            'ga bisa login',
+            'gak bisa login',
+            'akun diblokir',
+            'akun disuspend',
+            'tidak bisa masuk',
+            'email salah',
+            'verifikasi email',
 
             // General problem-solving triggers
-            'masalah', 'kendala', 'error', 'bermasalah', 'trouble',
-            'tidak bisa', 'ga bisa', 'gak bisa', 'gabisa', 'ngga bisa',
-            'solusi', 'gimana dong', 'tolong bantu', 'minta tolong',
-            'kenapa', 'mengapa',
+            'masalah',
+            'kendala',
+            'error',
+            'bermasalah',
+            'trouble',
+            'tidak bisa',
+            'ga bisa',
+            'gak bisa',
+            'gabisa',
+            'ngga bisa',
+            'solusi',
+            'gimana dong',
+            'tolong bantu',
+            'minta tolong',
+            'kenapa',
+            'mengapa',
         ];
 
         foreach ($troubleshootingKeywords as $keyword) {
@@ -421,28 +542,74 @@ class AiIntentRouterService
     {
         $emotionalKeywords = [
             // Frustration / anger
-            'kesal', 'kesel', 'sebel', 'jengkel', 'emosi', 'marah',
-            'nyesel', 'menyesal', 'kapok', 'kecewa berat', 'sangat kecewa',
-            'parah banget', 'parah sih', 'ampun deh', 'ga becus', 'gak becus',
+            'kesal',
+            'kesel',
+            'sebel',
+            'jengkel',
+            'emosi',
+            'marah',
+            'nyesel',
+            'menyesal',
+            'kapok',
+            'kecewa berat',
+            'sangat kecewa',
+            'parah banget',
+            'parah sih',
+            'ampun deh',
+            'ga becus',
+            'gak becus',
 
             // Sadness / disappointment
-            'kecewa', 'sedih', 'down', 'bete', 'bt', 'bosen',
-            'nangis', 'mau nangis', 'putus asa', 'hopeless',
-            'nyerah', 'cape', 'capek', 'capek banget', 'lelah',
+            'kecewa',
+            'sedih',
+            'down',
+            'bete',
+            'bt',
+            'bosen',
+            'nangis',
+            'mau nangis',
+            'putus asa',
+            'hopeless',
+            'nyerah',
+            'cape',
+            'capek',
+            'capek banget',
+            'lelah',
 
             // Confusion / feeling lost
-            'pusing', 'mumet', 'bingung banget', 'frustasi', 'stress',
-            'ribet', 'ribet banget', 'susah banget', 'rumit',
-            'gajelas', 'ga jelas', 'gak jelas',
+            'pusing',
+            'mumet',
+            'bingung banget',
+            'frustasi',
+            'stress',
+            'ribet',
+            'ribet banget',
+            'susah banget',
+            'rumit',
+            'gajelas',
+            'ga jelas',
+            'gak jelas',
 
             // Curhat / venting patterns
-            'curhat', 'curcol', 'pengen cerita', 'mau cerita',
-            'udah capek', 'udah lelah', 'udah bosen',
-            'percuma', 'sia-sia', 'buang waktu', 'rugi',
+            'curhat',
+            'curcol',
+            'pengen cerita',
+            'mau cerita',
+            'udah capek',
+            'udah lelah',
+            'udah bosen',
+            'percuma',
+            'sia-sia',
+            'buang waktu',
+            'rugi',
 
             // Seeking validation
-            'wajar ga sih', 'wajar gak sih', 'normal ga', 'normal gak',
-            'apa cuma aku', 'apa cuma saya',
+            'wajar ga sih',
+            'wajar gak sih',
+            'normal ga',
+            'normal gak',
+            'apa cuma aku',
+            'apa cuma saya',
         ];
 
         foreach ($emotionalKeywords as $keyword) {
@@ -462,9 +629,24 @@ class AiIntentRouterService
     {
         // Only match if message does NOT contain any store-related keywords
         $storeRelated = [
-            'produk', 'beli', 'toko', 'pesanan', 'order', 'bayar', 'kirim',
-            'lampu', 'kabel', 'saklar', 'listrik', 'garansi', 'harga',
-            'stok', 'checkout', 'keranjang', 'alamat', 'profil',
+            'produk',
+            'beli',
+            'toko',
+            'pesanan',
+            'order',
+            'bayar',
+            'kirim',
+            'lampu',
+            'kabel',
+            'saklar',
+            'listrik',
+            'garansi',
+            'harga',
+            'stok',
+            'checkout',
+            'keranjang',
+            'alamat',
+            'profil',
         ];
 
         foreach ($storeRelated as $keyword) {
@@ -475,29 +657,68 @@ class AiIntentRouterService
 
         $offTopicKeywords = [
             // Politics & news
-            'politik', 'pilpres', 'pemilu', 'presiden', 'capres',
-            'partai', 'korupsi', 'demonstrasi', 'demo',
+            'politik',
+            'pilpres',
+            'pemilu',
+            'presiden',
+            'capres',
+            'partai',
+            'korupsi',
+            'demonstrasi',
+            'demo',
 
             // Weather
-            'cuaca', 'hujan', 'panas', 'mendung', 'cerah',
+            'cuaca',
+            'hujan',
+            'panas',
+            'mendung',
+            'cerah',
 
             // Entertainment
-            'film', 'drama', 'drakor', 'anime', 'game', 'musik',
-            'konser', 'artis', 'selebriti', 'gosip',
+            'film',
+            'drama',
+            'drakor',
+            'anime',
+            'game',
+            'musik',
+            'konser',
+            'artis',
+            'selebriti',
+            'gosip',
 
             // Sports
-            'bola', 'sepak bola', 'liga', 'timnas', 'piala',
+            'bola',
+            'sepak bola',
+            'liga',
+            'timnas',
+            'piala',
 
             // Food (not products)
-            'resep', 'masak', 'makanan', 'restoran', 'cafe',
+            'resep',
+            'masak',
+            'makanan',
+            'restoran',
+            'cafe',
 
             // General chit-chat
-            'zodiak', 'ramalan', 'horoscope', 'mimpi',
-            'jodoh', 'pacar', 'gebetan', 'mantan',
+            'zodiak',
+            'ramalan',
+            'horoscope',
+            'mimpi',
+            'jodoh',
+            'pacar',
+            'gebetan',
+            'mantan',
 
             // Tech unrelated
-            'iphone', 'samsung', 'laptop', 'komputer', 'hp',
-            'android', 'ios', 'windows',
+            'iphone',
+            'samsung',
+            'laptop',
+            'komputer',
+            'hp',
+            'android',
+            'ios',
+            'windows',
         ];
 
         foreach ($offTopicKeywords as $keyword) {
@@ -515,13 +736,25 @@ class AiIntentRouterService
     private function isNewbieMessage(string $message): bool
     {
         $newbieKeywords = [
-            'pertama kali', 'baru pertama', 'baru pertama kali',
-            'gak ngerti teknologi', 'ga ngerti teknologi', 'gaptek',
-            'awam', 'pemula', 'newbie', 'noob',
-            'baru belajar', 'belum pernah', 'blm pernah',
-            'ga pernah belanja online', 'gak pernah belanja online',
-            'pertama belanja', 'baru mau coba',
-            'gimana ya caranya', 'cara nya gimana ya',
+            'pertama kali',
+            'baru pertama',
+            'baru pertama kali',
+            'gak ngerti teknologi',
+            'ga ngerti teknologi',
+            'gaptek',
+            'awam',
+            'pemula',
+            'newbie',
+            'noob',
+            'baru belajar',
+            'belum pernah',
+            'blm pernah',
+            'ga pernah belanja online',
+            'gak pernah belanja online',
+            'pertama belanja',
+            'baru mau coba',
+            'gimana ya caranya',
+            'cara nya gimana ya',
         ];
 
         foreach ($newbieKeywords as $keyword) {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Support\UniqueSlugGenerator;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -40,8 +41,14 @@ class ProductController extends Controller
             'description'  => 'nullable|string',
             'image'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
             'is_electronic' => 'nullable|boolean',
+            'warranty_days' => 'nullable|integer|min:1|max:365|required_if:is_electronic,1',
             'is_active'    => 'nullable|boolean',
         ]);
+
+        $isElectronicProduct = (bool) ($validated['is_electronic'] ?? false);
+        $warrantyDays = $isElectronicProduct
+            ? max(1, min(365, (int) ($validated['warranty_days'] ?? 7)))
+            : 0;
 
         $imagePath = null;
         if ($request->hasFile('image')) {
@@ -58,7 +65,8 @@ class ProductController extends Controller
             'stock'        => $validated['stock'],
             'unit'         => $validated['unit'],
             'is_active'    => (bool) ($validated['is_active'] ?? true),
-            'is_electronic' => (bool) ($validated['is_electronic'] ?? false),
+            'is_electronic' => $isElectronicProduct,
+            'warranty_days' => $warrantyDays,
         ]);
 
         return redirect()->route('admin.products.index')
@@ -92,8 +100,14 @@ class ProductController extends Controller
             'image'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
             'remove_image' => 'nullable|boolean',
             'is_electronic' => 'nullable|boolean',
+            'warranty_days' => 'nullable|integer|min:1|max:365|required_if:is_electronic,1',
             'is_active'    => 'nullable|boolean',
         ]);
+
+        $isElectronicProduct = (bool) ($validated['is_electronic'] ?? false);
+        $warrantyDays = $isElectronicProduct
+            ? max(1, min(365, (int) ($validated['warranty_days'] ?? max(1, (int) $product->warranty_days))))
+            : 0;
 
         // Regenerate slug only if name changed
         $slug = $product->slug;
@@ -127,7 +141,8 @@ class ProductController extends Controller
             'stock'        => $validated['stock'],
             'unit'         => $validated['unit'],
             'is_active'    => (bool) ($validated['is_active'] ?? false),
-            'is_electronic' => (bool) ($validated['is_electronic'] ?? false),
+            'is_electronic' => $isElectronicProduct,
+            'warranty_days' => $warrantyDays,
         ]);
 
         return redirect()->route('admin.products.index')
@@ -160,23 +175,29 @@ class ProductController extends Controller
 
     public function destroy(string $id)
     {
-        $product = Product::findOrFail($id);
-        $name    = $product->name;
+        $product = Product::withCount('orderItems')->findOrFail($id);
+        $name = $product->name;
+        $orderHistoryCount = (int) $product->order_items_count;
 
-        // Guard: Jangan hapus produk yang sudah pernah dipesan.
-        // Ini menjaga integritas data order history dan warranty claims.
-        if ($product->orderItems()->exists()) {
+        try {
+            if (! empty($product->image_path)) {
+                Storage::disk('public')->delete($product->image_path);
+            }
+
+            $product->delete();
+        } catch (QueryException $exception) {
+            report($exception);
+
             return redirect()->route('admin.products.index')
-                ->with('error', "Produk \"{$name}\" tidak bisa dihapus karena sudah memiliki riwayat pesanan. Nonaktifkan saja produk ini.");
+                ->with('error', "Produk \"{$name}\" gagal dihapus karena masih dipakai data lain.");
         }
 
-        if (! empty($product->image_path)) {
-            Storage::disk('public')->delete($product->image_path);
+        $successMessage = "Produk \"{$name}\" berhasil dihapus.";
+        if ($orderHistoryCount > 0) {
+            $successMessage .= ' Riwayat pesanan tetap tersimpan aman.';
         }
-
-        $product->delete();
 
         return redirect()->route('admin.products.index')
-            ->with('success', "Produk \"{$name}\" berhasil dihapus.");
+            ->with('success', $successMessage);
     }
 }

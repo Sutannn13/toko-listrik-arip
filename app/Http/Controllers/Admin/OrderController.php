@@ -80,6 +80,7 @@ class OrderController extends Controller
             'user:id,name,email',
             'address',
             'items.warrantyClaims.user:id,name,email',
+            'items.product:id,is_electronic,warranty_days',
             'payments',
             'warrantyClaims.user:id,name,email',
         ]);
@@ -465,18 +466,18 @@ class OrderController extends Controller
             ->startOfDay();
 
         $minWarrantyDate = $warrantyStart->copy()->addDay()->startOfDay();
-        $maxWarrantyDate = $warrantyStart->copy()->addDays(7)->endOfDay();
+        $maxWarrantyDate = $warrantyStart->copy()->addDays(365)->endOfDay();
         $requestedWarrantyExpiry = Carbon::parse($validated['warranty_expires_at'])->endOfDay();
 
         if ($requestedWarrantyExpiry->lt($minWarrantyDate) || $requestedWarrantyExpiry->gt($maxWarrantyDate)) {
             return redirect()->route('admin.orders.show', $order)
-                ->with('error', 'Tanggal garansi harus di rentang 1 sampai maksimal 7 hari dari tanggal pesanan.');
+                ->with('error', 'Tanggal garansi harus di rentang 1 sampai maksimal 365 hari dari tanggal pesanan.');
         }
 
         try {
             DB::transaction(function () use ($order, $orderItem, $warrantyStart, $requestedWarrantyExpiry) {
                 $lockedOrderItem = OrderItem::query()
-                    ->with('product:id,is_electronic')
+                    ->with('product:id,is_electronic,warranty_days')
                     ->whereKey($orderItem->id)
                     ->where('order_id', $order->id)
                     ->lockForUpdate()
@@ -493,6 +494,11 @@ class OrderController extends Controller
                 }
 
                 $warrantyDays = (int) $warrantyStart->diffInDays($requestedWarrantyExpiry->copy()->startOfDay());
+                $maxWarrantyDays = max(1, min(365, (int) ($lockedOrderItem->product?->warranty_days_for_claim ?: $lockedOrderItem->warranty_days)));
+
+                if ($warrantyDays > $maxWarrantyDays) {
+                    throw new \RuntimeException('WARRANTY_EXCEEDS_PRODUCT_MAX_' . $maxWarrantyDays);
+                }
 
                 $lockedOrderItem->update([
                     'warranty_days' => $warrantyDays,
@@ -503,6 +509,13 @@ class OrderController extends Controller
             if ($e->getMessage() === 'NON_ELECTRONIC_PRODUCT') {
                 return redirect()->route('admin.orders.show', $order)
                     ->with('error', 'Produk non-elektronik tidak dapat diberi garansi klaim.');
+            }
+
+            if (str_starts_with($e->getMessage(), 'WARRANTY_EXCEEDS_PRODUCT_MAX_')) {
+                $maxDays = (int) str_replace('WARRANTY_EXCEEDS_PRODUCT_MAX_', '', $e->getMessage());
+
+                return redirect()->route('admin.orders.show', $order)
+                    ->with('error', 'Tanggal garansi melebihi batas produk ini (maksimal ' . $maxDays . ' hari).');
             }
 
             return redirect()->route('admin.orders.show', $order)

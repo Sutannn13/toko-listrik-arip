@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Support\UniqueSlugGenerator;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller
 {
@@ -71,17 +73,31 @@ class CategoryController extends Controller
 
     public function destroy(string $id)
     {
-        $category = Category::findOrFail($id);
+        $category = Category::with(['products:id,category_id,image_path'])->findOrFail($id);
+        $name = $category->name;
+        $deletedProductCount = $category->products->count();
 
-        if ($category->products()->exists()) {
+        try {
+            foreach ($category->products as $product) {
+                if (! empty($product->image_path)) {
+                    Storage::disk('public')->delete($product->image_path);
+                }
+            }
+
+            $category->delete();
+        } catch (QueryException $exception) {
+            report($exception);
+
             return redirect()->route('admin.categories.index')
-                ->with('error', 'Kategori "' . $category->name . '" tidak bisa dihapus karena masih memiliki produk.');
+                ->with('error', 'Kategori "' . $name . '" gagal dihapus karena masih dipakai data lain.');
         }
 
-        $name = $category->name;
-        $category->delete();
+        $successMessage = 'Kategori "' . $name . '" berhasil dihapus.';
+        if ($deletedProductCount > 0) {
+            $successMessage = 'Kategori "' . $name . '" berhasil dihapus beserta ' . $deletedProductCount . ' produk di dalamnya.';
+        }
 
         return redirect()->route('admin.categories.index')
-            ->with('success', 'Kategori "' . $name . '" berhasil dihapus.');
+            ->with('success', $successMessage);
     }
 }

@@ -209,8 +209,8 @@ Jadi kalau Anda pesan via COD, tinggal tunggu di rumah saja — kurir yang datan
         // ── GARANSI ──
         if ($this->matches($q, ['garansi', 'warranty', 'jaminan'])) {
             return $this->response(
-                'Produk elektronik di toko kami memiliki garansi klaim 7 hari setelah pesanan selesai (status completed). Garansi otomatis aktif saat admin menyelesaikan pesanan. Produk non-elektronik seperti kabel, fitting, dll tidak termasuk garansi. Untuk mengecek status garansi produk Anda, buka menu "Garansi" di website.',
-                'faq.warranty.electronic_7_days',
+                'Produk elektronik di toko kami memiliki garansi klaim yang bisa berbeda tiap produk (maksimal 365 hari) setelah pesanan selesai (status completed). Garansi otomatis aktif saat admin menyelesaikan pesanan. Produk non-elektronik seperti kabel, fitting, dll tidak termasuk garansi. Untuk mengecek status garansi produk Anda, buka menu "Garansi" di website.',
+                'faq.warranty.electronic_configurable',
                 0.9,
                 [
                     'Cara klaim garansi',
@@ -225,7 +225,7 @@ Jadi kalau Anda pesan via COD, tinggal tunggu di rumah saja — kurir yang datan
             return $this->response(
                 'Cara mengajukan klaim garansi:
 1. Buka menu "Garansi" di website.
-2. Pilih produk elektronik yang masih dalam masa garansi (7 hari).
+2. Pilih produk elektronik yang masih dalam masa garansi (sesuai pengaturan produk, maksimal 365 hari).
 3. Klik "Ajukan Klaim" pada item tersebut.
 4. Isi alasan kerusakan (minimal 10 karakter).
 5. Upload foto atau video bukti kerusakan (format: jpg, png, mp4, mov, webm, max 20MB).
@@ -473,7 +473,7 @@ Jika tetap bermasalah, hubungi admin via WhatsApp.',
             $phone = (string) Setting::get('store_phone', '');
 
             return $this->response(
-                'Untuk pengembalian atau pembatalan pesanan, silakan hubungi admin toko langsung via WhatsApp' . ($phone !== '' ? ' di nomor ' . $phone : '') . '. Setiap kasus akan ditangani secara personal. Jika produk elektronik mengalami kerusakan dalam 7 hari setelah diterima, Anda bisa ajukan klaim garansi melalui menu "Garansi" di website.',
+                'Untuk pengembalian atau pembatalan pesanan, silakan hubungi admin toko langsung via WhatsApp' . ($phone !== '' ? ' di nomor ' . $phone : '') . '. Setiap kasus akan ditangani secara personal. Jika produk elektronik mengalami kerusakan saat masa garansi masih aktif (sesuai pengaturan produk, maksimal 365 hari), Anda bisa ajukan klaim garansi melalui menu "Garansi" di website.',
                 'faq.policy.return',
                 0.88,
                 [
@@ -815,7 +815,7 @@ Sampaikan kode pesanan (ORD-ARIP-...) biar langsung dicek.',
 Kalau barangnya rusak/tidak sesuai, ini yang bisa dilakukan:
 
 **Jika produk ELEKTRONIK (lampu, MCB, dll):**
-1. Cek apakah masih dalam masa garansi (7 hari sejak pesanan selesai).
+1. Cek apakah masih dalam masa garansi (sesuai pengaturan produk, maksimal 365 hari sejak pesanan selesai).
 2. Buka menu **Garansi** di website.
 3. Pilih produk yang bermasalah → klik **Ajukan Klaim**.
 4. Isi alasan + upload foto/video bukti kerusakan.
@@ -1091,10 +1091,19 @@ Yang bisa dilakukan:
     private function matchesGreeting(string $question): bool
     {
         $greetings = [
-            'halo', 'hello', 'hi ', 'hai', 'hey',
-            'assalamualaikum', 'assalamu',
-            'selamat pagi', 'selamat siang', 'selamat sore', 'selamat malam',
-            'permisi', 'misi',
+            'halo',
+            'hello',
+            'hi ',
+            'hai',
+            'hey',
+            'assalamualaikum',
+            'assalamu',
+            'selamat pagi',
+            'selamat siang',
+            'selamat sore',
+            'selamat malam',
+            'permisi',
+            'misi',
         ];
 
         foreach ($greetings as $greeting) {

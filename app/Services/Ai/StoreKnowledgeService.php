@@ -146,7 +146,7 @@ class StoreKnowledgeService
 
         // ── GARANSI ──
         $sections[] = "## GARANSI\n"
-            . "- Produk elektronik (berlabel elektronik) memiliki garansi klaim 7 hari setelah pesanan diterima.\n"
+            . "- Produk elektronik (berlabel elektronik) memiliki garansi klaim sesuai pengaturan produk, maksimal 365 hari setelah pesanan diterima.\n"
             . "- Garansi aktif setelah admin mengubah status pesanan menjadi 'completed'.\n"
             . "- Untuk klaim garansi: buka menu Garansi → pilih item → isi alasan kerusakan → upload foto/video bukti kerusakan.\n"
             . "- Produk non-elektronik (kabel, fitting, dll) tidak memiliki garansi.\n"

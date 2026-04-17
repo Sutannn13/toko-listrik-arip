@@ -153,7 +153,7 @@
                         <span>
                             <span class="block text-sm font-semibold text-gray-800 dark:text-white">Produk Elektronik</span>
                             <span class="text-xs text-gray-500 dark:text-gray-400">Aktifkan untuk mengizinkan klaim garansi
-                                (maks. 7 hari).</span>
+                                (maks. 365 hari).</span>
                         </span>
                     </label>
 
@@ -167,6 +167,18 @@
                                 katalog.</span>
                         </span>
                     </label>
+                </div>
+
+                <div class="md:col-span-2 max-w-sm">
+                    <label class="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Masa Garansi (hari)
+                    </label>
+                    <input type="number" name="warranty_days" min="1" max="365"
+                        value="{{ old('warranty_days', max(1, (int) ($product->warranty_days ?? 7))) }}"
+                        class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-dark-border dark:bg-dark-input dark:text-white"
+                        placeholder="Contoh: 30">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Berlaku saat produk ditandai sebagai
+                        elektronik. Rentang 1-365 hari.</p>
                 </div>
             </div>
 

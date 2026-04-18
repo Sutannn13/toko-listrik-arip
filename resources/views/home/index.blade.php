@@ -565,7 +565,8 @@
                             </form>
                         @else
                             <button type="button"
-                                onclick="alert('Silakan login ke akun Anda terlebih dahulu untuk menambah barang ke keranjang dan melakukan pembayaran.')"
+                                onclick="showStorefrontNotice({ title: 'Login Diperlukan', message: 'Silakan login ke akun Anda terlebih dahulu untuk menambah barang ke keranjang dan melakukan pembayaran.', actionUrl: '{{ route('login') }}', actionLabel: 'Masuk Sekarang' })"
+                                aria-haspopup="dialog"
                                 class="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-bold transition active:scale-95
                                 {{ $product->stock < 1
                                     ? 'cursor-not-allowed border border-gray-200 bg-gray-50 text-gray-400'

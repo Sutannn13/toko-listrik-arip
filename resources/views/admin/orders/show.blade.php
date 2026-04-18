@@ -268,8 +268,10 @@
                     @if ($payment->proof_url)
                         <div class="mt-2 border-t pt-2">
                             <p class="text-xs font-bold text-gray-700 mb-1">Bukti Transfer:</p>
-                            <a href="{{ Storage::url($payment->proof_url) }}" target="_blank" class="block w-fit">
-                                <img src="{{ Storage::url($payment->proof_url) }}" alt="Bukti Transfer"
+                            <a href="{{ route('home.tracking.proof.view', ['orderCode' => $order->order_code, 'payment' => $payment->id]) }}"
+                                target="_blank" class="block w-fit">
+                                <img src="{{ route('home.tracking.proof.view', ['orderCode' => $order->order_code, 'payment' => $payment->id]) }}"
+                                    alt="Bukti Transfer"
                                     class="w-24 h-auto rounded border shadow-sm hover:opacity-80 transition">
                             </a>
 

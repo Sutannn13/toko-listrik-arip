@@ -42,6 +42,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/cek-pesanan/{orderCode}/payment-proof', [HomeController::class, 'uploadPaymentProof'])
         ->middleware('throttle:6,1')
         ->name('home.tracking.proof');
+    Route::get('/cek-pesanan/{orderCode}/payment-proof/{payment}', [HomeController::class, 'viewPaymentProof'])
+        ->name('home.tracking.proof.view');
+    Route::post('/cek-pesanan/{orderCode}/refund-request', [HomeController::class, 'requestRefund'])
+        ->middleware('throttle:5,1')
+        ->name('home.tracking.refund');
     Route::post('/cek-pesanan/{orderCode}/bayargg/regenerate', [HomeController::class, 'regenerateBayarGgPaymentLink'])
         ->middleware('throttle:10,1')
         ->name('home.tracking.bayargg.regenerate');

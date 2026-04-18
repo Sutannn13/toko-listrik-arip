@@ -175,7 +175,8 @@
                                 class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-500 shadow-sm transition text-center font-bold cursor-not-allowed">
                         </div>
                         <button type="button"
-                            onclick="alert('Peringatan: Anda harus masuk/login ke sistem terlebih dahulu sebelum dapat menambahkan barang ke keranjang belanja.')"
+                            onclick="showStorefrontNotice({ title: 'Login Diperlukan', message: 'Anda harus masuk ke sistem terlebih dahulu sebelum dapat menambahkan barang ke keranjang belanja.', actionUrl: '{{ route('login') }}', actionLabel: 'Masuk Sekarang' })"
+                            aria-haspopup="dialog"
                             class="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-base font-bold shadow-md transition bg-gray-600 text-white shadow-gray-500/20 hover:bg-gray-700">
                             Tambah ke Keranjang
                         </button>

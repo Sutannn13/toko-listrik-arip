@@ -29,20 +29,40 @@
     @endif
 
     @if (session('checkout_order_code'))
-        <div class="mb-6 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-4 shadow-sm">
-            <p class="text-sm font-semibold text-cyan-900">
-                Pesanan baru berhasil dibuat: <span class="font-black">{{ session('checkout_order_code') }}</span>
-            </p>
-            <p class="mt-1 text-xs text-cyan-700">Lanjutkan dengan cek status dan upload bukti pembayaran bila diperlukan.
-            </p>
-            <div class="mt-3 flex flex-wrap gap-2">
-                <a href="{{ route('home.tracking', ['order_code' => session('checkout_order_code')]) }}"
-                    class="ui-btn ui-btn-primary">
-                    Cek Status Pesanan
-                </a>
-                <a href="{{ route('home.transactions') }}" class="ui-btn ui-btn-secondary">
-                    Lihat Riwayat Transaksi
-                </a>
+        <div
+            class="mb-6 overflow-hidden rounded-2xl border border-cyan-200 bg-gradient-to-br from-slate-50 via-cyan-50 to-sky-100 shadow-sm">
+            <div class="border-b border-cyan-100/80 bg-white/70 px-5 py-3 backdrop-blur-sm">
+                <p class="text-sm font-bold text-slate-800">
+                    Pesanan baru berhasil dibuat: <span
+                        class="font-black text-cyan-900">{{ session('checkout_order_code') }}</span>
+                </p>
+                <p class="mt-1 text-xs text-slate-600">Lanjutkan cek status pesanan dan upload bukti pembayaran bila
+                    diperlukan.</p>
+            </div>
+            <div class="px-5 py-4">
+                <div class="mb-4 grid gap-2 sm:grid-cols-3">
+                    <div class="rounded-xl border border-cyan-100 bg-white/80 px-3 py-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Status Awal</p>
+                        <p class="mt-1 text-sm font-bold text-slate-800">Pesanan Dibuat</p>
+                    </div>
+                    <div class="rounded-xl border border-cyan-100 bg-white/80 px-3 py-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Langkah Berikutnya</p>
+                        <p class="mt-1 text-sm font-bold text-slate-800">Cek Detail Pesanan</p>
+                    </div>
+                    <div class="rounded-xl border border-cyan-100 bg-white/80 px-3 py-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Pembayaran</p>
+                        <p class="mt-1 text-sm font-bold text-slate-800">Upload Bukti bila diminta</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ route('home.tracking.show', session('checkout_order_code')) }}"
+                        class="ui-btn ui-btn-primary">
+                        Cek Status Pesanan
+                    </a>
+                    <a href="{{ route('home.transactions') }}" class="ui-btn ui-btn-secondary">
+                        Lihat Riwayat Transaksi
+                    </a>
+                </div>
             </div>
         </div>
     @endif
@@ -91,6 +111,11 @@
                 @foreach ($cartItems as $item)
                     <article
                         class="flex flex-col sm:flex-row gap-4 sm:items-center rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-100 hover:shadow-md">
+                        <div
+                            class="h-24 w-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 sm:h-20 sm:w-20 shrink-0">
+                            <img src="{{ $item['image_url'] ?? asset('img/hero-bg.jpg') }}" alt="{{ $item['name'] }}"
+                                class="h-full w-full object-cover" loading="lazy">
+                        </div>
                         <div class="flex-1">
                             <h3 class="text-lg font-bold text-gray-900">{{ $item['name'] }}</h3>
                             <p class="mt-0.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -180,7 +205,8 @@
                     </div>
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-gray-600">Total Ongkir</span>
-                        <span class="font-semibold text-gray-900">Rp {{ number_format($shippingCost, 0, ',', '.') }}</span>
+                        <span class="font-semibold text-gray-900">Rp
+                            {{ number_format($shippingCost, 0, ',', '.') }}</span>
                     </div>
                     <div class="border-t border-gray-100 pt-3 flex items-center justify-between text-base">
                         <span class="text-gray-900 font-bold">Total Bayar</span>

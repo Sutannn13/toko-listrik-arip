@@ -335,6 +335,8 @@
         </section>
     </div>
 
+    @include('layouts.partials.storefront-notice-modal')
+
     @stack('scripts')
     <script>
         function storefrontAiAssistant(config) {

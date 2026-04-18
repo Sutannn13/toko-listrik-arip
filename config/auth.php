@@ -114,4 +114,20 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Password Reset Rate Limits
+    |--------------------------------------------------------------------------
+    |
+    | These values control the request limits for forgot-password and
+    | reset-password endpoints. Tune via environment variables without
+    | changing application code.
+    |
+    */
+
+    'password_reset_rate_limits' => [
+        'link_per_minute' => (int) env('AUTH_PASSWORD_RESET_LINK_THROTTLE_PER_MINUTE', 5),
+        'attempt_per_minute' => (int) env('AUTH_PASSWORD_RESET_ATTEMPT_THROTTLE_PER_MINUTE', 8),
+    ],
+
 ];

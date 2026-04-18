@@ -2,7 +2,7 @@
 
 Adapter Mode: thin
 Adapter Source: .instructions.md
-Canonical Snapshot SHA256: 08994f6e228b32d415dcc2024f31f0a076119a3cf87a4cd2fd2e78e86e5fbd3e
+Canonical Snapshot SHA256: 2a2a036b4fb90f9e668163b83614f2339044c0d021a6eaf2f380e626dfe72de0
 
 This file is an adapter entrypoint for agent discovery.
 The canonical policy source is [.instructions.md](.instructions.md).

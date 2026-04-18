@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class OrderController extends Controller
@@ -132,6 +133,26 @@ class OrderController extends Controller
             }
         }
 
+        if ($validated['payment_status'] === 'refunded') {
+            $latestPayment = $order->payments()->latest('id')->first();
+
+            if (! $latestPayment) {
+                return redirect()->route('admin.orders.show', $order)
+                    ->with('error', 'Data pembayaran terbaru tidak ditemukan. Tidak bisa memproses refunded.');
+            }
+
+            $hasPendingRefundRequest = Str::contains((string) ($latestPayment->notes ?? ''), '[REFUND_REQUEST_PENDING]');
+            if (! $hasPendingRefundRequest) {
+                return redirect()->route('admin.orders.show', $order)
+                    ->with('error', 'Status refunded hanya boleh diproses jika pelanggan sudah mengajukan refund.');
+            }
+
+            if ($order->payment_status !== 'paid' || $latestPayment->status !== 'paid') {
+                return redirect()->route('admin.orders.show', $order)
+                    ->with('error', 'Status refunded hanya boleh untuk pesanan yang sudah dibayar lunas.');
+            }
+        }
+
         $transitionBlocked = false;
 
         DB::transaction(function () use ($order, $validated, &$transitionBlocked) {
@@ -187,6 +208,8 @@ class OrderController extends Controller
 
             if ($lockedOrder->payment_status === 'paid') {
                 $lockedOrder->paid_at = $lockedOrder->paid_at ?: now();
+            } elseif ($lockedOrder->payment_status === 'refunded') {
+                $lockedOrder->paid_at = $lockedOrder->paid_at ?: now();
             } else {
                 $lockedOrder->paid_at = null;
             }
@@ -223,8 +246,15 @@ class OrderController extends Controller
             if ($latestPayment) {
                 $latestPayment->update([
                     'status' => $validated['payment_status'],
-                    'paid_at' => $validated['payment_status'] === 'paid' ? ($latestPayment->paid_at ?: now()) : null,
-                    'notes' => 'Status diperbarui oleh admin.',
+                    'paid_at' => match ($validated['payment_status']) {
+                        'paid' => $latestPayment->paid_at ?: now(),
+                        'refunded' => $latestPayment->paid_at ?: ($lockedOrder->paid_at ?: now()),
+                        default => null,
+                    },
+                    'notes' => $this->buildPaymentStatusUpdateNote(
+                        (string) ($latestPayment->notes ?? ''),
+                        $validated['payment_status'],
+                    ),
                 ]);
             }
         }, 3);
@@ -538,6 +568,27 @@ class OrderController extends Controller
         }
 
         return $baseNote;
+    }
+
+    private function buildPaymentStatusUpdateNote(string $existingNotes, string $paymentStatus): string
+    {
+        $statusNote = match ($paymentStatus) {
+            'paid' => 'Status pembayaran ditandai paid oleh admin.',
+            'failed' => 'Status pembayaran ditandai failed oleh admin.',
+            'refunded' => 'Status pembayaran ditandai refunded oleh admin.',
+            default => 'Status pembayaran diperbarui oleh admin.',
+        };
+
+        $existingNotes = trim($existingNotes);
+        if ($existingNotes === '') {
+            return $statusNote;
+        }
+
+        if (Str::contains($existingNotes, $statusNote)) {
+            return $existingNotes;
+        }
+
+        return $existingNotes . ' | ' . $statusNote;
     }
 
     private function isLatestOrderPayment(Order $order, Payment $payment): bool

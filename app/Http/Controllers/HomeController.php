@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\WarrantyClaim;
 use App\Notifications\AdminNewOrderNotification;
 use App\Notifications\AdminPaymentProofUploadedNotification;
+use App\Notifications\AdminRefundRequestedNotification;
 use App\Notifications\WarrantyClaimSubmittedNotification;
 use App\Services\BayarGgGatewayService;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +27,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class HomeController extends Controller
 {
@@ -286,6 +288,7 @@ class HomeController extends Controller
                     'product_id' => (int) ($item['product_id'] ?? $productId),
                     'name' => (string) ($item['name'] ?? ($product?->name ?? 'Produk tidak ditemukan')),
                     'slug' => (string) ($item['slug'] ?? ($product?->slug ?? '')),
+                    'image_url' => (string) ($product?->image_url ?? asset('img/hero-bg.jpg')),
                     'unit' => (string) ($item['unit'] ?? ($product?->unit ?? 'pcs')),
                     'price' => $price,
                     'qty' => $qty,
@@ -340,6 +343,7 @@ class HomeController extends Controller
                     'product_id' => (int) ($item['product_id'] ?? $productId),
                     'name' => (string) ($item['name'] ?? ($product?->name ?? 'Produk tidak ditemukan')),
                     'slug' => (string) ($item['slug'] ?? ($product?->slug ?? '')),
+                    'image_url' => (string) ($product?->image_url ?? asset('img/hero-bg.jpg')),
                     'unit' => (string) ($item['unit'] ?? ($product?->unit ?? 'pcs')),
                     'price' => $price,
                     'qty' => $qty,
@@ -1141,6 +1145,117 @@ class HomeController extends Controller
         );
 
         return back()->with('success', 'Bukti pembayaran berhasil diunggah dan diteruskan ke admin. Silakan tunggu ACC admin.');
+    }
+
+    public function viewPaymentProof(Request $request, string $orderCode, Payment $payment): BinaryFileResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            abort(403);
+        }
+
+        $normalizedOrderCode = strtoupper(trim($orderCode));
+
+        $order = Order::query()
+            ->where('order_code', $normalizedOrderCode)
+            ->firstOrFail();
+
+        if ((int) $payment->order_id !== (int) $order->id) {
+            abort(404);
+        }
+
+        $isAdmin = $user->hasAnyRole(['super-admin', 'admin']);
+        $ownsOrder = (int) $order->user_id === (int) $user->id;
+
+        if (! $isAdmin && ! $ownsOrder) {
+            abort(403);
+        }
+
+        $proofPath = trim((string) $payment->proof_url);
+        if ($proofPath === '' || ! Storage::disk('public')->exists($proofPath)) {
+            abort(404, 'File bukti pembayaran tidak ditemukan.');
+        }
+
+        $absoluteProofPath = Storage::disk('public')->path($proofPath);
+        $mimeType = mime_content_type($absoluteProofPath) ?: 'application/octet-stream';
+
+        return response()->file($absoluteProofPath, [
+            'Content-Type' => $mimeType,
+            'Cache-Control' => 'private, max-age=60',
+        ]);
+    }
+
+    public function requestRefund(Request $request, string $orderCode): RedirectResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'in:wrong_item,damaged_item,late_delivery,duplicate_payment,other'],
+            'details' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $user = $request->user();
+        if (! $user) {
+            abort(403);
+        }
+
+        $normalizedOrderCode = strtoupper(trim($orderCode));
+
+        $order = Order::with('payments')
+            ->where('order_code', $normalizedOrderCode)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $payment = $order->payments()->latest('id')->first();
+        if (! $payment) {
+            return back()->with('error', 'Data pembayaran tidak ditemukan untuk pengajuan refund.');
+        }
+
+        if ($order->payment_status === 'refunded' || $payment->status === 'refunded') {
+            return back()->with('error', 'Pesanan ini sudah berstatus refunded.');
+        }
+
+        if ($order->payment_status !== 'paid' || $payment->status !== 'paid') {
+            return back()->with('error', 'Refund hanya dapat diajukan setelah pembayaran lunas.');
+        }
+
+        $existingNotes = (string) ($payment->notes ?? '');
+        if (Str::contains($existingNotes, '[REFUND_REQUEST_PENDING]')) {
+            return back()->with('error', 'Pengajuan refund untuk pesanan ini sudah terkirim dan sedang diproses admin.');
+        }
+
+        $reasonLabel = match ($validated['reason']) {
+            'wrong_item' => 'Barang tidak sesuai pesanan',
+            'damaged_item' => 'Barang rusak/cacat',
+            'late_delivery' => 'Pengiriman terlalu lama',
+            'duplicate_payment' => 'Pembayaran ganda',
+            default => 'Alasan lainnya',
+        };
+
+        $details = trim((string) ($validated['details'] ?? ''));
+        $refundNoteParts = [
+            '[REFUND_REQUEST_PENDING] Permintaan refund diajukan pelanggan.',
+            'Alasan: ' . $reasonLabel . '.',
+        ];
+
+        if ($details !== '') {
+            $refundNoteParts[] = 'Detail pelanggan: ' . $details;
+        }
+
+        $newNotes = trim($existingNotes);
+        if ($newNotes !== '') {
+            $newNotes .= ' | ';
+        }
+        $newNotes .= implode(' ', $refundNoteParts);
+
+        $payment->update([
+            'notes' => $newNotes,
+        ]);
+
+        $this->notifyAdminsWhenEnabled(
+            'notif_order_paid',
+            new AdminRefundRequestedNotification($order, $payment, $reasonLabel, $details),
+        );
+
+        return back()->with('success', 'Pengajuan refund berhasil dikirim. Admin akan meninjau permintaan Anda.');
     }
 
     public function regenerateBayarGgPaymentLink(Request $request, string $orderCode): RedirectResponse

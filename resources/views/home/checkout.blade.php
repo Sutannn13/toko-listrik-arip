@@ -89,10 +89,17 @@
                         @foreach ($cartItems as $item)
                             <div
                                 class="flex items-center justify-between gap-3 py-2 {{ !$loop->last ? 'border-b border-gray-50' : '' }}">
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-sm font-semibold text-gray-900 truncate">{{ $item['name'] }}</p>
-                                    <p class="text-xs text-gray-500">{{ $item['qty'] }} × Rp
-                                        {{ number_format($item['price'], 0, ',', '.') }}</p>
+                                <div class="min-w-0 flex flex-1 items-center gap-3">
+                                    <div
+                                        class="h-12 w-12 overflow-hidden rounded-lg border border-gray-100 bg-gray-50 shrink-0">
+                                        <img src="{{ $item['image_url'] ?? asset('img/hero-bg.jpg') }}"
+                                            alt="{{ $item['name'] }}" class="h-full w-full object-cover" loading="lazy">
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-gray-900 truncate">{{ $item['name'] }}</p>
+                                        <p class="text-xs text-gray-500">{{ $item['qty'] }} × Rp
+                                            {{ number_format($item['price'], 0, ',', '.') }}</p>
+                                    </div>
                                 </div>
                                 <p class="text-sm font-bold text-gray-900 shrink-0">Rp
                                     {{ number_format($item['subtotal'], 0, ',', '.') }}</p>

@@ -69,125 +69,149 @@
     @endif
 
     {{-- ═══════════════════════════════════════════════════════
-         HERO BANNER CAROUSEL — Professional promotional banners
+         HERO BANNER CAROUSEL — Product-focused promotional banners
          ═══════════════════════════════════════════════════════ --}}
     <div x-data="heroBannerCarousel()" x-init="start()" class="mb-6 sm:mb-8">
-        <div
-            class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-600 via-primary-500 to-teal-500 shadow-lg shadow-primary-500/20">
-            <!-- Decorative elements -->
-            <div class="absolute inset-0 overflow-hidden">
-                <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
-                <div class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
-                <div class="absolute right-1/4 top-1/4 h-24 w-24 rounded-full bg-white/5 blur-xl"></div>
-            </div>
+        <div class="relative overflow-hidden rounded-2xl shadow-lg shadow-primary-500/20">
 
-            <div class="relative h-[160px] sm:h-[180px] md:h-[200px]">
-                <!-- Slide 1: Main Store -->
+            <div class="relative h-[200px] sm:h-[220px] md:h-[260px]">
+                {{-- Slide 1: Produk Unggulan --}}
                 <div x-show="active === 0" x-transition:enter="transition duration-500 ease-out"
                     x-transition:enter-start="translate-x-8 opacity-0" x-transition:enter-end="translate-x-0 opacity-100"
                     x-transition:leave="transition duration-400 ease-in"
                     x-transition:leave-start="translate-x-0 opacity-100" x-transition:leave-end="-translate-x-8 opacity-0"
-                    class="absolute inset-0 flex items-center px-6 sm:px-10 md:px-14">
-                    <div class="flex-1 pr-24 sm:pr-0">
-                        <p class="text-xs font-bold uppercase tracking-widest text-white/70 sm:text-sm">
-                            {{ $storeTagline ?: '⚡ Toko Listrik Terpercaya' }}</p>
-                        <h2 class="mt-1 text-xl font-black text-white sm:text-2xl md:text-3xl">Pusat Kebutuhan<br>Listrik
-                            Anda</h2>
-                        <p class="mt-2 text-xs text-white/80 sm:text-sm max-w-md">{{ $totalProducts }} produk tersedia dari
-                            {{ $totalCategories }} kategori dengan harga transparan dan garansi resmi.</p>
+                    class="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-500 to-teal-500">
+                    <div class="absolute inset-0 overflow-hidden">
+                        <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
+                        <div class="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-white/8 blur-2xl"></div>
                     </div>
-                    <a href="#catalog-section"
-                        class="absolute right-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-sm transition hover:border-white/80 hover:bg-white/15 sm:right-5 sm:top-5 sm:text-xs">
-                        Jelajahi Katalog
-                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
-                    </a>
-                    <div class="hidden sm:flex flex-col items-center gap-3">
-                        <div
-                            class="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
-                            <svg class="h-10 w-10 md:h-12 md:w-12 text-white" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="1.2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
+                    <div class="relative flex h-full items-center px-5 pb-12 sm:px-10 sm:pb-0 md:px-14">
+                        <div class="flex-1 pr-2">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-white/70 sm:text-xs">⚡
+                                {{ $totalProducts }} Produk Tersedia</p>
+                            <h2 class="mt-1 text-lg font-black text-white sm:text-2xl md:text-3xl leading-tight">Pusat
+                                Kebutuhan<br>Listrik Anda</h2>
+                            <p class="mt-1.5 text-[11px] text-white/80 sm:text-sm max-w-xs sm:max-w-md">
+                                {{ $totalCategories }} kategori lengkap — harga transparan, garansi resmi.</p>
+                            <a href="#catalog-section"
+                                class="mt-3 mb-2 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-bold text-primary-700 shadow-md transition hover:bg-white/90 sm:mb-0 sm:text-xs sm:px-4 sm:py-2">
+                                Jelajahi Katalog
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                        d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                </svg>
+                            </a>
                         </div>
+                        @if ($products->count() > 0)
+                            <div class="hidden sm:flex items-end gap-2">
+                                @foreach ($products->take(2) as $heroProduct)
+                                    <div class="w-24 md:w-28 overflow-hidden rounded-xl border-2 border-white/20 shadow-lg">
+                                        <img src="{{ $heroProduct->image_url }}" alt="{{ $heroProduct->name }}"
+                                            class="h-24 md:h-28 w-full object-cover" loading="lazy">
+                                        <div class="bg-white/95 px-2 py-1.5">
+                                            <p class="text-[9px] font-bold text-gray-900 truncate">{{ $heroProduct->name }}
+                                            </p>
+                                            <p class="text-[9px] font-black text-primary-600">Rp
+                                                {{ number_format($heroProduct->price, 0, ',', '.') }}</p>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                 </div>
 
-                <!-- Slide 2: Warranty -->
+                {{-- Slide 2: Garansi Resmi --}}
                 <div x-show="active === 1" x-transition:enter="transition duration-500 ease-out"
                     x-transition:enter-start="translate-x-8 opacity-0" x-transition:enter-end="translate-x-0 opacity-100"
                     x-transition:leave="transition duration-400 ease-in"
                     x-transition:leave-start="translate-x-0 opacity-100" x-transition:leave-end="-translate-x-8 opacity-0"
-                    class="absolute inset-0 flex items-center px-6 sm:px-10 md:px-14">
-                    <div class="flex-1 pr-24 sm:pr-0">
-                        <p class="text-xs font-bold uppercase tracking-widest text-white/70 sm:text-sm">🛡️ Garansi Resmi
-                        </p>
-                        <h2 class="mt-1 text-xl font-black text-white sm:text-2xl md:text-3xl">Garansi Hingga 1
-                            Tahun<br>Produk Elektronik</h2>
-                        <p class="mt-2 text-xs text-white/80 sm:text-sm max-w-md">Upload bukti kerusakan, tim admin
-                            memproses klaim Anda dalam 48 jam.</p>
+                    class="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-500 to-violet-500">
+                    <div class="absolute inset-0 overflow-hidden">
+                        <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
+                        <div class="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-white/8 blur-2xl"></div>
                     </div>
-                    <a href="{{ route('home.warranty') }}"
-                        class="absolute right-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-sm transition hover:border-white/80 hover:bg-white/15 sm:right-5 sm:top-5 sm:text-xs">
-                        Klaim Garansi
-                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
-                    </a>
-                    <div class="hidden sm:flex flex-col items-center gap-3">
-                        <div
-                            class="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
-                            <svg class="h-10 w-10 md:h-12 md:w-12 text-white" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="1.2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            </svg>
+                    <div class="relative flex h-full items-center px-5 pb-12 sm:px-10 sm:pb-0 md:px-14">
+                        <div class="flex-1 pr-2">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-white/70 sm:text-xs">🛡️ Garansi
+                                Resmi</p>
+                            <h2 class="mt-1 text-lg font-black text-white sm:text-2xl md:text-3xl leading-tight">Garansi
+                                Hingga<br>1 Tahun</h2>
+                            <p class="mt-1.5 text-[11px] text-white/80 sm:text-sm max-w-xs sm:max-w-md">Upload bukti
+                                kerusakan, tim admin proses klaim dalam 48 jam.</p>
+                            <a href="{{ route('home.warranty') }}"
+                                class="mt-3 mb-2 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-bold text-indigo-700 shadow-md transition hover:bg-white/90 sm:mb-0 sm:text-xs sm:px-4 sm:py-2">
+                                Klaim Garansi
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                        d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                </svg>
+                            </a>
+                        </div>
+                        <div class="hidden sm:flex flex-col items-center">
+                            <div
+                                class="flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm">
+                                <svg class="h-12 w-12 md:h-14 md:w-14 text-white" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="1.2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Slide 3: COD -->
+                {{-- Slide 3: COD Tersedia --}}
                 <div x-show="active === 2" x-transition:enter="transition duration-500 ease-out"
                     x-transition:enter-start="translate-x-8 opacity-0" x-transition:enter-end="translate-x-0 opacity-100"
                     x-transition:leave="transition duration-400 ease-in"
                     x-transition:leave-start="translate-x-0 opacity-100" x-transition:leave-end="-translate-x-8 opacity-0"
-                    class="absolute inset-0 flex items-center px-6 sm:px-10 md:px-14">
-                    <div class="flex-1 pr-24 sm:pr-0">
-                        <p class="text-xs font-bold uppercase tracking-widest text-white/70 sm:text-sm">🚚 Pengiriman</p>
-                        <h2 class="mt-1 text-xl font-black text-white sm:text-2xl md:text-3xl">Bayar di Tempat<br>COD
-                            Tersedia</h2>
-                        <p class="mt-2 text-xs text-white/80 sm:text-sm max-w-md">Pilih COD saat checkout, bayar saat
-                            barang sampai di rumah. Zero ribet!</p>
+                    class="absolute inset-0 bg-gradient-to-br from-emerald-600 via-green-500 to-teal-400">
+                    <div class="absolute inset-0 overflow-hidden">
+                        <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
+                        <div class="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-white/8 blur-2xl"></div>
                     </div>
-                    <a href="#catalog-section"
-                        class="absolute right-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-sm transition hover:border-white/80 hover:bg-white/15 sm:right-5 sm:top-5 sm:text-xs">
-                        Belanja Sekarang
-                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
-                    </a>
-                    <div class="hidden sm:flex flex-col items-center gap-3">
-                        <div
-                            class="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
-                            <svg class="h-10 w-10 md:h-12 md:w-12 text-white" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="1.2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
+                    <div class="relative flex h-full items-center px-5 pb-12 sm:px-10 sm:pb-0 md:px-14">
+                        <div class="flex-1 pr-2">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-white/70 sm:text-xs">🚚
+                                Pengiriman</p>
+                            <h2 class="mt-1 text-lg font-black text-white sm:text-2xl md:text-3xl leading-tight">Bayar di
+                                Tempat<br>COD Tersedia</h2>
+                            <p class="mt-1.5 text-[11px] text-white/80 sm:text-sm max-w-xs sm:max-w-md">Pilih COD saat
+                                checkout, bayar saat barang sampai. Zero ribet!</p>
+                            <a href="#catalog-section"
+                                class="mt-3 mb-2 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-bold text-emerald-700 shadow-md transition hover:bg-white/90 sm:mb-0 sm:text-xs sm:px-4 sm:py-2">
+                                Belanja Sekarang
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                        d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                </svg>
+                            </a>
+                        </div>
+                        <div class="hidden sm:flex flex-col items-center">
+                            <div
+                                class="flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm">
+                                <svg class="h-12 w-12 md:h-14 md:w-14 text-white" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="1.2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Carousel dots -->
-                <div class="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">
+                {{-- Carousel dots --}}
+                <div class="absolute bottom-1.5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 sm:bottom-3">
                     <template x-for="i in total" :key="i">
                         <button type="button" @click="goTo(i - 1)"
-                            :class="active === (i - 1) ? 'w-6 bg-white' : 'w-2 bg-white/50 hover:bg-white/70'"
-                            class="h-2 rounded-full transition-all duration-300" :aria-label="'Slide ' + i"></button>
+                            class="hero-banner-dot group flex h-6 w-6 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                            :aria-label="'Slide ' + i" :aria-current="active === (i - 1) ? 'true' : 'false'">
+                            <span
+                                :class="active === (i - 1) ? 'h-2.5 w-2.5 bg-white' :
+                                    'h-2 w-2 bg-white/55 group-hover:bg-white/80'"
+                                class="rounded-full transition-all duration-300"></span>
+                        </button>
                     </template>
                 </div>
             </div>
@@ -195,8 +219,8 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════════
-         TRUST BADGES — Professional assurance indicators
-         ═══════════════════════════════════════════════════════ --}}
+    TRUST BADGES — Professional assurance indicators
+    ═══════════════════════════════════════════════════════ --}}
     <div class="mb-6 sm:mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <div class="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 sm:p-4 shadow-sm">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
@@ -248,8 +272,8 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════════
-         CATEGORY CHIPS — Horizontal scrollable Tokopedia-style
-         ═══════════════════════════════════════════════════════ --}}
+    CATEGORY CHIPS — Horizontal scrollable Tokopedia-style
+    ═══════════════════════════════════════════════════════ --}}
     @if ($categories->count() > 0)
         <div class="mb-6 sm:mb-8">
             <div class="flex items-center justify-between mb-3">
@@ -262,7 +286,7 @@
                 <button type="button" @click="categoryOpen = !categoryOpen"
                     @keydown.escape.window="categoryOpen = false"
                     class="flex w-full items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3 text-sm font-semibold transition shadow-sm
-                    {{ $activeCategory ? 'border-primary-400 text-primary-700 ring-2 ring-primary-500/20' : 'border-gray-200 text-gray-700 hover:border-primary-200' }}"
+                            {{ $activeCategory ? 'border-primary-400 text-primary-700 ring-2 ring-primary-500/20' : 'border-gray-200 text-gray-700 hover:border-primary-200' }}"
                     :aria-expanded="categoryOpen.toString()">
                     <span class="flex items-center gap-2.5">
                         @if ($activeCategory)
@@ -346,8 +370,8 @@
     @endif
 
     {{-- ═══════════════════════════════════════════════════════
-         SEARCH BAR — Professional compact search
-         ═══════════════════════════════════════════════════════ --}}
+    SEARCH BAR — Professional compact search
+    ═══════════════════════════════════════════════════════ --}}
     <div id="catalog-section" class="mb-6 sm:mb-8">
         <form method="GET" action="{{ route('home') }}" class="flex gap-2">
             <div class="relative flex-1">
@@ -404,8 +428,8 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════════
-         PRODUCT GRID — Tokopedia-style product cards
-         ═══════════════════════════════════════════════════════ --}}
+    PRODUCT GRID — Tokopedia-style product cards
+    ═══════════════════════════════════════════════════════ --}}
     <section>
         <div class="mb-4 flex items-center justify-between">
             <h2 class="text-base font-bold text-gray-900 sm:text-lg">Produk Tersedia</h2>
@@ -429,7 +453,7 @@
             @endphp
 
             <article
-                class="group flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lg overflow-hidden">
+                class="product-card group flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-200 overflow-hidden">
                 <a href="{{ route('home.products.show', $product->slug) }}"
                     class="block overflow-hidden bg-gray-50 aspect-square relative">
                     <img src="{{ $product->image_url }}" alt="{{ $product->name }}" loading="lazy"
@@ -472,7 +496,8 @@
 
                     {{-- Category tag --}}
                     <p class="mt-0.5 text-[10px] text-gray-400 font-medium">
-                        {{ $product->category->name ?? 'Uncategorized' }}</p>
+                        {{ $product->category->name ?? 'Uncategorized' }}
+                    </p>
 
                     {{-- Warranty indicator --}}
                     <div class="mt-1.5">
@@ -549,9 +574,9 @@
                                 @csrf
                                 <button type="submit" {{ $product->stock < 1 ? 'disabled' : '' }}
                                     class="inline-flex w-full items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-bold transition active:scale-95
-                                    {{ $product->stock < 1
-                                        ? 'cursor-not-allowed border border-gray-200 bg-gray-50 text-gray-400'
-                                        : 'bg-primary-600 text-white shadow-sm shadow-primary-500/20 hover:bg-primary-700' }}">
+                                                        {{ $product->stock < 1
+                                                            ? 'cursor-not-allowed border border-gray-200 bg-gray-50 text-gray-400'
+                                                            : 'bg-primary-600 text-white shadow-sm shadow-primary-500/20 hover:bg-primary-700' }}">
                                     @if ($product->stock < 1)
                                         Habis
                                     @else
@@ -568,15 +593,16 @@
                                 onclick="showStorefrontNotice({ title: 'Login Diperlukan', message: 'Silakan login ke akun Anda terlebih dahulu untuk menambah barang ke keranjang dan melakukan pembayaran.', actionUrl: '{{ route('login') }}', actionLabel: 'Masuk Sekarang' })"
                                 aria-haspopup="dialog"
                                 class="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-bold transition active:scale-95
-                                {{ $product->stock < 1
-                                    ? 'cursor-not-allowed border border-gray-200 bg-gray-50 text-gray-400'
-                                    : 'bg-primary-600 text-white shadow-sm shadow-primary-500/20 hover:bg-primary-700' }}">
+                                                    {{ $product->stock < 1
+                                                        ? 'cursor-not-allowed border border-gray-200 bg-gray-50 text-gray-400'
+                                                        : 'bg-primary-600 text-white shadow-sm shadow-primary-500/20 hover:bg-primary-700' }}">
                                 @if ($product->stock < 1)
                                     Habis
                                 @else
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 4v16m8-8H4"></path>
+                                            d="M12 4v16m8-8H4">
+                                        </path>
                                     </svg>
                                     Beli
                                 @endif

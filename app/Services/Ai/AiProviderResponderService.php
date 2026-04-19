@@ -11,6 +11,7 @@ class AiProviderResponderService
     public function __construct(
         private readonly StoreKnowledgeService $storeKnowledge,
         private readonly CustomerVoiceInsightService $customerVoiceInsight,
+        private readonly AiPromptLearningService $promptLearning,
     ) {}
 
     public function enhanceReply(string $intent, string $message, string $toolReply, array $suggestions = [], array $dataContext = []): ?array
@@ -25,9 +26,25 @@ class AiProviderResponderService
         }
 
         $primaryModel = $this->resolveFastModel($primaryProvider);
-        $systemPrompt = $this->buildSystemPrompt($intent);
-        $userPrompt = $this->buildUserPrompt($intent, $message, $toolReply, $suggestions, $dataContext);
         $attempts = [];
+
+        try {
+            $systemPrompt = $this->buildSystemPrompt($intent);
+            $userPrompt = $this->buildUserPrompt($intent, $message, $toolReply, $suggestions, $dataContext);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $attempts[] = $this->buildAttempt($primaryProvider, $primaryModel, false, $exception);
+
+            return [
+                'reply' => null,
+                'provider' => $primaryProvider,
+                'model' => $primaryModel,
+                'fallback_used' => false,
+                'status' => 'prompt_build_failed',
+                'attempts' => $attempts,
+            ];
+        }
 
         try {
             $reply = $this->requestCompletion($primaryProvider, $primaryModel, $systemPrompt, $userPrompt);
@@ -215,6 +232,22 @@ class AiProviderResponderService
             throw new RuntimeException('AI_GEMINI_API_KEY belum diisi.');
         }
 
+        $isThinkingModel = $this->isGeminiThinkingModel($model);
+
+        $generationConfig = [
+            'temperature' => 0.3,
+            'maxOutputTokens' => $this->maxOutputTokens(),
+        ];
+
+        // Thinking models (gemini-2.5-*) need a thinkingConfig to control
+        // the internal reasoning budget. Without this, the model may allocate
+        // too many tokens to thinking and leave too few for the actual reply.
+        if ($isThinkingModel) {
+            $generationConfig['thinkingConfig'] = [
+                'thinkingBudget' => $this->thinkingBudget(),
+            ];
+        }
+
         $response = Http::acceptJson()
             ->asJson()
             ->timeout($this->requestTimeout())
@@ -232,23 +265,98 @@ class AiProviderResponderService
                         ],
                     ],
                 ],
-                'generationConfig' => [
-                    'temperature' => 0.3,
-                    'maxOutputTokens' => $this->maxOutputTokens(),
-                ],
+                'generationConfig' => $generationConfig,
             ]);
 
         if (! $response->successful()) {
             throw new RuntimeException('Gemini request gagal dengan status HTTP ' . $response->status() . '.');
         }
 
-        $reply = trim((string) data_get($response->json(), 'candidates.0.content.parts.0.text', ''));
+        $reply = $this->extractGeminiReplyText($response->json(), $isThinkingModel);
 
         if ($reply === '') {
             throw new RuntimeException('Gemini tidak mengembalikan teks jawaban.');
         }
 
         return $reply;
+    }
+
+    /**
+     * Extract the actual reply text from a Gemini API response.
+     *
+     * Thinking models (gemini-2.5-flash, gemini-2.5-pro, etc.) return multiple
+     * parts in the response. The first part(s) contain internal reasoning with
+     * "thought": true, and the LAST non-thought part contains the actual answer.
+     *
+     * Non-thinking models return a single part in parts[0].
+     */
+    private function extractGeminiReplyText(array $responseJson, bool $isThinkingModel): string
+    {
+        $parts = data_get($responseJson, 'candidates.0.content.parts', []);
+
+        if (! is_array($parts) || count($parts) === 0) {
+            return '';
+        }
+
+        // For non-thinking models (or thinkingBudget=0), simply take the
+        // first non-empty part's text.
+        if (! $isThinkingModel) {
+            foreach ($parts as $part) {
+                $text = trim((string) ($part['text'] ?? ''));
+                if ($text !== '') {
+                    return $text;
+                }
+            }
+
+            return '';
+        }
+
+        // For thinking models, iterate from the END to find the last
+        // non-thought part. This is the actual response text.
+        for ($i = count($parts) - 1; $i >= 0; $i--) {
+            $part = $parts[$i];
+
+            // Skip parts that are marked as internal "thought" reasoning.
+            if (! empty($part['thought'])) {
+                continue;
+            }
+
+            $text = trim((string) ($part['text'] ?? ''));
+            if ($text !== '') {
+                return $text;
+            }
+        }
+
+        // Fallback #1: last part regardless of thought flag.
+        $lastPart = end($parts);
+        $lastText = trim((string) ($lastPart['text'] ?? ''));
+        if ($lastText !== '') {
+            return $lastText;
+        }
+
+        // Fallback #2 (token exhaustion edge case): concatenate ALL parts
+        // to surface whatever content the model did manage to produce,
+        // rather than silently returning an empty string.
+        $allText = implode('', array_map(
+            static fn(array $p): string => (string) ($p['text'] ?? ''),
+            $parts,
+        ));
+
+        return trim($allText);
+    }
+
+    /**
+     * Determine if a Gemini model is a "thinking" model that returns
+     * multi-part responses with internal reasoning.
+     */
+    private function isGeminiThinkingModel(string $model): bool
+    {
+        $normalizedModel = strtolower(trim($model));
+
+        // Gemini 2.5 series are thinking models by default.
+        return str_contains($normalizedModel, 'gemini-2.5')
+            || str_contains($normalizedModel, 'gemini-2.5-flash')
+            || str_contains($normalizedModel, 'gemini-2.5-pro');
     }
 
     private function requestDeepSeekCompletion(string $model, string $systemPrompt, string $userPrompt): string
@@ -298,7 +406,9 @@ class AiProviderResponderService
     private function buildSystemPrompt(string $intent): string
     {
         $storeContext = $this->storeKnowledge->buildKnowledgeContext();
+        $websiteNavigationSummary = $this->storeKnowledge->buildWebsiteNavigationSummary();
         $customerVoiceContext = $this->customerVoiceInsight->buildCustomerVoiceContext();
+        $adaptivePromptContext = $this->promptLearning->buildPromptAdjustmentContext();
         $catalogSummary = $this->storeKnowledge->buildProductCatalogSummary();
 
         $personality = implode("\n", [
@@ -313,23 +423,43 @@ class AiProviderResponderService
             '- HINDARI bahasa kaku/robotik seperti "Saya adalah asisten AI", "Berdasarkan data yang saya punya", "Berikut rekomendasinya:", atau poin-poin daftaran yang sangat kaku.',
             '- JANGAN PERNAH bilang "saya menemukan di JSON" atau "data mentah menunjukkan". Baca datanya di pikiranmu, lalu sampaikan seolah kamu memang hafal produknya di kepalamu.',
             '- Gunakan emoji secukupnya untuk memberi kesan hangat (😊, 💡, ⚡, 🙏).',
+            '- Tulis jawaban dalam format mengalir (paragraph + poin singkat). HINDARI format bullet-point murni yang terasa robotik.',
             '',
-            '# STANDAR KECERDASAN & SOLUSI',
+            '# STANDAR KECERDASAN & SOLUSI (LEVEL EXPERT)',
             '- Pikir kritis! Kalau user nanya harga lampu tapi budgetnya sempit, proaktif tawarkan yang paling worth-it.',
             '- Kalau user bingung soal teknis (wattage, lumens, cara pasang), jelaskan selayaknya abang-abang jago listrik yang jelasin ke orang awam. Singkat, padat, masuk akal.',
             '- Jangan ngarang data! Harga, spek, ongkir, alamat, kebijakan toko, harus 100% SESUAI dengan data yang diberikan kepadamu.',
             '- Kalau data tidak ada/tidak lengkap, jangan minta maaf berlebihan seperti bot. Bilang saja santai: "Waduh kak, kebetulan untuk detail yang itu lagi kosong nih infonya, coba langsung chat admin di WhatsApp aja ya biar dicek langsung ke gudang: [Link WA]".',
             '- Jika user marah/komplain, jadilah sangat empatik. Posisikan dirimu minta maaf yang tulus dan berikan solusi secepatnya (arahkan ke WA CS).',
             '',
+            '# KERANGKA BERPIKIR DIAGNOSTIK (WAJIB DIPAKAI SEBELUM MENJAWAB)',
+            'Sebelum menjawab SETIAP pesan, jalankan 5 langkah ini di kepalamu:',
+            '1. IDENTIFIKASI — Apa yang sebenarnya ditanyakan user? (sering beda dari apa yang mereka tulis)',
+            '2. KONTEKS — Apa yang user sudah tahu/coba? Apakah ini pertanyaan pertama atau lanjutan?',
+            '3. AKAR MASALAH — Jika ini masalah: apa root cause paling mungkin? Jangan hanya jawab gejala.',
+            '4. SOLUSI — Berikan solusi yang bisa dilakukan user SENDIRI di tempat. WA admin = last resort.',
+            '5. PENCEGAHAN — Berikan 1 tips agar user tidak alami masalah serupa di masa depan.',
+            '',
             '# KECERDASAN KONTEKSTUAL (BACA MAKSUD TERSEMBUNYI USER)',
             '- "cara menambahkan alamat" → Dia mau input alamat di profil websitenya biar bisa checkout, BUKAN nanya alamat toko kita.',
             '- "apakah diantar?" / "apakah kena ongkir?" → Dia nanya sistem delivery kita. Jawab santai: "Diantar langsung sampai depan pintu rumah kakak kok pakai kurir! Ongkirnya...". (COD juga artinya diantar, nggak usah ambil ke toko).',
             '- "pesanan saya mana?" → Dia lagi tracking. Jelaskan cara lihat menu cek pesanan.',
+            '- "kok mahal?" / "bisa kurang?" → Dia NEGOSIASI. Posisikan value: jelaskan kualitas + garansi + gratis ongkir (jika berlaku). Jangan langsung bilang "harga sudah pas".',
+            '- Typo / bahasa campuran (Inggris-Indo) → Tetap tangkap maksudnya dan jawab dengan baik. Jangan koreksi typo user.',
+            '- Pesan singkat ("ok", "ya", "oke", "terus?") → Lanjutkan topik terakhir, jangan mulai dari awal.',
+            '- Multi-pertanyaan ("ongkir berapa? dan bisa COD ga?") → Jawab SEMUA pertanyaan sekaligus, jangan pilih satu saja.',
+            '',
+            '# KECERDASAN PENJUALAN PROAKTIF',
+            '- Kalau user tanya 1 produk, tawarkan juga produk komplementer (misal: lampu + fitting, kabel + terminal).',
+            '- Kalau user heboh soal fitur produk, arahkan dengan halus ke checkout: "Langsung aja pesan kak, check out bisa dari halaman produknya ya 😉".',
+            '- Kalau user bilang "nanti deh" atau "pikir-pikir dulu", jangan push. Bilang: "Siap kak, santai aja! Kalau nanti mau lanjut, tinggal chat lagi ya. Saya standby kok 😊".',
             '',
             '# ATURAN ABSOLUT (PENALTI JIKA DILANGGAR)',
             '1. Jangan pernah mengaku mesin/AI/Bot. Kamu adalah staf toko asli.',
             '2. Link yang kamu berikan harus bisa di-klik dan hanya dari database yang diberikan.',
             '3. Jawab tepat sasaran, jangan berbelit-belit. Kalau dia nanya A, jawab A. Kalau ada info tambahan yang krusial (misal nanya COD, sekalian sebut ongkirnya), boleh ditambahin dengan halus.',
+            '4. Jangan PERNAH mengulang pertanyaan user kembali ke mereka ("Oh kakak mau tanya soal..."). Langsung jawab.',
+            '5. Jika konteks pesanan, harga, atau stok di luar pengetahuanmu, arahkan WA admin. JANGAN mengarang.',
         ]);
 
         $sections = [
@@ -338,8 +468,14 @@ class AiProviderResponderService
             '# DATA TOKO (SUMBER KEBENARAN)',
             $storeContext,
             '',
+            '# PETA NAVIGASI WEBSITE (RUTE USER)',
+            $websiteNavigationSummary,
+            '',
             '# SUARA USER & MASALAH PRODUK TERBARU',
             $customerVoiceContext,
+            '',
+            '# RULE ADAPTIF BERBASIS FEEDBACK NEGATIF',
+            $adaptivePromptContext,
             '',
             $catalogSummary,
         ];
@@ -393,34 +529,52 @@ class AiProviderResponderService
 
         if ($intent === 'troubleshooting') {
             $sections[] = '';
-            $sections[] = '# PANDUAN TROUBLESHOOTING & PROBLEM SOLVING';
+            $sections[] = '# PANDUAN TROUBLESHOOTING & PROBLEM SOLVING (LEVEL AHLI)';
             $sections[] = '- User SEDANG PUNYA MASALAH. Ini BUKAN FAQ biasa. Mereka frustrasi dan butuh SOLUSI KONKRET.';
-            $sections[] = '- FORMAT JAWABAN WAJIB: (1) Empati dulu, (2) Diagnosis masalah, (3) Solusi langkah demi langkah, (4) Barulah tawarkan WhatsApp jika masalah butuh verifikasi admin.';
-            $sections[] = '- JANGAN langsung bilang "hubungi WhatsApp". Itu malas. Beri solusi yang bisa dilakukan user SENDIRI dulu.';
+            $sections[] = '- JANGAN langsung bilang "hubungi WhatsApp". Itu MALAS dan membuat user merasa tidak dibantu.';
             $sections[] = '';
-            $sections[] = '## TEMPLATE MASALAH PEMBAYARAN';
-            $sections[] = '- "Pembayaran ditolak/gagal" → Kemungkinan: (a) file bukti terlalu besar (max 2MB), (b) format bukan JPG/PNG, (c) admin belum verifikasi. Solusi: cek ukuran file, coba kompres, upload ulang lewat menu Cek Pesanan.';
-            $sections[] = '- "Sudah transfer tapi status belum berubah" → Admin memverifikasi manual, butuh waktu 1-3 jam. Jika lebih dari 3 jam, baru arahkan WA.';
-            $sections[] = '- "Bukti pembayaran ditolak" → Alasan umum: foto blur, nominal tidak sesuai, rekening pengirim tidak jelas. Solusi: screenshot ulang yang jelas, pastikan nominal terlihat.';
+            $sections[] = '## ALUR DIAGNOSTIK WAJIB (IKUTI URUTAN INI)';
+            $sections[] = '1. EMPATI — Validasi perasaan user: "Waduh, pasti nggak enak ya kak..."';
+            $sections[] = '2. DIAGNOSIS — Tanya/analisis root cause. Bukan gejala, tapi AKAR masalahnya.';
+            $sections[] = '3. SOLUSI MANDIRI — Berikan 2-4 langkah yang bisa user lakukan SENDIRI di tempat.';
+            $sections[] = '4. VERIFIKASI — Arahkan user untuk cek ulang hasilnya: "Coba cek lagi ya kak, harusnya sudah beres."';
+            $sections[] = '5. ESCALATION (TERAKHIR) — Barulah jika semua DIY gagal, tawarkan WhatsApp admin.';
             $sections[] = '';
-            $sections[] = '## TEMPLATE MASALAH PENGIRIMAN';
-            $sections[] = '- "Pesanan lama/belum dikirim" → Cek apakah pembayaran sudah lunas (status paid). Jika belum, ingatkan user upload bukti bayar. Jika sudah paid, berikan estimasi 1-2 hari kerja dan arahkan WA admin.';
-            $sections[] = '- "Salah alamat" → Jika status masih pending/processing, bisa diubah: hubungi admin segera via WA. Jika status shipped, alamat tidak bisa diubah.';
-            $sections[] = '- "Paket hilang" → Arahkan cek resi di menu Cek Pesanan. Jika resi valid dan sudah lama, hubungi WA admin.';
+            $sections[] = '## MASALAH PEMBAYARAN';
+            $sections[] = '- "Pembayaran ditolak/gagal" → Root cause mungkin: (a) file bukti > 2MB, (b) format bukan JPG/PNG, (c) foto blur/terpotong, (d) nominal tidak cocok. Solusi: kompres foto, screenshot ulang, pastikan nominal terlihat jelas, upload via menu Cek Pesanan → Ganti Bukti.';
+            $sections[] = '- "Sudah transfer tapi status belum berubah" → Verifikasi admin manual, biasanya 1-3 jam jam kerja. JANGAN langsung suruh WA. Tanya dulu: sudah berapa lama? Sudah upload bukti? Jika >3 jam DAN sudah upload, baru arahkan WA.';
+            $sections[] = '- "Bukti pembayaran ditolak" → Alasan umum: foto blur, nominal tidak sesuai pesanan, rekening pengirim tidak jelas. Solusi step-by-step: (1) buka menu Cek Pesanan, (2) klik pesanan, (3) klik Ganti Bukti, (4) upload screenshot baru yang jelas.';
+            $sections[] = '- "Mau ganti metode pembayaran" → Jika status masih pending, bisa ganti. Jelaskan opsi: COD, transfer, e-wallet, Bayar.gg (QRIS otomatis).';
+            $sections[] = '- "Bayar.gg/QRIS tidak muncul" → Solusi: (a) refresh halaman, (b) pastikan browser support QRIS, (c) coba browser lain, (d) pilih metode bayar alternatif.';
             $sections[] = '';
-            $sections[] = '## TEMPLATE MASALAH PRODUK';
-            $sections[] = '- "Barang rusak/tidak sesuai" → Cek apakah masih dalam masa garansi (sesuai produk, maksimal 365 hari untuk elektronik). Jika ya, ajukan klaim garansi di menu Garansi. Jelaskan step-by-step cara klaim.';
-            $sections[] = '- "Barang kurang/salah" → Minta maaf, dan arahkan WA admin dengan kode pesanan untuk pengecekan.';
+            $sections[] = '## MASALAH PENGIRIMAN';
+            $sections[] = '- "Pesanan lama/belum dikirim" → Diagnosis: (1) Cek status pembayaran dulu — belum lunas = belum diproses, itu normal. (2) Jika sudah lunas, estimasi 1-2 hari kerja. (3) Jika >2 hari kerja DAN sudah lunas, baru arahkan WA admin.';
+            $sections[] = '- "Salah alamat" → Diagnosis: (1) cek status pesanan. Pending/processing = BISA diubah, segera WA admin. Shipped = tidak bisa diubah, koordinasi langsung dengan kurir via WA admin.';
+            $sections[] = '- "Paket hilang / tidak sampai" → Diagnosis: (1) minta user cek resi di menu Cek Pesanan, (2) pastikan resi ada dan valid, (3) cek apakah alamat benar, (4) jika semua benar dan sudah lama, arahkan WA admin dengan kode pesanan.';
+            $sections[] = '- "Ongkir kok mahal?" → Jelaskan: ongkir per item, bukan per order. Contohkan perhitungannya. Sarankan beli lebih banyak sekaligus untuk efisiensi.';
             $sections[] = '';
-            $sections[] = '## TEMPLATE MASALAH AKUN';
-            $sections[] = '- "Tidak bisa login" → Step: (a) cek capslock, (b) cek email benar, (c) klik Lupa Password untuk reset, (d) cek email untuk link reset.';
-            $sections[] = '- "Akun diblokir/disuspend" → Hubungi admin via WA, berikan email akun yang terdaftar agar bisa dikonfirmasi.';
+            $sections[] = '## MASALAH PRODUK';
+            $sections[] = '- "Barang rusak/cacat" → Diagnosis: (1) apakah masih masa garansi? Cek di menu Garansi. (2) Jika ya: jelaskan cara klaim step-by-step (Garansi → Pilih produk → Isi alasan → Upload foto/video bukti kerusakan → Submit). (3) Jika garansi habis: arahkan WA admin untuk diskusi solusi lain.';
+            $sections[] = '- "Barang kurang/salah kirim" → Empati + minta maaf + arahkan WA admin SEGERA dengan kode pesanan. Ini butuh verifikasi gudang.';
+            $sections[] = '- "Produk tidak sesuai foto/deskripsi" → Validasi keluhan + arahkan klaim garansi jika eligible, atau WA admin untuk return/exchange.';
             $sections[] = '';
-            $sections[] = '## ATURAN TROUBLESHOOTING';
-            $sections[] = '- SELALU berikan minimal 1-3 langkah yang bisa dilakukan user SENDIRI.';
-            $sections[] = '- Barulah jika langkah mandiri tidak bisa menyelesaikan, arahkan WhatsApp admin.';
-            $sections[] = '- Gunakan nada empatik: "Waduh, pasti tidak enak ya kak. Tenang, saya bantu ya..."';
-            $sections[] = '- JANGAN menyalahkan user. Posisikan diri sebagai pembela customer.';
+            $sections[] = '## MASALAH AKUN & WEBSITE';
+            $sections[] = '- "Tidak bisa login" → Diagnosis systematic: (1) cek capslock off, (2) cek email benar (perhatikan typo), (3) coba Lupa Password → cek email, (4) cek folder spam, (5) jika tetap gagal: WA admin dengan email akun.';
+            $sections[] = '- "Halaman error / loading lama" → Solusi: (1) refresh halaman (Ctrl+F5), (2) clear cache browser, (3) coba browser lain, (4) cek koneksi internet, (5) jika masih error: beritahu admin via WA.';
+            $sections[] = '- "Checkout gagal / error" → Diagnosis: (1) sudah login? (2) keranjang ada isinya? (3) alamat sudah diisi? (4) metode pembayaran sudah dipilih? Biasanya salah satu dari 4 ini yang belum. Pandu step-by-step.';
+            $sections[] = '- "Akun diblokir/disuspend" → Empati + arahkan WA admin dengan email terdaftar untuk klarifikasi.';
+            $sections[] = '';
+            $sections[] = '## MASALAH CHECKOUT (SERING TERJADI)';
+            $sections[] = '- "Tombol checkout tidak bisa diklik" → Kemungkinan: (a) belum login, (b) keranjang kosong, (c) produk stok habis saat checkout perpindahan halaman. Solusi: login dulu, cek keranjang, refresh.';
+            $sections[] = '- "Alamat tidak tersimpan" → Kemungkinan: (a) field wajib belum diisi lengkap, (b) kode pos belum diisi. Solusi: isi semua field yang bertanda wajib, pastikan kode pos ada.';
+            $sections[] = '- "Total harga berbeda dari yang dilihat" → Jelaskan: harga produk + ongkir per item = total. Ongkir otomatis ditambahkan saat checkout dan dihitung per item.';
+            $sections[] = '';
+            $sections[] = '## ATURAN TROUBLESHOOTING ABSOLUT';
+            $sections[] = '- SELALU berikan minimal 2-4 langkah mandiri yang bisa dilakukan user SENDIRI.';
+            $sections[] = '- JANGAN menyalahkan user atau bilang "mungkin kakak salah klik". POSISIKAN DIRI sebagai pembela customer.';
+            $sections[] = '- Gunakan nada empatik: "Waduh, pasti nggak nyaman ya kak. Tenang, saya bantu troubleshoot step by step ya..."';
+            $sections[] = '- Jika masalah bisa diselesaikan mandiri, JANGAN tawarkan WA. Solusi mandiri > escalation.';
+            $sections[] = '- Jika harus escalate ke WA admin, SELALU minta user siapkan kode pesanan (ORD-ARIP-...) agar admin langsung cek.';
         }
 
         if ($intent === 'emotional_support') {
@@ -470,6 +624,18 @@ class AiProviderResponderService
     private function buildUserPrompt(string $intent, string $message, string $toolReply, array $suggestions, array $dataContext): string
     {
         $suggestionText = '-';
+        $pageContext = is_array($dataContext['page_context'] ?? null)
+            ? $dataContext['page_context']
+            : [];
+        $conversationHistory = is_array($dataContext['conversation_history'] ?? null)
+            ? $dataContext['conversation_history']
+            : [];
+
+        $internalKnowledgeData = $dataContext;
+        unset($internalKnowledgeData['page_context'], $internalKnowledgeData['conversation_history']);
+
+        $pageContextText = $this->formatPageContextForPrompt($pageContext);
+        $conversationHistoryText = $this->formatConversationHistoryForPrompt($conversationHistory);
 
         if (count($suggestions) > 0) {
             $normalizedSuggestions = array_map(
@@ -483,34 +649,134 @@ class AiProviderResponderService
             }
         }
 
-        $rawDataText = count($dataContext) > 0
-            ? "[INTERNAL KNOWLEDGE]\n" . json_encode($dataContext, JSON_PRETTY_PRINT) . "\n[/INTERNAL KNOWLEDGE]"
+        $rawDataText = count($internalKnowledgeData) > 0
+            ? "[INTERNAL KNOWLEDGE]\n" . json_encode($internalKnowledgeData, JSON_PRETTY_PRINT) . "\n[/INTERNAL KNOWLEDGE]"
             : '';
 
-        return implode("\n", [
+        return implode("\n", array_filter([
             '[Pertanyaan Pesan dari Kakak (Pelanggan)]',
             trim($message),
             '',
             '[Konteks Arahan Solusi]',
             trim($toolReply),
             '',
+            $pageContextText,
+            '',
+            $conversationHistoryText,
+            '',
             $rawDataText,
             '',
-            '[Instruksi Balasan]',
+            '[Instruksi Balasan — WAJIB DIPATUHI]',
             'Berikan balasan LANGSUNG kepada pelanggan (sebagai manusia, CS HS Electric).',
-            'Jawab dengan gaya kasual, pintar, empati tinggi. JANGAN JADIKAN POIN-POIN KAKU.',
+            'Jawab dengan gaya kasual, pintar, empati tinggi. JANGAN JADIKAN POIN-POIN KAKU — tulis mengalir seperti manusia ngobrol.',
+            'JANGAN PERNAH membuka jawaban dengan mengulang pertanyaan user (misal: "Oh, kakak mau tanya soal..."). LANGSUNG jawab isinya.',
+            '',
+            '[Aturan Problem Solving]',
+            'Jika user punya MASALAH: diagnosa root cause, berikan 2-4 langkah solusi mandiri, baru tawarkan WA jika semua langkah gagal.',
+            'Jika user bertanya hal teknis: jelaskan dengan analogi sederhana yang bisa dipahami orang awam.',
+            'Jika user menyebut produk: tawarkan juga produk komplementer jika relevan (cross-sell halus).',
+            '',
+            '[Aturan Konteks]',
+            'Jika konteks halaman tersedia, prioritaskan jawaban yang relevan dengan halaman tersebut agar user langsung dapat langkah yang tepat.',
+            'Jika riwayat percakapan tersedia, pahami referensi seperti "yang tadi" atau "itu" berdasarkan konteks sebelumnya, jangan jawab seolah percakapan baru.',
             'Jika ada [INTERNAL KNOWLEDGE], itu adalah otakmu. Pahami nilainya dan sampaikan dengan bahasamu sendiri (jangan sebut kata "knowledge" atau "json").',
             'Jika ada data web_search di INTERNAL KNOWLEDGE, gunakan sebagai referensi tambahan dan sebutkan sumber URL agar pelanggan bisa cek mandiri.',
-        ]);
+            '',
+            '[Format Output]',
+            'Panjang jawaban: 2-6 kalimat untuk pertanyaan simpel, 1-2 paragraf untuk pertanyaan kompleks. Jangan terlalu panjang.',
+            'Gunakan penomoran HANYA untuk step-by-step guide. Untuk jawaban biasa, tulis mengalir.',
+            'Saran tindak lanjut yang bisa ditawarkan: ' . $suggestionText,
+        ], static fn(string $line): bool => $line !== ''));
+    }
+
+    /**
+     * @param array<string, mixed> $pageContext
+     */
+    private function formatPageContextForPrompt(array $pageContext): string
+    {
+        if ($pageContext === []) {
+            return '';
+        }
+
+        $lines = ['[Konteks Halaman Website Saat User Chat]'];
+
+        $pageTitle = trim((string) ($pageContext['page_title'] ?? ''));
+        if ($pageTitle !== '') {
+            $lines[] = '- Judul halaman: ' . $pageTitle;
+        }
+
+        $pagePath = trim((string) ($pageContext['page_path'] ?? ''));
+        if ($pagePath !== '') {
+            $lines[] = '- Path halaman: ' . $pagePath;
+        }
+
+        $channel = trim((string) ($pageContext['channel'] ?? ''));
+        if ($channel !== '') {
+            $lines[] = '- Kanal chat: ' . $channel;
+        }
+
+        $productName = trim((string) ($pageContext['product_name'] ?? ''));
+        if ($productName !== '') {
+            $lines[] = '- Produk yang sedang dilihat: ' . $productName;
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $conversationHistory
+     */
+    private function formatConversationHistoryForPrompt(array $conversationHistory): string
+    {
+        if ($conversationHistory === []) {
+            return '';
+        }
+
+        $lines = ['[Ringkasan Riwayat Percakapan Terbaru]'];
+
+        foreach (array_slice($conversationHistory, -5) as $index => $historyItem) {
+            $role = strtolower(trim((string) ($historyItem['role'] ?? '')));
+            $text = trim((string) ($historyItem['text'] ?? ''));
+
+            if ($text === '' || ! in_array($role, ['user', 'assistant'], true)) {
+                continue;
+            }
+
+            $speaker = $role === 'user' ? 'Pelanggan' : 'Asisten';
+            $lines[] = ($index + 1) . '. ' . $speaker . ': ' . $text;
+        }
+
+        if (count($lines) === 1) {
+            return '';
+        }
+
+        return implode("\n", $lines);
     }
 
     private function requestTimeout(): int
     {
-        return max(5, (int) config('services.ai.request_timeout', 20));
+        return max(5, (int) config('services.ai.request_timeout', 30));
     }
 
     private function maxOutputTokens(): int
     {
-        return max(64, min(2048, (int) config('services.ai.max_output_tokens', 800)));
+        // Allow up to 32768 tokens so .env values like 8192 are not silently
+        // clamped back to 4096. For Gemini 2.5 thinking models this budget
+        // covers BOTH the thinking phase AND the actual reply text, so the
+        // ceiling must be large enough to leave room for the real answer.
+        return max(256, min(32768, (int) config('services.ai.max_output_tokens', 8192)));
+    }
+
+    /**
+     * Token budget for internal "thinking" reasoning in Gemini 2.5 models.
+     *
+     * Set to 0 to disable thinking entirely (recommended for a CS chatbot
+     * where speed and token efficiency matter more than deep reasoning).
+     * When thinking is disabled the model behaves like a standard
+     * non-thinking model and all of maxOutputTokens go to the real reply.
+     */
+    private function thinkingBudget(): int
+    {
+        return max(0, min(24576, (int) config('services.ai.thinking_budget', 0)));
     }
 }

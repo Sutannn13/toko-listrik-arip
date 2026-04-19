@@ -6,6 +6,8 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Route;
+use Throwable;
 
 /**
  * Builds a comprehensive knowledge context about the store from system_settings.
@@ -33,6 +35,16 @@ class StoreKnowledgeService
     {
         return Cache::remember('ai_product_catalog_summary', self::CACHE_TTL_SECONDS, function (): string {
             return $this->compileProductCatalog();
+        });
+    }
+
+    /**
+     * Get user-facing website navigation map from active routes.
+     */
+    public function buildWebsiteNavigationSummary(): string
+    {
+        return Cache::remember('ai_website_navigation_summary', self::CACHE_TTL_SECONDS, function (): string {
+            return $this->compileWebsiteNavigationSummary();
         });
     }
 
@@ -278,6 +290,57 @@ class StoreKnowledgeService
                 $lines[] = $sampleTexts;
             }
         }
+
+        return implode("\n", $lines);
+    }
+
+    private function compileWebsiteNavigationSummary(): string
+    {
+        $lines = [
+            '## PETA HALAMAN WEBSITE USER',
+            '- Gunakan rute ini saat menjelaskan langkah pengguna berdasarkan halaman yang sedang dibuka.',
+        ];
+
+        $routeMap = [
+            ['label' => 'Katalog Produk', 'name' => 'home', 'auth_required' => false],
+            ['label' => 'Keranjang', 'name' => 'home.cart', 'auth_required' => true],
+            ['label' => 'Checkout', 'name' => 'home.checkout', 'auth_required' => true],
+            ['label' => 'Cek Pesanan', 'name' => 'home.tracking', 'auth_required' => true],
+            ['label' => 'Garansi', 'name' => 'home.warranty', 'auth_required' => true],
+            ['label' => 'Klaim Garansi', 'name' => 'home.warranty-claims.index', 'auth_required' => true],
+            ['label' => 'Riwayat Transaksi', 'name' => 'home.transactions', 'auth_required' => true],
+            ['label' => 'Notifikasi', 'name' => 'home.notifications.index', 'auth_required' => true],
+            ['label' => 'Profil Akun', 'name' => 'profile.edit', 'auth_required' => true],
+            ['label' => 'Kelola Alamat', 'name' => 'profile.addresses.index', 'auth_required' => true],
+            ['label' => 'Kebijakan Privasi', 'name' => 'legal.privacy', 'auth_required' => false],
+            ['label' => 'Syarat & Ketentuan', 'name' => 'legal.terms', 'auth_required' => false],
+            ['label' => 'Login', 'name' => 'login', 'auth_required' => false],
+            ['label' => 'Register', 'name' => 'register', 'auth_required' => false],
+        ];
+
+        foreach ($routeMap as $routeEntry) {
+            $routeName = (string) $routeEntry['name'];
+
+            if (! Route::has($routeName)) {
+                continue;
+            }
+
+            try {
+                $routePath = (string) route($routeName, [], false);
+            } catch (Throwable) {
+                continue;
+            }
+
+            if ($routePath === '') {
+                continue;
+            }
+
+            $authBadge = $routeEntry['auth_required'] ? ' (perlu login)' : '';
+            $lines[] = '- ' . $routeEntry['label'] . $authBadge . ': ' . $routePath;
+        }
+
+        $lines[] = '- Detail produk: /produk/{slug}';
+        $lines[] = '- Detail tracking pesanan: /cek-pesanan/{orderCode}';
 
         return implode("\n", $lines);
     }

@@ -2,7 +2,7 @@
 
 @section('title', 'Profil Akun - Toko HS ELECTRIC')
 @section('header_subtitle', 'Akun Saya')
-@section('main_container_class', 'mx-auto w-full max-w-3xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8')
+@section('main_container_class', 'mx-auto w-full max-w-3xl px-4 py-5 pb-24 sm:px-6 sm:py-8 lg:px-8 lg:pb-8')
 
 @section('header_actions')
     <a href="{{ route('home') }}" class="ui-btn ui-btn-secondary hidden lg:inline-flex">
@@ -21,8 +21,8 @@
         $profilePhotoUrl =
             $normalizedPhotoPath !== '' &&
             \Illuminate\Support\Facades\Storage::disk('public')->exists($normalizedPhotoPath)
-                ? route('profile.photo', $user) . '?v=' . ($user->updated_at?->timestamp ?? now()->timestamp)
-                : null;
+            ? route('profile.photo', $user) . '?v=' . ($user->updated_at?->timestamp ?? now()->timestamp)
+            : null;
         $profileInitial = strtoupper(substr($user->name ?? 'U', 0, 1));
         $addresses = $addresses ?? collect();
         $defaultAddress = $defaultAddress ?? null;
@@ -89,9 +89,9 @@
     </div>
 
     {{-- ════════════════════════════════════════
-         QUICK ACCESS MENU — Overlap hero card
+         QUICK ACCESS MENU — Separated from hero
          ════════════════════════════════════════ --}}
-    <div class="-mt-4 mx-1 sm:mx-0">
+    <div class="mt-3 sm:mt-4 mx-0">
         <div class="grid grid-cols-4 gap-1.5 rounded-2xl border border-gray-100 bg-white p-3 shadow-lg shadow-gray-200/50 sm:gap-2 sm:p-4">
             <a href="{{ route('home.cart') }}"
                 class="group flex flex-col items-center gap-1 rounded-xl p-2 text-center transition hover:bg-primary-50 active:scale-95">
@@ -235,6 +235,80 @@
                         Simpan Profil
                     </button>
                 </form>
+
+                {{-- ── Keamanan Password (sub-section inside identity) ── --}}
+                <div x-data="{ passwordOpen: false }" class="mt-5 rounded-xl border border-gray-100 bg-gray-50/50">
+                    <button type="button" @click="passwordOpen = !passwordOpen"
+                        class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-gray-100/60 rounded-xl">
+                        <div class="flex items-center gap-2.5">
+                            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100">
+                                <svg class="h-3.5 w-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                            </span>
+                            <div>
+                                <h3 class="text-xs font-bold text-gray-800">Keamanan Password</h3>
+                                <p class="text-[10px] text-gray-500">Ganti password secara berkala</p>
+                            </div>
+                        </div>
+                        <svg class="h-4 w-4 text-gray-400 transition" :class="passwordOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+
+                    <div x-show="passwordOpen" x-cloak x-collapse class="px-4 pb-4">
+                        <form method="POST" action="{{ route('password.update') }}" class="space-y-3">
+                            @csrf
+                            @method('PUT')
+
+                            <div>
+                                <label for="current_password" class="mb-1.5 block text-xs font-semibold text-gray-600">Password Saat Ini</label>
+                                <input id="current_password" name="current_password" type="password"
+                                    autocomplete="current-password" placeholder="••••••••"
+                                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 transition focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20">
+                                @if ($errors->updatePassword->has('current_password'))
+                                    <p class="mt-1 text-xs font-semibold text-red-600">
+                                        {{ $errors->updatePassword->first('current_password') }}
+                                    </p>
+                                @endif
+                            </div>
+
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <div>
+                                    <label for="password" class="mb-1.5 block text-xs font-semibold text-gray-600">Password Baru</label>
+                                    <input id="password" name="password" type="password"
+                                        autocomplete="new-password" placeholder="Min. 8 karakter"
+                                        class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 transition focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20">
+                                    @if ($errors->updatePassword->has('password'))
+                                        <p class="mt-1 text-xs font-semibold text-red-600">
+                                            {{ $errors->updatePassword->first('password') }}
+                                        </p>
+                                    @endif
+                                </div>
+
+                                <div>
+                                    <label for="password_confirmation" class="mb-1.5 block text-xs font-semibold text-gray-600">Konfirmasi Password</label>
+                                    <input id="password_confirmation" name="password_confirmation" type="password"
+                                        autocomplete="new-password" placeholder="Ulangi password"
+                                        class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 transition focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20">
+                                    @if ($errors->updatePassword->has('password_confirmation'))
+                                        <p class="mt-1 text-xs font-semibold text-red-600">
+                                            {{ $errors->updatePassword->first('password_confirmation') }}
+                                        </p>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <button type="submit"
+                                class="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-2.5 text-sm font-bold text-white transition hover:bg-amber-600 active:scale-[0.98]">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                                Update Password
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -310,79 +384,6 @@
             </div>
         </section>
 
-        {{-- ── Keamanan Password ── --}}
-        <section x-data="{ passwordOpen: false }" class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-            <button type="button" @click="passwordOpen = !passwordOpen"
-                class="flex w-full items-center justify-between gap-3 border-b border-gray-100 px-5 py-3.5 text-left transition hover:bg-gray-50">
-                <div class="flex items-center gap-3">
-                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100">
-                        <svg class="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                    </span>
-                    <div>
-                        <h2 class="text-sm font-bold text-gray-900">Keamanan Password</h2>
-                        <p class="text-xs text-gray-500">Ganti password secara berkala</p>
-                    </div>
-                </div>
-                <svg class="h-4 w-4 text-gray-400 transition" :class="passwordOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </button>
-
-            <div x-show="passwordOpen" x-cloak x-collapse class="p-5">
-                <form method="POST" action="{{ route('password.update') }}" class="space-y-3">
-                    @csrf
-                    @method('PUT')
-
-                    <div>
-                        <label for="current_password" class="mb-1.5 block text-xs font-semibold text-gray-600">Password Saat Ini</label>
-                        <input id="current_password" name="current_password" type="password"
-                            autocomplete="current-password" placeholder="••••••••"
-                            class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 transition focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20">
-                        @if ($errors->updatePassword->has('current_password'))
-                            <p class="mt-1 text-xs font-semibold text-red-600">
-                                {{ $errors->updatePassword->first('current_password') }}
-                            </p>
-                        @endif
-                    </div>
-
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div>
-                            <label for="password" class="mb-1.5 block text-xs font-semibold text-gray-600">Password Baru</label>
-                            <input id="password" name="password" type="password"
-                                autocomplete="new-password" placeholder="Min. 8 karakter"
-                                class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 transition focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20">
-                            @if ($errors->updatePassword->has('password'))
-                                <p class="mt-1 text-xs font-semibold text-red-600">
-                                    {{ $errors->updatePassword->first('password') }}
-                                </p>
-                            @endif
-                        </div>
-
-                        <div>
-                            <label for="password_confirmation" class="mb-1.5 block text-xs font-semibold text-gray-600">Konfirmasi Password</label>
-                            <input id="password_confirmation" name="password_confirmation" type="password"
-                                autocomplete="new-password" placeholder="Ulangi password"
-                                class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 transition focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20">
-                            @if ($errors->updatePassword->has('password_confirmation'))
-                                <p class="mt-1 text-xs font-semibold text-red-600">
-                                    {{ $errors->updatePassword->first('password_confirmation') }}
-                                </p>
-                            @endif
-                        </div>
-                    </div>
-
-                    <button type="submit"
-                        class="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-2.5 text-sm font-bold text-white transition hover:bg-amber-600 active:scale-[0.98]">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                        Update Password
-                    </button>
-                </form>
-            </div>
-        </section>
 
         {{-- ── Aktivitas Akun ── --}}
         <section class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">

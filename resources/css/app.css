@@ -289,3 +289,57 @@
         padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 }
+
+/* ─────────────────────────────────────────────────
+   PRODUCT CARD — Hover only on pointer devices
+   ───────────────────────────────────────────────── */
+@media (hover: hover) and (pointer: fine) {
+    .product-card:hover {
+        transform: translateY(-2px);
+        border-color: rgb(134, 239, 172);
+        box-shadow:
+            0 10px 15px -3px rgba(0, 0, 0, 0.07),
+            0 4px 6px -4px rgba(0, 0, 0, 0.07);
+    }
+}
+
+/* Prevent bounce on touch devices */
+@media (hover: none) {
+    .product-card {
+        transform: none !important;
+    }
+    .product-card:active {
+        opacity: 0.92;
+    }
+}
+
+/* ─────────────────────────────────────────────────
+   MOBILE BOTTOM NAV — iOS safe area
+   ───────────────────────────────────────────────── */
+#mobile-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─────────────────────────────────────────────────
+   MOBILE TYPOGRAPHY — Better scaling
+   ───────────────────────────────────────────────── */
+@media (max-width: 374px) {
+    html {
+        font-size: 14px;
+    }
+}
+
+/* ─────────────────────────────────────────────────
+   TOUCH TAP TARGETS — Minimum 44px for Apple HIG
+   ───────────────────────────────────────────────── */
+@media (pointer: coarse) {
+    button:not(.product-card button),
+    a:not(.product-card a),
+    [role="button"] {
+        min-height: 44px;
+    }
+
+    button.hero-banner-dot {
+        min-height: 0;
+    }
+}

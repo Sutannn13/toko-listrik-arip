@@ -41,7 +41,7 @@
 <body class="{{ $bodyClass }}">
     @yield('background')
 
-    <div class="relative z-10 flex min-h-screen flex-col pb-20 lg:pb-0">
+    <div class="relative z-10 flex min-h-screen flex-col">
         @if ($showHeader)
             @hasSection('header')
                 @yield('header')
@@ -256,12 +256,18 @@
                                 :class="message.role === 'user' ?
                                     'max-w-[80%] rounded-2xl rounded-br-sm bg-primary-600 px-3.5 py-2.5 text-sm text-white' :
                                     'max-w-[85%] rounded-2xl rounded-bl-sm border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 shadow-sm'">
-                                <p class="whitespace-pre-line leading-relaxed" x-html="linkify(message.text)"></p>
+                                <p x-show="!message.isTyping" class="whitespace-pre-line leading-relaxed"
+                                    x-html="linkify(message.text)"></p>
+                                <p x-show="message.isTyping" class="whitespace-pre-line leading-relaxed"
+                                    x-text="message.text"></p>
+                                <span x-show="message.role === 'assistant' && message.isTyping"
+                                    class="ml-0.5 inline-block h-4 w-[2px] animate-pulse rounded bg-primary-400 align-middle"
+                                    aria-hidden="true"></span>
                             </div>
                         </div>
 
                         {{-- Suggestions --}}
-                        <div x-show="message.role === 'assistant' && message.suggestions.length > 0"
+                        <div x-show="message.role === 'assistant' && !message.isTyping && message.suggestions.length > 0"
                             class="mt-2 ml-8 flex flex-wrap gap-1.5">
                             <template x-for="suggestion in message.suggestions" :key="message.id + suggestion">
                                 <button type="button" @click="sendQuickAction(suggestion)"
@@ -271,7 +277,7 @@
                         </div>
 
                         {{-- Feedback --}}
-                        <div x-show="message.role === 'assistant' && message.allowFeedback && message.feedbackState !== 'saved'"
+                        <div x-show="message.role === 'assistant' && !message.isTyping && message.allowFeedback && message.feedbackState !== 'saved'"
                             class="mt-2 ml-8 flex items-center gap-1.5">
                             <button type="button" @click.prevent.stop="submitFeedback(message, 1)"
                                 :disabled="message.feedbackState === 'sending'"
@@ -347,7 +353,9 @@
                 isLoading: false,
                 draftMessage: '',
                 sessionId: '',
+                prefersReducedMotion: false,
                 messages: [],
+                typingTimers: {},
                 quickActions: [{
                         label: 'Alamat & Kontak',
                         prompt: 'Dimana alamat toko ini? Apakah ada link Google Maps dan nomor WhatsApp?'
@@ -368,6 +376,8 @@
 
                 init() {
                     this.sessionId = this.resolveSessionId();
+                    this.prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)')
+                        .matches;
                     if (this.messages.length === 0) {
                         this.messages.push(this.createAssistantMessage(
                             'Halo kak! Selamat datang di HS Electric ⚡\n\nAda yang bisa kubantu hari ini? Mau tanya spesifikasi lampu yang cocok, cari kabel, ongkir pengiriman ke rumah, atau mau dibantu cek pesanan? Langsung chat santai aja ya! 😊'
@@ -424,6 +434,7 @@
                         llmLabel: this.buildLlmLabel(llm),
                         allowFeedback: payload.allowFeedback === true,
                         feedbackState: 'idle',
+                        isTyping: payload.isTyping === true,
                     };
                 },
 
@@ -479,9 +490,146 @@
                     };
                 },
 
+                buildHistorySnapshot(limit = 8) {
+                    return this.messages
+                        .filter((messageItem) => messageItem.role === 'user' || messageItem.role === 'assistant')
+                        .slice(-limit)
+                        .map((messageItem) => ({
+                            role: messageItem.role,
+                            text: (messageItem.text || '').toString().trim().slice(0, 500),
+                        }))
+                        .filter((historyItem) => historyItem.text !== '');
+                },
+
                 buildLlmLabel(llm) {
                     // Never expose AI/bot labels to users — assistant presents as human staff
                     return '';
+                },
+
+                safeAssistantFallbackText(fullText) {
+                    const normalizedText = (fullText || '').toString().trim();
+
+                    return normalizedText !== '' ? normalizedText : 'Maaf, saya belum bisa menjawab pertanyaan ini.';
+                },
+
+                clearTypingTimers(messageId) {
+                    const timers = this.typingTimers[messageId];
+                    if (!timers) {
+                        return;
+                    }
+
+                    if (timers.intervalId) {
+                        window.clearInterval(timers.intervalId);
+                    }
+
+                    if (timers.watchdogId) {
+                        window.clearTimeout(timers.watchdogId);
+                    }
+
+                    delete this.typingTimers[messageId];
+                },
+
+                /**
+                 * Find a message from the reactive messages array by ID.
+                 *
+                 * This is critical for Alpine.js reactivity.  When we push a
+                 * plain object into the reactive `messages` array, Alpine wraps
+                 * it in a Proxy.  The original local variable still points to
+                 * the RAW (non-Proxy) object, so mutations on it bypass
+                 * Alpine's Proxy set-trap and the UI never re-renders.
+                 *
+                 * Always use this helper to get the Proxy-wrapped reference
+                 * before mutating message properties inside async callbacks
+                 * (setInterval, setTimeout, fetch .then, etc.).
+                 */
+                findReactiveMessage(messageId) {
+                    return this.messages.find(m => m.id === messageId) || null;
+                },
+
+                finalizeAssistantTyping(messageId, fullText) {
+                    const message = this.findReactiveMessage(messageId);
+                    if (!message) {
+                        this.clearTypingTimers(messageId);
+                        return;
+                    }
+
+                    this.clearTypingTimers(messageId);
+                    message.text = this.safeAssistantFallbackText(fullText);
+                    message.isTyping = false;
+                    this.$nextTick(() => this.scrollToBottom());
+                },
+
+                pushAssistantMessageWithTyping(fullText, payload = {}) {
+                    const normalizedFullText = (fullText || '').toString();
+                    const rawMessage = this.createAssistantMessage('', {
+                        ...payload,
+                        isTyping: true,
+                    });
+
+                    // Push to reactive array — Alpine wraps it in a Proxy.
+                    this.messages.push(rawMessage);
+
+                    // CRITICAL: Capture the message ID so we can always look up
+                    // the Proxy-wrapped version from the reactive array.  Using
+                    // the raw `rawMessage` reference for later mutations would
+                    // bypass Alpine's reactivity and the UI would never update
+                    // (this was the root cause of the "1 character" bug).
+                    const messageId = rawMessage.id;
+
+                    this.$nextTick(() => this.scrollToBottom());
+
+                    if (this.prefersReducedMotion) {
+                        this.finalizeAssistantTyping(messageId, normalizedFullText);
+                        return;
+                    }
+
+                    const characters = [...normalizedFullText];
+                    if (characters.length < 4) {
+                        this.finalizeAssistantTyping(messageId, normalizedFullText);
+                        return;
+                    }
+
+                    // Set initial empty text through the reactive reference.
+                    const initialRef = this.findReactiveMessage(messageId);
+                    if (initialRef) {
+                        initialRef.text = '';
+                    }
+
+                    let cursor = 0;
+                    const totalCharacters = characters.length;
+                    const chunkSize = totalCharacters > 320 ? 6 : (totalCharacters > 180 ? 4 : 3);
+                    const intervalMs = 24;
+
+                    const intervalId = window.setInterval(() => {
+                        // Always look up the Proxy-wrapped message so Alpine
+                        // registers the mutation and re-renders the DOM.
+                        const msg = this.findReactiveMessage(messageId);
+                        if (!msg || !msg.isTyping) {
+                            this.clearTypingTimers(messageId);
+                            return;
+                        }
+
+                        cursor = Math.min(totalCharacters, cursor + chunkSize);
+                        msg.text = characters.slice(0, cursor).join('');
+
+                        if (cursor % (chunkSize * 4) === 0 || msg.text.endsWith('\n')) {
+                            this.scrollToBottom();
+                        }
+
+                        if (cursor >= totalCharacters) {
+                            this.finalizeAssistantTyping(messageId, normalizedFullText);
+                        }
+                    }, intervalMs);
+
+                    const watchdogDelay = Math.max(2500, Math.min(15000, totalCharacters * 55));
+                    const watchdogId = window.setTimeout(() => {
+                        this.finalizeAssistantTyping(messageId, normalizedFullText);
+                    }, watchdogDelay);
+
+                    this.typingTimers[messageId] = {
+                        intervalId,
+                        watchdogId,
+                    };
                 },
 
                 async sendQuickAction(prompt) {
@@ -495,6 +643,8 @@
                         return;
                     }
 
+                    const historySnapshot = this.buildHistorySnapshot(8);
+
                     this.messages.push(this.createUserMessage(message));
                     this.draftMessage = '';
                     this.isLoading = true;
@@ -507,6 +657,7 @@
                             body: JSON.stringify({
                                 session_id: this.sessionId,
                                 message,
+                                history: historySnapshot,
                                 context: this.buildRequestContext(),
                             }),
                         });
@@ -520,20 +671,20 @@
                             .reply :
                             'Maaf, saya belum bisa menjawab pertanyaan ini.';
 
-                        this.messages.push(this.createAssistantMessage(replyText, {
+                        this.pushAssistantMessageWithTyping(replyText, {
                             suggestions: payload.suggestions,
                             intent: payload.intent,
                             messageId: payload.message_id,
                             llm: payload.data && payload.data.llm ? payload.data.llm : null,
                             allowFeedback: true,
-                        }));
+                        });
                     } catch (error) {
-                        this.messages.push(this.createAssistantMessage(
+                        this.pushAssistantMessageWithTyping(
                             'Maaf, layanan AI sedang sibuk. Silakan coba lagi dalam beberapa saat.', {
                                 suggestions: ['Ongkir berapa?', 'Cara cek status pesanan'],
                                 allowFeedback: true,
                             }
-                        ));
+                        );
                     } finally {
                         this.isLoading = false;
                         this.$nextTick(() => this.scrollToBottom());

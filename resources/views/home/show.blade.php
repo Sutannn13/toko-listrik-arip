@@ -2,7 +2,7 @@
 
 @section('title', $product->name . ' - Toko HS ELECTRIC')
 @section('header_subtitle', 'Detail Produk')
-@section('main_container_class', 'mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12')
+@section('main_container_class', 'mx-auto w-full max-w-7xl px-4 py-5 pb-24 sm:px-6 sm:py-8 lg:px-8 lg:py-12 lg:pb-12')
 
 @section('content')
     @if (session('success'))
@@ -17,44 +17,44 @@
         </div>
     @endif
 
-    <div class="mb-6 flex flex-wrap items-center gap-2 text-sm">
+    <div class="mb-4 sm:mb-6 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
         <a href="{{ route('home') }}" class="font-medium text-primary-600 transition hover:text-primary-700">Katalog</a>
         <span class="text-gray-400">/</span>
         <span class="font-medium text-gray-500">{{ $product->category->name ?? 'Tanpa Kategori' }}</span>
         <span class="text-gray-400">/</span>
-        <span class="font-bold text-gray-900">{{ $product->name }}</span>
+        <span class="font-bold text-gray-900 truncate max-w-[140px] sm:max-w-none">{{ $product->name }}</span>
     </div>
 
-    <section class="grid gap-8 lg:grid-cols-[1.5fr,1fr] xl:gap-12">
+    <section class="grid gap-5 sm:gap-8 lg:grid-cols-[1.5fr,1fr] xl:gap-12">
         <!-- Deskripsi Produk -->
         <article class="flex flex-col">
-            <div class="mb-6 overflow-hidden rounded-3xl border border-gray-200 bg-gray-50 shadow-sm">
+            <div class="mb-4 sm:mb-6 overflow-hidden rounded-2xl sm:rounded-3xl border border-gray-200 bg-gray-50 shadow-sm">
                 <img src="{{ $product->image_url }}" alt="{{ $product->name }}" loading="lazy"
-                    class="h-64 w-full object-cover sm:h-80 lg:h-[26rem]">
+                    class="h-56 w-full object-cover sm:h-80 lg:h-[26rem]">
             </div>
 
-            <div class="mb-6 inline-block">
+            <div class="mb-3 sm:mb-6 inline-block">
                 <span
-                    class="inline-flex items-center rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-bold uppercase tracking-widest text-primary-700">
+                    class="inline-flex items-center rounded-full border border-primary-200 bg-primary-50 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-primary-700">
                     {{ $product->category->name ?? 'Produk Resmi' }}
                 </span>
             </div>
 
-            <h1 class="text-3xl font-extrabold leading-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            <h1 class="text-xl font-extrabold leading-tight text-gray-900 sm:text-3xl lg:text-4xl">
                 {{ $product->name }}
             </h1>
 
-            <div class="mt-4 flex flex-wrap items-center gap-2">
-                <div class="flex items-center rounded-full bg-amber-50 px-3 py-1.5 text-amber-500">
+            <div class="mt-2.5 sm:mt-4 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <div class="flex items-center rounded-full bg-amber-50 px-2 py-1 sm:px-3 sm:py-1.5 text-amber-500">
                     @for ($star = 1; $star <= 5; $star++)
-                        <svg class="h-4 w-4 {{ $star <= round($product->average_rating) ? 'fill-current' : 'fill-none text-amber-300' }}"
+                        <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 {{ $star <= round($product->average_rating) ? 'fill-current' : 'fill-none text-amber-300' }}"
                             viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                             <path
                                 d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.539 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.783.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.07-3.292z" />
                         </svg>
                     @endfor
                 </div>
-                <p class="text-sm font-semibold text-gray-700">
+                <p class="text-xs sm:text-sm font-semibold text-gray-700">
                     @if ($product->reviews_total > 0)
                         {{ number_format($product->average_rating, 1) }} dari {{ $product->reviews_total }} ulasan
                         pelanggan
@@ -64,25 +64,25 @@
                 </p>
             </div>
 
-            <p class="mt-6 text-base leading-relaxed text-gray-600 sm:text-lg">
+            <p class="mt-3 sm:mt-6 text-sm leading-relaxed text-gray-600 sm:text-base">
                 {{ $product->description ?: 'Barang berkualitas & berstandar SNI dari Toko HS ELECTRIC.' }}
             </p>
 
-            <div class="mt-8 grid gap-4 grid-cols-2 sm:grid-cols-3">
-                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <p class="text-xs font-bold uppercase tracking-wider text-gray-500">Harga Spesial</p>
-                    <p class="mt-2 text-2xl font-black text-primary-600">Rp
+            <div class="mt-4 sm:mt-8 grid gap-2.5 sm:gap-4 grid-cols-2 sm:grid-cols-3">
+                <div class="rounded-xl sm:rounded-2xl border border-gray-200 bg-white p-3 sm:p-5 shadow-sm">
+                    <p class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500">Harga Spesial</p>
+                    <p class="mt-1 sm:mt-2 text-base sm:text-2xl font-black text-primary-600">Rp
                         {{ number_format($product->price, 0, ',', '.') }}</p>
                 </div>
-                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <p class="text-xs font-bold uppercase tracking-wider text-gray-500">Stok Toko</p>
-                    <p class="mt-2 text-2xl font-black {{ $product->stock > 0 ? 'text-green-600' : 'text-red-500' }}">
+                <div class="rounded-xl sm:rounded-2xl border border-gray-200 bg-white p-3 sm:p-5 shadow-sm">
+                    <p class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500">Stok Toko</p>
+                    <p class="mt-1 sm:mt-2 text-base sm:text-2xl font-black {{ $product->stock > 0 ? 'text-green-600' : 'text-red-500' }}">
                         {{ number_format($product->stock) }}
                     </p>
                 </div>
-                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm col-span-2 sm:col-span-1">
-                    <p class="text-xs font-bold uppercase tracking-wider text-gray-500">Satuan Beli</p>
-                    <p class="mt-2 text-2xl font-black text-gray-900">{{ strtoupper($product->unit) }}</p>
+                <div class="rounded-xl sm:rounded-2xl border border-gray-200 bg-white p-3 sm:p-5 shadow-sm col-span-2 sm:col-span-1">
+                    <p class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-500">Satuan Beli</p>
+                    <p class="mt-1 sm:mt-2 text-base sm:text-2xl font-black text-gray-900">{{ strtoupper($product->unit) }}</p>
                 </div>
             </div>
 
@@ -196,10 +196,10 @@
     </section>
 
     <!-- Terkait -->
-    <section class="mt-16 border-t border-gray-200 pt-12">
-        <div class="mb-8 flex items-center justify-between">
-            <h2 class="text-2xl font-extrabold text-gray-900">Produk Terkait</h2>
-            <a href="{{ route('home') }}" class="text-sm font-semibold text-primary-600 hover:text-primary-700">Lihat
+    <section class="mt-8 sm:mt-16 border-t border-gray-200 pt-6 sm:pt-12">
+        <div class="mb-4 sm:mb-8 flex items-center justify-between">
+            <h2 class="text-lg sm:text-2xl font-extrabold text-gray-900">Produk Terkait</h2>
+            <a href="{{ route('home') }}" class="text-xs sm:text-sm font-semibold text-primary-600 hover:text-primary-700">Lihat
                 Semua
                 &rarr;</a>
         </div>
@@ -250,16 +250,16 @@
         @endif
     </section>
 
-    <section class="mt-16 border-t border-gray-200 pt-12">
-        <div class="mb-8 flex items-center justify-between gap-3">
+    <section class="mt-8 sm:mt-16 border-t border-gray-200 pt-6 sm:pt-12">
+        <div class="mb-4 sm:mb-8 flex items-center justify-between gap-2 sm:gap-3">
             <div>
-                <h2 class="text-2xl font-extrabold text-gray-900">Rating & Ulasan</h2>
-                <p class="mt-1 text-sm text-gray-500">Feedback pelanggan yang sudah membeli produk ini.</p>
+                <h2 class="text-lg sm:text-2xl font-extrabold text-gray-900">Rating & Ulasan</h2>
+                <p class="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">Feedback pelanggan yang sudah membeli produk ini.</p>
             </div>
-            <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-right">
-                <p class="text-xs font-semibold uppercase tracking-wider text-amber-700">Rata-rata</p>
-                <p class="text-xl font-black text-amber-600">{{ number_format($product->average_rating, 1) }}/5</p>
-                <p class="text-xs text-amber-700">{{ $product->reviews_total }} ulasan</p>
+            <div class="rounded-lg sm:rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-2 sm:px-4 sm:py-3 text-right shrink-0">
+                <p class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-amber-700">Rata-rata</p>
+                <p class="text-base sm:text-xl font-black text-amber-600">{{ number_format($product->average_rating, 1) }}/5</p>
+                <p class="text-[10px] sm:text-xs text-amber-700">{{ $product->reviews_total }} ulasan</p>
             </div>
         </div>
 

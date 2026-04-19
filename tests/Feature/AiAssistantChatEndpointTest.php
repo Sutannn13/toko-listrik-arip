@@ -46,6 +46,120 @@ class AiAssistantChatEndpointTest extends TestCase
         $this->assertStringContainsString('Ongkir', (string) $response->json('reply'));
     }
 
+    public function test_ai_chat_includes_page_context_and_history_in_response_data(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-context-001',
+            'message' => 'Bagaimana cara menambahkan alamat pengiriman?',
+            'history' => [
+                [
+                    'role' => 'user',
+                    'text' => 'Halo kak',
+                ],
+                [
+                    'role' => 'assistant',
+                    'text' => 'Halo kak, mau dibantu apa hari ini?',
+                ],
+            ],
+            'context' => [
+                'channel' => 'storefront_widget',
+                'page_title' => 'Profil Akun',
+                'page_path' => '/profile',
+            ],
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.page_context.channel', 'storefront_widget');
+        $response->assertJsonPath('data.page_context.page_path', '/profile');
+        $response->assertJsonPath('data.conversation_history.0.role', 'user');
+        $response->assertJsonPath('data.conversation_history.1.role', 'assistant');
+    }
+
+    public function test_ai_chat_rejects_invalid_history_role(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-invalid-history-001',
+            'message' => 'Cek dong',
+            'history' => [
+                [
+                    'role' => 'system',
+                    'text' => 'Unauthorized role',
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['history.0.role']);
+    }
+
+    public function test_ai_chat_intent_matrix_across_page_contexts(): void
+    {
+        $this->createProductFixtures();
+        [$customer, $order] = $this->createOrderFixture();
+
+        $testCases = [
+            [
+                'message' => 'Rekomendasi lampu untuk kamar tidur budget 40rb',
+                'expected_intent' => 'product_recommendation',
+                'context' => [
+                    'channel' => 'storefront_widget',
+                    'page_title' => 'Katalog Produk',
+                    'page_path' => '/katalog',
+                ],
+            ],
+            [
+                'message' => 'Cara set alamat default untuk checkout?',
+                'expected_intent' => 'website_help',
+                'context' => [
+                    'channel' => 'storefront_widget',
+                    'page_title' => 'Kelola Alamat',
+                    'page_path' => '/profile/addresses',
+                ],
+            ],
+            [
+                'message' => 'Alamat toko dimana?',
+                'expected_intent' => 'store_info',
+                'context' => [
+                    'channel' => 'storefront_widget',
+                    'page_title' => 'Privacy Policy',
+                    'page_path' => '/privacy-policy',
+                ],
+            ],
+            [
+                'message' => 'Cek pesanan ' . $order->order_code,
+                'expected_intent' => 'order_tracking',
+                'customer_email' => $customer->email,
+                'context' => [
+                    'channel' => 'storefront_widget',
+                    'page_title' => 'Cek Pesanan',
+                    'page_path' => '/cek-pesanan',
+                ],
+            ],
+            [
+                'message' => 'Siapa presiden sekarang?',
+                'expected_intent' => 'off_topic',
+                'context' => [
+                    'channel' => 'storefront_widget',
+                    'page_title' => 'Checkout',
+                    'page_path' => '/checkout',
+                ],
+            ],
+        ];
+
+        foreach ($testCases as $index => $testCase) {
+            $response = $this->postJson(route('api.ai.chat'), [
+                'session_id' => 'sess-intent-matrix-' . $index,
+                'message' => $testCase['message'],
+                'customer_email' => $testCase['customer_email'] ?? null,
+                'context' => $testCase['context'],
+            ]);
+
+            $response->assertOk();
+            $response->assertJsonPath('intent', $testCase['expected_intent']);
+            $response->assertJsonPath('data.page_context.page_path', $testCase['context']['page_path']);
+        }
+    }
+
     public function test_ai_chat_returns_order_tracking_for_authenticated_order_owner(): void
     {
         [$customer, $order] = $this->createOrderFixture();

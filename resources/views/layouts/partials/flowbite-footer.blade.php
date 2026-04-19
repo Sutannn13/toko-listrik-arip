@@ -18,17 +18,18 @@
     };
 
     $whatsAppUrl = $storePhoneDigits !== '' ? 'https://wa.me/' . $storePhoneDigits : route('home');
-    $storeEmail = (string) \App\Models\Setting::get('store_email', 'admin@example.com');
-    $emailUrl = 'mailto:' . $storeEmail;
+    $storeEmail = 'hselectric90@gmail.com';
+    $emailSubject = rawurlencode('-');
+    $emailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' . rawurlencode($storeEmail) . '&su=' . $emailSubject;
 
     $storeMapsUrl = $normalizeExternalUrl((string) \App\Models\Setting::get('store_maps_url', ''));
     $storeAddress = (string) \App\Models\Setting::get('store_address', '');
     $mapsUrl =
         $storeMapsUrl !== ''
-            ? $storeMapsUrl
-            : ($storeAddress !== ''
-                ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($storeAddress)
-                : route('home'));
+        ? $storeMapsUrl
+        : ($storeAddress !== ''
+            ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($storeAddress)
+            : route('home'));
 
     $hoursWeekday = (string) \App\Models\Setting::get('hours_weekday', '09:00 - 20:00');
     $hoursSaturday = (string) \App\Models\Setting::get('hours_saturday', '09:00 - 20:00');
@@ -37,7 +38,7 @@
 @endphp
 
 <footer class="mt-auto border-t border-slate-700/70 bg-slate-900 text-slate-300 font-body {{ $footerClass ?? '' }}">
-    <div class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="mx-auto w-full max-w-7xl px-4 py-8 pb-24 sm:px-6 lg:px-8 lg:pb-8">
         <div class="gap-8 md:flex md:justify-between">
             <div class="mb-8 md:mb-0">
                 <a href="{{ route('home') }}" class="flex items-center gap-3">
@@ -52,12 +53,65 @@
                     <h2 class="mb-5 text-sm font-semibold uppercase tracking-wide text-white">Resources</h2>
                     <ul class="space-y-3 text-sm">
                         <li>
-                            <a href="{{ route('home') }}"
-                                class="text-slate-400 transition hover:text-brand-300">Katalog</a>
+                            <div x-data="{ open: false }" class="relative inline-block">
+                                <a href="{{ route('home') }}" x-on:mouseenter="open = true"
+                                    x-on:mouseleave="open = false" x-on:focus="open = true" x-on:blur="open = false"
+                                    class="inline-flex rounded-sm text-slate-400 transition hover:text-brand-300 focus:text-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60">Katalog</a>
+                                <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-150"
+                                    x-transition:enter-start="opacity-0 translate-y-2"
+                                    x-transition:enter-end="opacity-100 translate-y-0"
+                                    x-transition:leave="transition ease-in duration-100"
+                                    x-transition:leave-start="opacity-100 translate-y-0"
+                                    x-transition:leave-end="opacity-0 -translate-y-3"
+                                    class="pointer-events-none absolute bottom-full start-1/2 z-20 mb-2 flex w-64 -translate-x-1/2 flex-col items-center will-change-transform"
+                                    role="tooltip">
+                                    <div
+                                        class="overflow-hidden rounded-lg border border-slate-600/80 bg-slate-800/95 text-start text-sm shadow-2xl backdrop-blur">
+                                        <h4
+                                            class="border-b border-slate-700/80 bg-slate-700/40 px-3 py-2 font-semibold text-slate-100">
+                                            Katalog Produk
+                                        </h4>
+                                        <p class="px-3 py-2.5 text-xs leading-relaxed text-slate-300">
+                                            Lihat koleksi perlengkapan listrik terbaru, promo, dan produk terlaris.
+                                        </p>
+                                    </div>
+                                    <div class="relative z-10 -mt-px h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-800/95"
+                                        aria-hidden="true"></div>
+                                    <div class="relative z-0 -mt-[7px] h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-500/70"
+                                        aria-hidden="true"></div>
+                                </div>
+                            </div>
                         </li>
                         <li>
-                            <a href="{{ route('home.tracking') }}"
-                                class="text-slate-400 transition hover:text-brand-300">Lacak Pesanan</a>
+                            <div x-data="{ open: false }" class="relative inline-block">
+                                <a href="{{ route('home.tracking') }}" x-on:mouseenter="open = true"
+                                    x-on:mouseleave="open = false" x-on:focus="open = true" x-on:blur="open = false"
+                                    class="inline-flex rounded-sm text-slate-400 transition hover:text-brand-300 focus:text-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60">Lacak
+                                    Pesanan</a>
+                                <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-150"
+                                    x-transition:enter-start="opacity-0 translate-y-2"
+                                    x-transition:enter-end="opacity-100 translate-y-0"
+                                    x-transition:leave="transition ease-in duration-100"
+                                    x-transition:leave-start="opacity-100 translate-y-0"
+                                    x-transition:leave-end="opacity-0 -translate-y-3"
+                                    class="pointer-events-none absolute bottom-full start-1/2 z-20 mb-2 flex w-64 -translate-x-1/2 flex-col items-center will-change-transform"
+                                    role="tooltip">
+                                    <div
+                                        class="overflow-hidden rounded-lg border border-slate-600/80 bg-slate-800/95 text-start text-sm shadow-2xl backdrop-blur">
+                                        <h4
+                                            class="border-b border-slate-700/80 bg-slate-700/40 px-3 py-2 font-semibold text-slate-100">
+                                            Tracking Pesanan
+                                        </h4>
+                                        <p class="px-3 py-2.5 text-xs leading-relaxed text-slate-300">
+                                            Pantau status pesanan Anda secara real-time mulai dari diproses sampai tiba.
+                                        </p>
+                                    </div>
+                                    <div class="relative z-10 -mt-px h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-800/95"
+                                        aria-hidden="true"></div>
+                                    <div class="relative z-0 -mt-[7px] h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-500/70"
+                                        aria-hidden="true"></div>
+                                </div>
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -71,19 +125,74 @@
                     @if ($hoursNote !== '')
                         <p class="mt-3 text-xs leading-relaxed text-slate-500">{{ $hoursNote }}</p>
                     @endif
-                    <p class="mt-3 text-xs text-slate-500">Kontak tersedia lewat ikon WhatsApp, Email, dan Maps di
+                    <p class="mt-3 text-xs text-slate-500">Kontak tersedia lewat ikon WhatsApp, Gmail, dan Maps di
                         bawah.</p>
                 </div>
                 <div>
                     <h2 class="mb-5 text-sm font-semibold uppercase tracking-wide text-white">Legal</h2>
                     <ul class="space-y-3 text-sm">
                         <li>
-                            <a href="{{ route('legal.privacy') }}"
-                                class="text-slate-400 transition hover:text-brand-300">Privacy Policy</a>
+                            <div x-data="{ open: false }" class="relative inline-block">
+                                <a href="{{ route('legal.privacy') }}" x-on:mouseenter="open = true"
+                                    x-on:mouseleave="open = false" x-on:focus="open = true" x-on:blur="open = false"
+                                    class="inline-flex rounded-sm text-slate-400 transition hover:text-brand-300 focus:text-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60">Privacy
+                                    Policy</a>
+                                <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-150"
+                                    x-transition:enter-start="opacity-0 translate-y-2"
+                                    x-transition:enter-end="opacity-100 translate-y-0"
+                                    x-transition:leave="transition ease-in duration-100"
+                                    x-transition:leave-start="opacity-100 translate-y-0"
+                                    x-transition:leave-end="opacity-0 -translate-y-3"
+                                    class="pointer-events-none absolute bottom-full start-1/2 z-20 mb-2 flex w-64 -translate-x-1/2 flex-col items-center will-change-transform"
+                                    role="tooltip">
+                                    <div
+                                        class="overflow-hidden rounded-lg border border-slate-600/80 bg-slate-800/95 text-start text-sm shadow-2xl backdrop-blur">
+                                        <h4
+                                            class="border-b border-slate-700/80 bg-slate-700/40 px-3 py-2 font-semibold text-slate-100">
+                                            Privacy Policy
+                                        </h4>
+                                        <p class="px-3 py-2.5 text-xs leading-relaxed text-slate-300">
+                                            Pelajari bagaimana data pribadi Anda kami simpan, gunakan, dan lindungi.
+                                        </p>
+                                    </div>
+                                    <div class="relative z-10 -mt-px h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-800/95"
+                                        aria-hidden="true"></div>
+                                    <div class="relative z-0 -mt-[7px] h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-500/70"
+                                        aria-hidden="true"></div>
+                                </div>
+                            </div>
                         </li>
                         <li>
-                            <a href="{{ route('legal.terms') }}"
-                                class="text-slate-400 transition hover:text-brand-300">Terms & Conditions</a>
+                            <div x-data="{ open: false }" class="relative inline-block">
+                                <a href="{{ route('legal.terms') }}" x-on:mouseenter="open = true"
+                                    x-on:mouseleave="open = false" x-on:focus="open = true" x-on:blur="open = false"
+                                    class="inline-flex rounded-sm text-slate-400 transition hover:text-brand-300 focus:text-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60">Terms
+                                    &amp; Conditions</a>
+                                <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-150"
+                                    x-transition:enter-start="opacity-0 translate-y-2"
+                                    x-transition:enter-end="opacity-100 translate-y-0"
+                                    x-transition:leave="transition ease-in duration-100"
+                                    x-transition:leave-start="opacity-100 translate-y-0"
+                                    x-transition:leave-end="opacity-0 -translate-y-3"
+                                    class="pointer-events-none absolute bottom-full start-1/2 z-20 mb-2 flex w-64 -translate-x-1/2 flex-col items-center will-change-transform"
+                                    role="tooltip">
+                                    <div
+                                        class="overflow-hidden rounded-lg border border-slate-600/80 bg-slate-800/95 text-start text-sm shadow-2xl backdrop-blur">
+                                        <h4
+                                            class="border-b border-slate-700/80 bg-slate-700/40 px-3 py-2 font-semibold text-slate-100">
+                                            Terms &amp; Conditions
+                                        </h4>
+                                        <p class="px-3 py-2.5 text-xs leading-relaxed text-slate-300">
+                                            Baca ketentuan layanan terkait pemesanan, pembayaran, pengiriman, dan
+                                            garansi.
+                                        </p>
+                                    </div>
+                                    <div class="relative z-10 -mt-px h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-800/95"
+                                        aria-hidden="true"></div>
+                                    <div class="relative z-0 -mt-[7px] h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-500/70"
+                                        aria-hidden="true"></div>
+                                </div>
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -96,16 +205,16 @@
             <span class="text-sm text-slate-400">
                 &copy; {{ date('Y') }} {{ $storeName }}. All Rights Reserved.
             </span>
-            <div class="mt-4 flex gap-5 sm:mt-0 sm:justify-center">
+            <div class="mt-4 flex flex-wrap items-center gap-4 sm:mt-0 sm:justify-center">
                 <a href="{{ $whatsAppUrl }}" target="_blank" rel="noopener noreferrer"
-                    class="text-slate-400 transition hover:text-brand-300" aria-label="WhatsApp">
+                    class="text-slate-400 transition hover:text-emerald-300" aria-label="WhatsApp Admin">
                     <svg class="h-5 w-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
                         <path
                             d="M20.52 3.48A11.88 11.88 0 0 0 12.06 0C5.4 0 0 5.4 0 12.06c0 2.13.56 4.21 1.62 6.03L0 24l6.08-1.6a12.05 12.05 0 0 0 5.98 1.53h.01C18.72 23.93 24 18.53 24 11.88c0-3.2-1.25-6.2-3.48-8.4zM12.07 21.9h-.01a9.88 9.88 0 0 1-5.03-1.37l-.36-.21-3.6.95.96-3.51-.23-.37a9.86 9.86 0 0 1-1.51-5.29c0-5.45 4.43-9.88 9.88-9.88a9.8 9.8 0 0 1 7 2.9 9.8 9.8 0 0 1 2.89 6.98c0 5.45-4.54 9.8-9.99 9.8zm5.42-7.43c-.3-.15-1.77-.87-2.05-.97-.27-.1-.47-.15-.67.15s-.77.97-.95 1.17c-.17.2-.35.22-.65.07-.3-.15-1.28-.47-2.44-1.5-.9-.8-1.5-1.79-1.67-2.09-.18-.3-.02-.46.13-.61.14-.14.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.48-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.49 0 1.47 1.06 2.88 1.21 3.08.15.2 2.08 3.17 5.03 4.44.7.3 1.25.49 1.67.62.7.22 1.34.19 1.84.12.56-.08 1.77-.72 2.02-1.41.25-.69.25-1.27.17-1.4-.07-.12-.27-.2-.57-.35z" />
                     </svg>
                 </a>
-                <a href="{{ $emailUrl }}" class="text-slate-400 transition hover:text-brand-300"
-                    aria-label="Email">
+                <a href="{{ $emailUrl }}" target="_blank" rel="noopener noreferrer"
+                    class="text-slate-400 transition hover:text-sky-300" aria-label="Gmail Admin">
                     <svg class="h-5 w-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
                         <path
                             d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 3.25-8 5-8-5V6l8 5 8-5v1.25z" />

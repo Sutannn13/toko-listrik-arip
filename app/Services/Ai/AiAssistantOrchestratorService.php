@@ -28,12 +28,12 @@ class AiAssistantOrchestratorService
         $response = match ($intent) {
             'order_tracking' => $this->buildOrderTrackingResponse($payload, $authenticatedUser),
             'product_recommendation' => $this->buildRecommendationResponse($payload),
-            'store_info' => $this->buildFaqResponse($message, 'store_info'),
-            'website_help' => $this->buildFaqResponse($message, 'website_help'),
-            'troubleshooting' => $this->buildFaqResponse($message, 'troubleshooting'),
-            'emotional_support' => $this->buildFaqResponse($message, 'emotional_support'),
-            'off_topic' => $this->buildFaqResponse($message, 'off_topic'),
-            default => $this->buildFaqResponse($message, 'faq'),
+            'store_info' => $this->buildFaqResponse($message, 'store_info', $payload),
+            'website_help' => $this->buildFaqResponse($message, 'website_help', $payload),
+            'troubleshooting' => $this->buildFaqResponse($message, 'troubleshooting', $payload),
+            'emotional_support' => $this->buildFaqResponse($message, 'emotional_support', $payload),
+            'off_topic' => $this->buildFaqResponse($message, 'off_topic', $payload),
+            default => $this->buildFaqResponse($message, 'faq', $payload),
         };
 
         $response['message_id'] = (string) Str::uuid();
@@ -42,19 +42,20 @@ class AiAssistantOrchestratorService
         return $response;
     }
 
-    private function buildFaqResponse(string $message, string $resolvedIntent = 'faq'): array
+    private function buildFaqResponse(string $message, string $resolvedIntent = 'faq', array $payload = []): array
     {
         $faqResult = $this->faqAnswerTool->answer($message);
+        $sharedContextData = $this->buildSharedContextData($payload);
 
         $response = [
             'reply' => $faqResult['answer'],
             'intent' => $resolvedIntent,
             'used_tools' => ['FaqAnswerTool'],
             'suggestions' => $faqResult['suggestions'],
-            'data' => [
+            'data' => array_merge([
                 'source_key' => $faqResult['source_key'],
                 'confidence' => $faqResult['confidence'],
-            ],
+            ], $sharedContextData),
         ];
 
         return $this->decorateWithProviderReply($response, $message, $resolvedIntent);
@@ -64,16 +65,17 @@ class AiAssistantOrchestratorService
     {
         $trackingResult = $this->orderTrackingTool->lookup($payload, $authenticatedUser);
         $message = trim((string) ($payload['message'] ?? ''));
+        $sharedContextData = $this->buildSharedContextData($payload);
 
         $response = [
             'reply' => $trackingResult['reply'],
             'intent' => 'order_tracking',
             'used_tools' => ['OrderTrackingTool'],
             'suggestions' => $trackingResult['suggestions'],
-            'data' => [
+            'data' => array_merge([
                 'requires_verification' => $trackingResult['requires_verification'],
                 'order' => $trackingResult['order'],
-            ],
+            ], $sharedContextData),
         ];
 
         return $this->decorateWithProviderReply($response, $message, 'order_tracking');
@@ -86,16 +88,17 @@ class AiAssistantOrchestratorService
         $recommendationMeta = is_array($recommendationResult['meta'] ?? null)
             ? $recommendationResult['meta']
             : [];
+        $sharedContextData = $this->buildSharedContextData($payload);
 
         $response = [
             'reply' => $recommendationResult['reply'],
             'intent' => 'product_recommendation',
             'used_tools' => ['ProductRecommendationTool'],
             'suggestions' => $recommendationResult['suggestions'],
-            'data' => [
+            'data' => array_merge([
                 'products' => $recommendationResult['products'],
                 'recommendation_meta' => $recommendationMeta,
-            ],
+            ], $sharedContextData),
         ];
 
         $webSearchResult = $this->maybeSearchWebProductContext($message, $recommendationResult);
@@ -232,5 +235,81 @@ class AiAssistantOrchestratorService
         ];
 
         return $baseResponse;
+    }
+
+    private function buildSharedContextData(array $payload): array
+    {
+        $sharedContextData = [];
+
+        $pageContext = $this->extractPageContext($payload);
+        if ($pageContext !== []) {
+            $sharedContextData['page_context'] = $pageContext;
+        }
+
+        $conversationHistory = $this->extractConversationHistory($payload);
+        if ($conversationHistory !== []) {
+            $sharedContextData['conversation_history'] = $conversationHistory;
+        }
+
+        return $sharedContextData;
+    }
+
+    private function extractPageContext(array $payload): array
+    {
+        $context = is_array($payload['context'] ?? null)
+            ? $payload['context']
+            : [];
+
+        if ($context === []) {
+            return [];
+        }
+
+        $normalizedContext = [];
+        $allowedContextKeys = ['locale', 'channel', 'page_title', 'page_path', 'product_name'];
+
+        foreach ($allowedContextKeys as $contextKey) {
+            $contextValue = trim((string) ($context[$contextKey] ?? ''));
+            if ($contextValue !== '') {
+                $normalizedContext[$contextKey] = $contextValue;
+            }
+        }
+
+        return $normalizedContext;
+    }
+
+    private function extractConversationHistory(array $payload): array
+    {
+        $history = is_array($payload['history'] ?? null)
+            ? $payload['history']
+            : [];
+
+        if ($history === []) {
+            return [];
+        }
+
+        $normalizedHistory = [];
+
+        foreach (array_slice($history, -6) as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $role = strtolower(trim((string) ($entry['role'] ?? '')));
+            if (! in_array($role, ['user', 'assistant'], true)) {
+                continue;
+            }
+
+            $text = trim((string) ($entry['text'] ?? ''));
+            if ($text === '') {
+                continue;
+            }
+
+            $normalizedHistory[] = [
+                'role' => $role,
+                'text' => Str::limit($text, 280, '...'),
+            ];
+        }
+
+        return $normalizedHistory;
     }
 }

@@ -432,6 +432,10 @@
                         messageId: payload.messageId || null,
                         llm,
                         llmLabel: this.buildLlmLabel(llm),
+                        latencyMs: Number.isFinite(payload.latencyMs) ? Math.max(0, Math.round(payload.latencyMs)) : null,
+                        promptVersion: payload.promptVersion || null,
+                        ruleVersion: payload.ruleVersion || null,
+                        responseSource: payload.responseSource || (llm ? 'provider_rewrite' : 'tool_first'),
                         allowFeedback: payload.allowFeedback === true,
                         feedbackState: 'idle',
                         isTyping: payload.isTyping === true,
@@ -643,6 +647,10 @@
                         return;
                     }
 
+                    const requestStartedAt = window.performance && typeof window.performance.now === 'function' ?
+                        window.performance.now() :
+                        Date.now();
+
                     const historySnapshot = this.buildHistorySnapshot(8);
 
                     this.messages.push(this.createUserMessage(message));
@@ -676,6 +684,17 @@
                             intent: payload.intent,
                             messageId: payload.message_id,
                             llm: payload.data && payload.data.llm ? payload.data.llm : null,
+                            latencyMs: (window.performance && typeof window.performance.now === 'function' ?
+                                window.performance.now() :
+                                Date.now()) - requestStartedAt,
+                            promptVersion: payload.data && payload.data.assistant_meta ? payload.data
+                                .assistant_meta
+                                .prompt_version : null,
+                            ruleVersion: payload.data && payload.data.assistant_meta ? payload.data
+                                .assistant_meta
+                                .rule_version : null,
+                            responseSource: payload.data && payload.data.llm ? 'provider_rewrite' :
+                                'tool_first',
                             allowFeedback: true,
                         });
                     } catch (error) {
@@ -707,8 +726,22 @@
                                 session_id: this.sessionId,
                                 message_id: message.messageId || null,
                                 intent: message.intent,
+                                intent_detected: message.intent || null,
+                                intent_resolved: message.intent || null,
                                 rating,
                                 reason: rating > 0 ? 'Membantu' : 'Kurang tepat',
+                                reason_code: rating > 0 ? 'helpful_generic' : 'not_helpful_generic',
+                                reason_detail: null,
+                                provider: message.llm ? (message.llm.provider || null) : null,
+                                model: message.llm ? (message.llm.model || null) : null,
+                                llm_status: message.llm ? (message.llm.status || null) : null,
+                                fallback_used: message.llm ? !!message.llm.fallback_used : null,
+                                response_latency_ms: Number.isFinite(message.latencyMs) ? message
+                                    .latencyMs : null,
+                                prompt_version: message.promptVersion || null,
+                                rule_version: message.ruleVersion || null,
+                                response_source: message.responseSource || null,
+                                feedback_version: 2,
                                 metadata: message.llm ? {
                                     provider: message.llm.provider || null,
                                     model: message.llm.model || null,

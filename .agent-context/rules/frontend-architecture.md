@@ -11,8 +11,8 @@ UI scope trigger signals (any one is enough):
 - feature requests that include frontend deliverables even when backend changes are also included
 
 Mandatory behavior when triggered:
-- apply frontend excellence rubric checks from `.agent-context/review-checklists/frontend-excellence-rubric.md`
-- apply usability checks from `.agent-context/review-checklists/frontend-usability.md`
+- apply consolidated review checks from `.agent-context/review-checklists/pr-checklist.md`
+- apply structural checks from `.agent-context/review-checklists/architecture-review.md`
 - score and review generated UI work against visual intent, interaction quality, and conversion clarity
 - reject template-only repetitive outputs and force a distinct layout direction
 

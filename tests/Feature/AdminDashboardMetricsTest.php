@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\WarrantyClaim;
 use App\Notifications\OrderCompletedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -111,7 +112,9 @@ class AdminDashboardMetricsTest extends TestCase
             'message_id' => 'msg-dashboard-ai-001',
             'intent' => 'product_recommendation',
             'rating' => 1,
+            'reason_code' => 'helpful_recommendation_accuracy',
             'reason' => 'Rekomendasi pas budget.',
+            'provider' => 'gemini',
             'metadata' => [
                 'provider' => 'gemini',
                 'status' => 'primary_success',
@@ -125,7 +128,9 @@ class AdminDashboardMetricsTest extends TestCase
             'message_id' => 'msg-dashboard-ai-002',
             'intent' => 'faq',
             'rating' => -1,
+            'reason_code' => 'not-helpful-payment_instruction',
             'reason' => 'Jawaban kurang tepat.',
+            'provider' => 'deepseek',
             'metadata' => [
                 'provider' => 'deepseek',
                 'status' => 'fallback_failed',
@@ -139,7 +144,9 @@ class AdminDashboardMetricsTest extends TestCase
             'message_id' => 'msg-dashboard-ai-003',
             'intent' => 'faq',
             'rating' => 1,
+            'reason_code' => 'helpful_generic',
             'reason' => 'Lebih jelas.',
+            'provider' => 'gemini',
             'metadata' => [
                 'provider' => 'gemini',
                 'status' => 'fallback_success',
@@ -147,6 +154,27 @@ class AdminDashboardMetricsTest extends TestCase
             'created_at' => $dayThree,
             'updated_at' => $dayThree,
         ]);
+
+        File::ensureDirectoryExists(storage_path('app/ai-benchmarks'));
+        foreach (File::files(storage_path('app/ai-benchmarks')) as $benchmarkFile) {
+            if (str_starts_with(strtolower($benchmarkFile->getFilename()), 'ai-benchmark-')) {
+                File::delete($benchmarkFile->getPathname());
+            }
+        }
+
+        $this->writeBenchmarkReport(
+            generatedAt: $dayOne->copy()->addHours(2),
+            status: 'fail',
+            passRatePercent: 70.0,
+            thresholdPercent: 85.0,
+        );
+
+        $this->writeBenchmarkReport(
+            generatedAt: $today->copy()->addHours(2),
+            status: 'pass',
+            passRatePercent: 92.0,
+            thresholdPercent: 85.0,
+        );
 
         $admin->notify(new OrderCompletedNotification($completedOrder));
 
@@ -212,10 +240,93 @@ class AdminDashboardMetricsTest extends TestCase
                 && (int) data_get($indexedRows, 'deepseek.total', 0) === 1;
         });
 
+        $response->assertViewHas('aiFeedbackByReasonCode', function (array $rows): bool {
+            $indexedRows = collect($rows)->keyBy('label');
+
+            return (int) data_get($indexedRows, 'helpful_recommendation_accuracy.total', 0) === 1
+                && (int) data_get($indexedRows, 'not_helpful_payment_instruction.not_helpful', 0) === 1
+                && (int) data_get($indexedRows, 'helpful_generic.helpful', 0) === 1
+                && (string) data_get($indexedRows, 'helpful_recommendation_accuracy.display_label', '') === 'Rekomendasi produk tepat'
+                && (string) data_get($indexedRows, 'not_helpful_payment_instruction.display_label', '') === 'Instruksi pembayaran kurang jelas';
+        });
+
+        $response->assertViewHas('aiIntentRootCausePriorities', function (array $rows): bool {
+            $indexedRows = collect($rows)->keyBy('intent');
+
+            return (int) data_get($indexedRows, 'faq.priority_rank', 0) === 1
+                && (string) data_get($indexedRows, 'faq.reason_code', '') === 'not_helpful_payment_instruction'
+                && (int) data_get($indexedRows, 'faq.current_negative_count', 0) === 1
+                && (string) data_get($indexedRows, 'faq.severity_level', '') === 'medium'
+                && str_contains((string) data_get($indexedRows, 'faq.recommended_patch', ''), 'playbook pembayaran');
+        });
+
+        $response->assertViewHas('aiBenchmarkSummary', function (array $summary): bool {
+            return (string) ($summary['latest_status'] ?? '') === 'pass'
+                && abs((float) ($summary['latest_pass_rate_percent'] ?? 0) - 92.0) < 0.001
+                && abs((float) ($summary['average_pass_rate'] ?? 0) - 81.0) < 0.001
+                && (int) ($summary['days_with_report'] ?? 0) === 2
+                && (int) ($summary['failed_days'] ?? 0) === 1
+                && (int) ($summary['window_days'] ?? 0) === 7;
+        });
+
+        $response->assertViewHas('aiBenchmarkTrend7d', function (array $trend): bool {
+            $trendCollection = collect($trend);
+
+            return $trendCollection->count() === 7
+                && $trendCollection->where('status', 'pass')->count() === 1
+                && $trendCollection->where('status', 'fail')->count() === 1
+                && $trendCollection->where('status', 'missing')->count() === 5;
+        });
+
+        $response->assertViewHas('benchmarkWindowDays', fn(int $windowDays): bool => $windowDays === 7);
+        $response->assertViewHas('benchmarkWindowOptions', fn(array $windowOptions): bool => $windowOptions === [7, 14, 30]);
+
+        $response14Days = $this->actingAs($admin)->get(route('admin.dashboard', ['benchmark_days' => 14]));
+
+        $response14Days->assertOk();
+        $response14Days->assertViewHas('benchmarkWindowDays', fn(int $windowDays): bool => $windowDays === 14);
+        $response14Days->assertViewHas('aiBenchmarkTrend7d', function (array $trend): bool {
+            $trendCollection = collect($trend);
+
+            return $trendCollection->count() === 14
+                && $trendCollection->where('status', 'pass')->count() === 1
+                && $trendCollection->where('status', 'fail')->count() === 1
+                && $trendCollection->where('status', 'missing')->count() === 12;
+        });
+
         $response->assertSee('proof=uploaded');
         $response->assertSee('age_bucket=sla_overdue');
         $response->assertSee('Trend 7 Hari (Mini Chart)');
         $response->assertSee('Feedback AI Assistant (7 Hari)');
+        $response->assertSee('Breakdown per Reason Code');
+        $response->assertSee('Auto-Prioritization Root Cause per Intent');
+        $response->assertSee('Benchmark AI Harian (7 Hari)');
+        $response14Days->assertSee('Benchmark AI Harian (14 Hari)');
+    }
+
+    private function writeBenchmarkReport(
+        \Illuminate\Support\Carbon $generatedAt,
+        string $status,
+        float $passRatePercent,
+        float $thresholdPercent,
+    ): void {
+        $report = [
+            'version' => 'ai-benchmark-v1',
+            'generated_at' => $generatedAt->toISOString(),
+            'status' => $status,
+            'summary' => [
+                'pass_rate_percent' => $passRatePercent,
+                'threshold_percent' => $thresholdPercent,
+                'started_at' => $generatedAt->copy()->subMinutes(3)->toISOString(),
+                'finished_at' => $generatedAt->toISOString(),
+            ],
+            'results' => [],
+        ];
+
+        $fileName = 'ai-benchmark-' . $generatedAt->format('Ymd-His') . '.json';
+        $outputPath = storage_path('app/ai-benchmarks/' . $fileName);
+
+        File::put($outputPath, json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     }
 
     private function createOrderWithPayment(

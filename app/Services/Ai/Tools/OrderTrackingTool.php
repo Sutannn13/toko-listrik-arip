@@ -35,7 +35,7 @@ class OrderTrackingTool
             return [
                 'ok' => false,
                 'requires_verification' => false,
-                'reply' => 'Kode order tidak ditemukan. Mohon cek kembali format kode order Anda.',
+                'reply' => 'Kode order ' . $orderCode . ' tidak ditemukan. Mohon cek kembali format kode order Anda.',
                 'suggestions' => [
                     'Periksa kode order dari riwayat transaksi',
                     'Coba kirim ulang kode order',
@@ -48,7 +48,7 @@ class OrderTrackingTool
             return [
                 'ok' => false,
                 'requires_verification' => true,
-                'reply' => 'Untuk keamanan, sertakan email pemesan atau 4 digit akhir nomor telepon pemesan.',
+                'reply' => 'Untuk keamanan, sertakan email pemesan atau 4 digit akhir nomor telepon pemesan untuk pesanan ' . $order->order_code . '.',
                 'suggestions' => [
                     'Format: ORD-... + email pemesan',
                     'Format: ORD-... + 4 digit akhir nomor HP',

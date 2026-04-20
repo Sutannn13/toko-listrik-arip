@@ -11,5 +11,11 @@ Artisan::command('inspire', function () {
 // Jalankan tiap 5 menit agar order pending ter-cancel mendekati SLA 1 jam.
 Schedule::command('orders:cancel-unpaid')->everyFiveMinutes();
 
-// Jalankan tiap jam agar prompt AI adaptif terhadap pola feedback negatif terbaru.
-Schedule::command('ai:learn-feedback-rules --days=30 --min-signals=3')->hourly();
+// Jalankan tiap 30 menit agar prompt AI lebih cepat adaptif terhadap pola feedback negatif terbaru.
+Schedule::command('ai:learn-feedback-rules --days=45 --min-signals=2')->everyThirtyMinutes();
+
+// Jalankan evaluasi offline harian dengan hard-case profile sebagai quality gate non-produksi.
+Schedule::command('ai:evaluate-offline --provider=rule_based --profile=hard_case')->dailyAt('02:15');
+
+// Jalankan auto-report mingguan untuk memonitor root cause feedback negatif dan prioritas aksi.
+Schedule::command('ai:report-weekly --days=7')->weeklyOn(1, '03:05');

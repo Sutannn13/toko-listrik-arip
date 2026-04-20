@@ -36,10 +36,26 @@ class LearnAiPromptRulesFromFeedback extends Command
         $this->line('Minimum signal count: ' . $summary['minimum_signal_count']);
         $this->line('Total feedback negatif dianalisis: ' . $summary['feedback_samples']);
         $this->line('Rule aktif yang diupdate: ' . $summary['updated_rules']);
+        $this->line('Global rule aktif: ' . ((bool) ($summary['global_rule_active'] ?? false) ? 'ya' : 'tidak'));
 
         $activeRuleKeys = (array) ($summary['active_rule_keys'] ?? []);
         if (count($activeRuleKeys) > 0) {
             $this->line('Rule keys aktif: ' . implode(', ', $activeRuleKeys));
+        }
+
+        $intentInsights = array_slice((array) ($summary['intent_insights'] ?? []), 0, 3);
+        foreach ($intentInsights as $insight) {
+            if (! is_array($insight)) {
+                continue;
+            }
+
+            $intent = (string) ($insight['intent'] ?? 'faq');
+            $signalCount = (int) ($insight['signal_count'] ?? 0);
+            $topReasonCodes = is_array($insight['top_reason_codes'] ?? null)
+                ? implode(', ', array_slice($insight['top_reason_codes'], 0, 3))
+                : '-';
+
+            $this->line('Insight intent [' . $intent . ']: sinyal=' . $signalCount . ', reason_code dominan=' . ($topReasonCodes !== '' ? $topReasonCodes : '-'));
         }
 
         return Command::SUCCESS;

@@ -1,23 +1,21 @@
 {
-  "cliVersion": "3.0.9",
-  "generatedAt": "2026-04-20T03:25:49.397Z",
+  "cliVersion": "2.5.15",
+  "generatedAt": "2026-04-17T14:25:07.578Z",
   "operationMode": "upgrade",
   "selectedProfile": "beginner",
   "selectedProfilePack": null,
-  "projectScope": null,
-  "selectedStack": "php.md",
+  "selectedStack": "typescript.md",
   "selectedAdditionalStacks": [],
-  "selectedBlueprint": "laravel-api.md",
+  "selectedBlueprint": "api-nextjs.md",
   "selectedAdditionalBlueprints": [],
-  "ruleLoadingPolicy": {
-    "canonicalSource": ".instructions.md",
-    "stackLoadingMode": "lazy",
-    "loadedOnDemand": true,
-    "primaryStack": "php.md",
-    "additionalStacks": []
-  },
   "ciGuardrailsEnabled": true,
-  "setupDurationMs": 2748,
+  "setupDurationMs": 1300,
+  "selectedSkillDomains": [
+    "frontend",
+    "fullstack",
+    "cli"
+  ],
+  "compatibilityWarnings": [],
   "runtimeEnvironment": null,
   "tokenOptimization": {
     "schemaVersion": "token-optimization-v1",
@@ -127,41 +125,6 @@
     ],
     "evidence": [
       "composer.json"
-    ],
-    "detectionTransparency": {
-      "declaredAt": "2026-04-20T03:25:46.686Z",
-      "declarationType": "existing-project",
-      "declarationShown": true,
-      "detectionSummary": "This folder looks like Php with high confidence based on composer.json. Confidence gap: 0.13.",
-      "activeRulesSummary": {
-        "canonicalSource": ".instructions.md",
-        "compiledEntrypoints": [
-          ".cursorrules",
-          ".windsurfrules"
-        ],
-        "stackLoadingMode": "lazy",
-        "selectedProfile": "beginner",
-        "selectedProfileDisplayName": "Beginner",
-        "blockingSeverities": [
-          "critical"
-        ],
-        "ciGuardrailsEnabled": true
-      },
-      "majorConstraints": [
-        "Preserve existing project markers and avoid forced stack migration.",
-        "Keep stack rule loading lazy and scoped to touched code.",
-        "Upgrade keeps prior onboarding choices unless user overrides them."
-      ],
-      "quickConfirmation": {
-        "offered": false,
-        "response": "upgrade-auto",
-        "source": "upgrade-assistant"
-      },
-      "decision": {
-        "mode": "upgrade-auto",
-        "selectedStackFileName": "php.md",
-        "selectedBlueprintFileName": "laravel-api.md"
-      }
-    }
+    ]
   }
 }

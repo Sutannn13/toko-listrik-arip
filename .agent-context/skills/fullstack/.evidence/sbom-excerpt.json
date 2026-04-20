@@ -1,6 +1,0 @@
-{
-  "format": "cyclonedx",
-  "component": "@agentic-skills/fullstack",
-  "version": "1.0.0",
-  "dependencies": []
-}

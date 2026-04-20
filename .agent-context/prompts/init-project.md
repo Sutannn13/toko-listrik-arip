@@ -1,7 +1,41 @@
-# Prompts: Initialize Project
 
-> Copy-paste one of these prompts to your AI agent (Cursor, Windsurf, Copilot, Antigravity) right after cloning this repository.
-> V1.4 recommendation: run `bunx @fatidaprilian/agentic-senior-core init` first to compile dynamic governance context.
+# Project Initialization Prompts
+
+This prompt boots a repository with strict rules operations context (Federated Governance baseline).
+
+When a new project is created or initialized, the agent should automatically:
+1. Read [AGENTS.md](../../AGENTS.md) to understand available roles and knowledge base.
+2. Scan all files in [.agent-context/rules/](../rules/) for mandatory engineering standards.
+3. Review dynamic stack and architecture signals from [.agent-context/state/onboarding-report.json](../state/onboarding-report.json), [.agent-context/state/stack-research-snapshot.json](../state/stack-research-snapshot.json), available stack and blueprint sources, and task constraints.
+
+## Architect Mode (Recommended)
+If the user describes a project or feature, the agent should:
+1. Propose the most efficient technology stack based on requirements and evidence.
+2. Explain why this stack is the best choice for the project.
+3. Draft a high-level architecture plan.
+4. Wait for user approval before scaffolding the project using the selected architecture playbook.
+
+## Direct Blueprint Mode
+If the user specifies a framework/blueprint, the agent should:
+1. Read [AGENTS.md](../../AGENTS.md) for role context.
+2. Scan all files in [.agent-context/rules/](../rules/) for engineering standards.
+3. Reference [.agent-context/state/onboarding-report.json](../state/onboarding-report.json), [.cursorrules](../../.cursorrules), and [.windsurfrules](../../.windsurfrules) for the active stack and blueprint guidance already applied to this project.
+4. Scaffold the initial project structure following the blueprint exactly:
+	- Create all directories and files from the blueprint
+	- Set up environment config and validation (e.g., Zod, Pydantic, FluentValidation)
+	- Set up error handling foundation (base error class + global handler)
+	- Set up the logger
+	- Create a health check endpoint
+	- Initialize the ORM/Database connection
+	- Every file must follow [naming conventions](../rules/naming-conv.md)
+	- Every module must follow [architecture.md](../rules/architecture.md)
+	- Every dependency must be justified per [efficiency-vs-hype.md](../rules/efficiency-vs-hype.md)
+
+## Stacks & Blueprints Reference
+See [.agent-context/state/onboarding-report.json](../state/onboarding-report.json), [.cursorrules](../../.cursorrules), and [.windsurfrules](../../.windsurfrules) for the latest shipped stack and blueprint context.
+
+## UI/UX Bootstrap
+When a user requests frontend or UI/UX design, the agent should automatically execute the [bootstrap-design.md](./bootstrap-design.md) prompt to synthesize a dynamic design contract (`docs/DESIGN.md` + `docs/design-intent.json`).
 
 ---
 
@@ -16,15 +50,15 @@ Context: You are a Principal Software Architect operating in a workspace with st
 Step 1: Context Gathering
 1. Read `AGENTS.md` to understand your role and available knowledge base.
 2. Scan all files in `.agent-context/rules/` to understand our mandatory engineering laws.
-3. Review the available technology stacks in `.agent-context/stacks/` and blueprints in `.agent-context/blueprints/`.
+3. Review dynamic stack and architecture signals from project docs, repository evidence, and task constraints.
 
 Step 2: Architecture Proposal
 Based strictly on my project description and our repository's existing rules (especially `efficiency-vs-hype.md`):
-1. Propose the most efficient technology stack from our approved profiles.
+1. Propose the most efficient technology stack based on requirements and evidence.
 2. Explain WHY this stack is the best choice for this specific project.
 3. Draft a high-level architecture plan.
 
-Do not write any application code yet. Write your proposal and wait for my approval. Once I approve, you will scaffold the project using the relevant blueprint.
+Do not write any application code yet. Write your proposal and wait for my approval. Once I approve, you will scaffold the project using the selected architecture playbook.
 ```
 
 ---
@@ -38,8 +72,8 @@ I want to build [PROJECT NAME].
 Before writing any code:
 1. Read `AGENTS.md` to understand your role.
 2. Read ALL files in `.agent-context/rules/` to understand our engineering standards.
-3. Read `.agent-context/stacks/[STACK].md` for language-specific guidelines.
-4. Read `.agent-context/blueprints/[BLUEPRINT].md` for the project structure.
+3. Resolve language-specific guidance from dynamic stack signals.
+4. Resolve the project structure from the selected architecture playbook.
 
 Now scaffold the initial project structure following the blueprint exactly:
 - Create all directories and files from the blueprint
@@ -49,38 +83,20 @@ Now scaffold the initial project structure following the blueprint exactly:
 - Create a health check endpoint
 - Initialize the ORM/Database connection
 
-Every file MUST follow the naming conventions from rules/naming-conv.md.
-Every module MUST follow the architecture from rules/architecture.md.
-Every dependency MUST be justified per rules/efficiency-vs-hype.md.
+
+Every file must follow [naming conventions](../rules/naming-conv.md).
+Every module must follow [architecture.md](../rules/architecture.md).
+Every dependency must be justified per [efficiency-vs-hype.md](../rules/efficiency-vs-hype.md).
 ```
 
 ---
 
-## Available Stacks & Blueprints Reference
+## Stacks & Blueprints Reference
 
-### Stacks (`[STACK].md`)
-- `typescript`
-- `python`
-- `java`
-- `php`
-- `go`
-- `csharp`
-- `rust`
-- `ruby`
+See [.agent-context/state/onboarding-report.json](../state/onboarding-report.json), [.cursorrules](../../.cursorrules), and [.windsurfrules](../../.windsurfrules) for the latest shipped stack and blueprint context.
 
-### Blueprints (`[BLUEPRINT].md`)
-| Blueprint | Use When |
-|-----------|----------|
-| `api-nextjs` | Next.js App Router API project |
-| `nestjs-logic` | NestJS backend service |
-| `fastapi-service` | Python FastAPI backend service |
-| `laravel-api` | PHP Laravel 13 API |
-| `spring-boot-api`| Java Spring Boot 4 API |
-| `go-service` | Go chi HTTP service |
-| `aspnet-api` | C# ASP.NET Minimal API |
-| `ci-github-actions`| GitHub Actions CI/CD pipeline |
-| `ci-gitlab`      | GitLab CI/CD pipeline |
-| `observability`  | OpenTelemetry stack |
-| `graphql-grpc-api` | GraphQL / gRPC API definitions |
-| `infrastructure-as-code` | Infrastructure as Code (Terraform | Pulumi) |
-| `kubernetes-manifests` | Kubernetes manifests structure |
+---
+
+## Bootstrap UI/UX (Dynamic Design Contract)
+
+To start UI/UX design from scratch, use the [bootstrap-design.md](./bootstrap-design.md) prompt to synthesize `docs/DESIGN.md` and `docs/design-intent.json`.

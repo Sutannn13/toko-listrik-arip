@@ -1,0 +1,73 @@
+{
+  "mode": "dynamic",
+  "status": "seed-generated-during-upgrade",
+  "project": {
+    "name": "toko-listrik-arip",
+    "context": "Existing web application detected during upgrade. Create a project-specific dynamic design contract before shipping new UI work.",
+    "domain": "Web application",
+    "stack": "Php",
+    "blueprint": "Laravel Api"
+  },
+  "brandAdjectives": [
+    "clear",
+    "human",
+    "distinct"
+  ],
+  "antiAdjectives": [
+    "generic",
+    "template-like",
+    "trend-chasing"
+  ],
+  "visualDirection": {
+    "trendStance": "trend-aware-not-trend-chasing",
+    "distinctiveMoves": [
+      "Create a visual direction with one memorable tension instead of stacking fashionable effects.",
+      "Use rhythm, hierarchy, and motion intentionally so the interface feels authored.",
+      "Keep the system flexible enough to evolve with product scope without losing identity."
+    ],
+    "copiedReferenceAllowed": false
+  },
+  "experiencePrinciples": [
+    "Design must feel project-specific, not interchangeable with generic SaaS templates.",
+    "Major interface decisions must be explainable in product and user terms.",
+    "Accessibility, responsiveness, and implementation realism are non-negotiable."
+  ],
+  "forbiddenPatterns": [
+    "generic-saas-hero",
+    "copycat-brand-system",
+    "unjustified-default-gradients",
+    "placeholder-design-language"
+  ],
+  "requiredDesignSections": [
+    "Design Intent and Product Personality",
+    "Audience and Use-Context Signals",
+    "Visual Direction and Distinctive Moves",
+    "Color System and Semantic Roles",
+    "Typography System and Hierarchy",
+    "Spacing, Layout Rhythm, and Density Strategy",
+    "Interaction, Motion, and Feedback Rules",
+    "Component Language and Shared Patterns",
+    "Accessibility Non-Negotiables",
+    "Responsive Strategy",
+    "Anti-Patterns to Avoid",
+    "Implementation Notes for Future UI Tasks"
+  ],
+  "implementation": {
+    "requiredDeliverables": [
+      "docs/DESIGN.md",
+      "docs/design-intent.json"
+    ],
+    "requireDesignRationale": true,
+    "requireDistinctVisualDirection": true,
+    "requireMachineReadableContract": true,
+    "bootstrapPrompt": ".agent-context/prompts/bootstrap-design.md"
+  },
+  "architectSignals": null,
+  "upgradeSignals": {
+    "detectedFrom": [
+      "ui markers: tailwind.config.js, vite.config.js, app, public",
+      "ui dependencies: tailwindcss"
+    ],
+    "generatedBy": "upgrade-seed"
+  }
+}

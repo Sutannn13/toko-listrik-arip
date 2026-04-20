@@ -110,13 +110,13 @@
             <div class="space-y-4">
                 @foreach ($cartItems as $item)
                     <article
-                        class="flex flex-col sm:flex-row gap-4 sm:items-center rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-100 hover:shadow-md">
+                        class="grid grid-cols-[5.5rem,1fr] gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-primary-100 hover:shadow-md sm:grid-cols-[5rem,1fr,auto] sm:items-center">
                         <div
-                            class="h-24 w-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 sm:h-20 sm:w-20 shrink-0">
+                            class="h-24 w-24 shrink-0 self-start overflow-hidden rounded-xl border border-gray-200 bg-gray-50 sm:h-20 sm:w-20">
                             <img src="{{ $item['image_url'] ?? asset('img/hero-bg.jpg') }}" alt="{{ $item['name'] }}"
                                 class="h-full w-full object-cover" loading="lazy">
                         </div>
-                        <div class="flex-1">
+                        <div class="min-w-0">
                             <h3 class="text-lg font-bold text-gray-900">{{ $item['name'] }}</h3>
                             <p class="mt-0.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
                                 {{ $item['unit'] }}</p>
@@ -128,7 +128,7 @@
                             @endif
                         </div>
 
-                        <div class="flex flex-col gap-3 min-w-[200px]">
+                        <div class="col-span-2 flex min-w-0 flex-col gap-3 sm:col-span-1 sm:min-w-[200px] sm:items-end">
                             <div class="text-right">
                                 <p class="text-lg font-black text-gray-900">
                                     Rp {{ number_format($item['price'], 0, ',', '.') }}

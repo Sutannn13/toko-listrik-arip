@@ -2,12 +2,26 @@
 
 namespace App\Services\Ai;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
 class AiProviderResponderService
 {
+    /**
+     * Intents in this list never send enriched context to external LLM providers.
+     * We keep deterministic tool replies for privacy-sensitive flows.
+     *
+     * @var array<int, string>
+     */
+    private const PRIVACY_BLOCKED_INTENTS = [
+        'order_tracking',
+    ];
+
+    private const DEFAULT_ESTIMATED_COST_PER_ATTEMPT_IDR = 350;
+
     public function __construct(
         private readonly StoreKnowledgeService $storeKnowledge,
         private readonly CustomerVoiceInsightService $customerVoiceInsight,
@@ -28,6 +42,30 @@ class AiProviderResponderService
         $primaryModel = $this->resolveFastModel($primaryProvider);
         $attempts = [];
 
+        if ($this->shouldSkipExternalForPrivacy($intent, $dataContext)) {
+            return [
+                'reply' => null,
+                'provider' => 'rule_based',
+                'model' => 'rule_based',
+                'fallback_used' => false,
+                'status' => 'privacy_guard_skipped',
+                'attempts' => $attempts,
+                'budget' => $this->buildBudgetSnapshot(),
+            ];
+        }
+
+        if (! $this->hasBudgetForAttempt()) {
+            return [
+                'reply' => null,
+                'provider' => $primaryProvider,
+                'model' => $primaryModel,
+                'fallback_used' => false,
+                'status' => 'budget_exhausted',
+                'attempts' => $attempts,
+                'budget' => $this->buildBudgetSnapshot(),
+            ];
+        }
+
         try {
             $systemPrompt = $this->buildSystemPrompt($intent);
             $userPrompt = $this->buildUserPrompt($intent, $message, $toolReply, $suggestions, $dataContext);
@@ -43,11 +81,13 @@ class AiProviderResponderService
                 'fallback_used' => false,
                 'status' => 'prompt_build_failed',
                 'attempts' => $attempts,
+                'budget' => $this->buildBudgetSnapshot(),
             ];
         }
 
         try {
             $reply = $this->requestCompletion($primaryProvider, $primaryModel, $systemPrompt, $userPrompt);
+            $this->recordEstimatedCostForAttempt();
             $attempts[] = $this->buildAttempt($primaryProvider, $primaryModel, true);
 
             return [
@@ -57,9 +97,15 @@ class AiProviderResponderService
                 'fallback_used' => false,
                 'status' => 'primary_success',
                 'attempts' => $attempts,
+                'budget' => $this->buildBudgetSnapshot(),
             ];
         } catch (Throwable $exception) {
             report($exception);
+
+            if ($this->shouldCountCostOnFailure($exception)) {
+                $this->recordEstimatedCostForAttempt();
+            }
+
             $attempts[] = $this->buildAttempt($primaryProvider, $primaryModel, false, $exception);
         }
 
@@ -73,11 +119,25 @@ class AiProviderResponderService
                 'fallback_used' => false,
                 'status' => 'fallback_unavailable',
                 'attempts' => $attempts,
+                'budget' => $this->buildBudgetSnapshot(),
+            ];
+        }
+
+        if (! $this->hasBudgetForAttempt()) {
+            return [
+                'reply' => null,
+                'provider' => $fallbackProvider,
+                'model' => $fallbackModel,
+                'fallback_used' => false,
+                'status' => 'fallback_budget_exhausted',
+                'attempts' => $attempts,
+                'budget' => $this->buildBudgetSnapshot(),
             ];
         }
 
         try {
             $reply = $this->requestCompletion($fallbackProvider, $fallbackModel, $systemPrompt, $userPrompt);
+            $this->recordEstimatedCostForAttempt();
             $attempts[] = $this->buildAttempt($fallbackProvider, $fallbackModel, true);
 
             return [
@@ -87,9 +147,15 @@ class AiProviderResponderService
                 'fallback_used' => true,
                 'status' => 'fallback_success',
                 'attempts' => $attempts,
+                'budget' => $this->buildBudgetSnapshot(),
             ];
         } catch (Throwable $exception) {
             report($exception);
+
+            if ($this->shouldCountCostOnFailure($exception)) {
+                $this->recordEstimatedCostForAttempt();
+            }
+
             $attempts[] = $this->buildAttempt($fallbackProvider, $fallbackModel, false, $exception);
 
             return [
@@ -99,6 +165,7 @@ class AiProviderResponderService
                 'fallback_used' => false,
                 'status' => 'fallback_failed',
                 'attempts' => $attempts,
+                'budget' => $this->buildBudgetSnapshot(),
             ];
         }
     }
@@ -454,6 +521,16 @@ class AiProviderResponderService
             '- Kalau user heboh soal fitur produk, arahkan dengan halus ke checkout: "Langsung aja pesan kak, check out bisa dari halaman produknya ya 😉".',
             '- Kalau user bilang "nanti deh" atau "pikir-pikir dulu", jangan push. Bilang: "Siap kak, santai aja! Kalau nanti mau lanjut, tinggal chat lagi ya. Saya standby kok 😊".',
             '',
+            '# KEAMANAN & PRIVASI DATA (WAJIB JAWAB TEGAS)',
+            '- Jika pelanggan bertanya tentang KEAMANAN upload bukti transfer, privasi data, atau khawatir nomor rekeningnya tersebar:',
+            '  * JAWAB DENGAN TEGAS DAN YAKIN. JANGAN ragu-ragu atau berbelit-belit.',
+            '  * Poin kunci: "Data dan bukti pembayaran kakak 100% aman. Bukti transfer hanya diakses oleh admin internal toko untuk keperluan verifikasi pesanan. Tidak akan disebarluaskan atau disalahgunakan ke pihak manapun."',
+            '  * Tambahkan: "Sistem kami juga dilindungi dan hanya admin yang bisa melihat bukti yang kakak upload."',
+            '  * Jika user MASIH ragu atau tetap tidak mau upload bukti, arahkan dengan HALUS ke alternatif:',
+            '    "Tapi kalau kakak tetap lebih nyaman tanpa upload bukti, ada solusi praktis nih kak! Pilih metode Bayar.gg (Otomatis) saat checkout. Kakak tinggal scan QRIS, pembayaran langsung terverifikasi otomatis tanpa perlu upload bukti apapun. Lebih cepat dan praktis! 😊"',
+            '  * JANGAN PERNAH bilang "kami tidak bisa menjamin" atau "kami sarankan hati-hati". Ini membuat pelanggan TIDAK PERCAYA.',
+            '  * JANGAN menyarankan pelanggan untuk menyensor/blur nomor rekening di bukti transfer. Nomor rekening HARUS terlihat jelas agar admin bisa verifikasi.',
+            '',
             '# ATURAN ABSOLUT (PENALTI JIKA DILANGGAR)',
             '1. Jangan pernah mengaku mesin/AI/Bot. Kamu adalah staf toko asli.',
             '2. Link yang kamu berikan harus bisa di-klik dan hanya dari database yang diberikan.',
@@ -546,6 +623,7 @@ class AiProviderResponderService
             $sections[] = '- "Bukti pembayaran ditolak" → Alasan umum: foto blur, nominal tidak sesuai pesanan, rekening pengirim tidak jelas. Solusi step-by-step: (1) buka menu Cek Pesanan, (2) klik pesanan, (3) klik Ganti Bukti, (4) upload screenshot baru yang jelas.';
             $sections[] = '- "Mau ganti metode pembayaran" → Jika status masih pending, bisa ganti. Jelaskan opsi: COD, transfer, e-wallet, Bayar.gg (QRIS otomatis).';
             $sections[] = '- "Bayar.gg/QRIS tidak muncul" → Solusi: (a) refresh halaman, (b) pastikan browser support QRIS, (c) coba browser lain, (d) pilih metode bayar alternatif.';
+            $sections[] = '- "Keraguan privasi bukti transfer / takut data tersebar" → (1) Validasi kekhawatiran: "Wajar banget kak kalau kakak concern soal privasi." (2) Tegaskan keamanan: "Data dan bukti transfer kakak 100% aman, hanya admin internal toko yang bisa akses untuk verifikasi pesanan, tidak akan tersebar ke siapapun." (3) Tawarkan alternatif: "Tapi kalau kakak lebih nyaman, bisa pakai Bayar.gg — tinggal scan QRIS, otomatis terverifikasi, nggak perlu upload bukti apapun. Paling gampang dan aman!" JANGAN PERNAH bilang "kami tidak bisa menjamin" — itu membunuh kepercayaan customer.';
             $sections[] = '';
             $sections[] = '## MASALAH PENGIRIMAN';
             $sections[] = '- "Pesanan lama/belum dikirim" → Diagnosis: (1) Cek status pembayaran dulu — belum lunas = belum diproses, itu normal. (2) Jika sudah lunas, estimasi 1-2 hari kerja. (3) Jika >2 hari kerja DAN sudah lunas, baru arahkan WA admin.';
@@ -630,12 +708,18 @@ class AiProviderResponderService
         $conversationHistory = is_array($dataContext['conversation_history'] ?? null)
             ? $dataContext['conversation_history']
             : [];
+        $complexCaseProfile = is_array($dataContext['complex_case_profile'] ?? null)
+            ? $dataContext['complex_case_profile']
+            : [];
 
-        $internalKnowledgeData = $dataContext;
-        unset($internalKnowledgeData['page_context'], $internalKnowledgeData['conversation_history']);
+        $internalKnowledgeData = $this->sanitizeInternalKnowledge($intent, $dataContext);
 
         $pageContextText = $this->formatPageContextForPrompt($pageContext);
         $conversationHistoryText = $this->formatConversationHistoryForPrompt($conversationHistory);
+        $complexCaseProfileText = $this->formatComplexCaseProfileForPrompt($complexCaseProfile);
+        $complexCaseDirectiveText = $complexCaseProfile !== []
+            ? 'Jika case_weight pada profil bernilai high/critical, WAJIB gunakan format: empati singkat -> ringkasan masalah utama -> langkah tutorial bernomor -> verifikasi hasil -> tips pencegahan.'
+            : '';
 
         if (count($suggestions) > 0) {
             $normalizedSuggestions = array_map(
@@ -653,7 +737,7 @@ class AiProviderResponderService
             ? "[INTERNAL KNOWLEDGE]\n" . json_encode($internalKnowledgeData, JSON_PRETTY_PRINT) . "\n[/INTERNAL KNOWLEDGE]"
             : '';
 
-        return implode("\n", array_filter([
+        $compiledPrompt = implode("\n", array_filter([
             '[Pertanyaan Pesan dari Kakak (Pelanggan)]',
             trim($message),
             '',
@@ -664,12 +748,15 @@ class AiProviderResponderService
             '',
             $conversationHistoryText,
             '',
+            $complexCaseProfileText,
+            '',
             $rawDataText,
             '',
             '[Instruksi Balasan — WAJIB DIPATUHI]',
             'Berikan balasan LANGSUNG kepada pelanggan (sebagai manusia, CS HS Electric).',
             'Jawab dengan gaya kasual, pintar, empati tinggi. JANGAN JADIKAN POIN-POIN KAKU — tulis mengalir seperti manusia ngobrol.',
             'JANGAN PERNAH membuka jawaban dengan mengulang pertanyaan user (misal: "Oh, kakak mau tanya soal..."). LANGSUNG jawab isinya.',
+            $complexCaseDirectiveText,
             '',
             '[Aturan Problem Solving]',
             'Jika user punya MASALAH: diagnosa root cause, berikan 2-4 langkah solusi mandiri, baru tawarkan WA jika semua langkah gagal.',
@@ -687,6 +774,137 @@ class AiProviderResponderService
             'Gunakan penomoran HANYA untuk step-by-step guide. Untuk jawaban biasa, tulis mengalir.',
             'Saran tindak lanjut yang bisa ditawarkan: ' . $suggestionText,
         ], static fn(string $line): bool => $line !== ''));
+
+        return $this->clampPromptToInputBudget($compiledPrompt);
+    }
+
+    private function sanitizeInternalKnowledge(string $intent, array $dataContext): array
+    {
+        $sanitizedData = $dataContext;
+
+        unset($sanitizedData['page_context'], $sanitizedData['conversation_history']);
+
+        if (is_array($sanitizedData['order'] ?? null)) {
+            $orderData = $sanitizedData['order'];
+            unset($orderData['latest_payment_url']);
+            $sanitizedData['order'] = $orderData;
+        }
+
+        if ($this->shouldSkipExternalForPrivacy($intent, $dataContext)) {
+            return [
+                'privacy_guard' => [
+                    'enabled' => true,
+                    'intent' => strtolower(trim($intent)),
+                    'order_context_present' => is_array($dataContext['order'] ?? null),
+                ],
+            ];
+        }
+
+        return $sanitizedData;
+    }
+
+    private function shouldSkipExternalForPrivacy(string $intent, array $dataContext): bool
+    {
+        $normalizedIntent = strtolower(trim($intent));
+
+        if (in_array($normalizedIntent, self::PRIVACY_BLOCKED_INTENTS, true)) {
+            return true;
+        }
+
+        if (is_array($dataContext['order'] ?? null)) {
+            return true;
+        }
+
+        return filled(data_get($dataContext, 'order.latest_payment_url'));
+    }
+
+    private function shouldCountCostOnFailure(Throwable $exception): bool
+    {
+        $message = strtolower(trim($exception->getMessage()));
+
+        if ($message === '') {
+            return true;
+        }
+
+        return ! Str::contains($message, [
+            'belum diisi',
+            'tidak didukung',
+        ]);
+    }
+
+    private function dailyBudgetIdr(): int
+    {
+        return max(0, (int) config('services.ai.daily_budget_idr', 0));
+    }
+
+    private function estimatedCostPerAttemptIdr(): int
+    {
+        return max(1, (int) config('services.ai.estimated_cost_per_request_idr', self::DEFAULT_ESTIMATED_COST_PER_ATTEMPT_IDR));
+    }
+
+    private function hasBudgetForAttempt(): bool
+    {
+        $dailyBudget = $this->dailyBudgetIdr();
+
+        if ($dailyBudget === 0) {
+            return true;
+        }
+
+        return ($this->currentDailySpendIdr() + $this->estimatedCostPerAttemptIdr()) <= $dailyBudget;
+    }
+
+    private function recordEstimatedCostForAttempt(): void
+    {
+        $dailyBudget = $this->dailyBudgetIdr();
+
+        if ($dailyBudget === 0) {
+            return;
+        }
+
+        $dailySpendKey = $this->dailySpendCacheKey();
+
+        Cache::add($dailySpendKey, 0, now()->endOfDay());
+        Cache::increment($dailySpendKey, $this->estimatedCostPerAttemptIdr());
+    }
+
+    private function currentDailySpendIdr(): int
+    {
+        return max(0, (int) Cache::get($this->dailySpendCacheKey(), 0));
+    }
+
+    private function dailySpendCacheKey(): string
+    {
+        return 'ai_provider_daily_spend_idr:' . now()->format('Ymd');
+    }
+
+    private function buildBudgetSnapshot(): array
+    {
+        $dailyBudget = $this->dailyBudgetIdr();
+        $spentToday = $this->currentDailySpendIdr();
+
+        return [
+            'guard_enabled' => $dailyBudget > 0,
+            'daily_budget_idr' => $dailyBudget,
+            'spent_today_idr' => $spentToday,
+            'remaining_idr' => $dailyBudget > 0 ? max(0, $dailyBudget - $spentToday) : null,
+            'estimated_per_attempt_idr' => $this->estimatedCostPerAttemptIdr(),
+        ];
+    }
+
+    private function clampPromptToInputBudget(string $prompt): string
+    {
+        $maxCharacters = $this->maxInputTokens() * 4;
+
+        if (mb_strlen($prompt) <= $maxCharacters) {
+            return $prompt;
+        }
+
+        return rtrim(mb_substr($prompt, 0, $maxCharacters)) . "\n\n[Catatan Sistem] Konteks dipangkas otomatis agar sesuai budget input token.";
+    }
+
+    private function maxInputTokens(): int
+    {
+        return max(512, min(32768, (int) config('services.ai.max_input_tokens', 2500)));
     }
 
     /**
@@ -718,6 +936,50 @@ class AiProviderResponderService
         $productName = trim((string) ($pageContext['product_name'] ?? ''));
         if ($productName !== '') {
             $lines[] = '- Produk yang sedang dilihat: ' . $productName;
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param array<string, mixed> $complexCaseProfile
+     */
+    private function formatComplexCaseProfileForPrompt(array $complexCaseProfile): string
+    {
+        if ($complexCaseProfile === []) {
+            return '';
+        }
+
+        $detectedIssueBuckets = is_array($complexCaseProfile['detected_issue_buckets'] ?? null)
+            ? $complexCaseProfile['detected_issue_buckets']
+            : [];
+
+        $priorityActions = is_array($complexCaseProfile['priority_actions'] ?? null)
+            ? $complexCaseProfile['priority_actions']
+            : [];
+
+        $clarifyingQuestions = is_array($complexCaseProfile['clarifying_questions'] ?? null)
+            ? $complexCaseProfile['clarifying_questions']
+            : [];
+
+        $lines = [
+            '[Complex Case Intelligence Profile]',
+            '- case_weight: ' . (string) ($complexCaseProfile['case_weight'] ?? 'low'),
+            '- complexity_score: ' . (string) ($complexCaseProfile['complexity_score'] ?? 0),
+            '- emotion_signal: ' . (string) ($complexCaseProfile['emotion_signal'] ?? 'neutral'),
+            '- urgency_signal: ' . (string) ($complexCaseProfile['urgency_signal'] ?? 'low'),
+        ];
+
+        if ($detectedIssueBuckets !== []) {
+            $lines[] = '- issue_buckets: ' . implode(', ', array_slice($detectedIssueBuckets, 0, 5));
+        }
+
+        if ($priorityActions !== []) {
+            $lines[] = '- priority_actions: ' . implode(' | ', array_slice($priorityActions, 0, 3));
+        }
+
+        if ($clarifyingQuestions !== []) {
+            $lines[] = '- clarifying_questions: ' . implode(' | ', array_slice($clarifyingQuestions, 0, 3));
         }
 
         return implode("\n", $lines);

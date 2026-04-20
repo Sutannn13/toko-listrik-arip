@@ -14,6 +14,8 @@ class AiAssistantOrchestratorService
     public function __construct(
         private readonly AiIntentRouterService $intentRouter,
         private readonly AiProviderResponderService $providerResponder,
+        private readonly AiPromptLearningService $promptLearning,
+        private readonly AiComplexCaseCoachService $complexCaseCoach,
         private readonly FaqAnswerTool $faqAnswerTool,
         private readonly OrderTrackingTool $orderTrackingTool,
         private readonly ProductRecommendationTool $productRecommendationTool,
@@ -45,7 +47,7 @@ class AiAssistantOrchestratorService
     private function buildFaqResponse(string $message, string $resolvedIntent = 'faq', array $payload = []): array
     {
         $faqResult = $this->faqAnswerTool->answer($message);
-        $sharedContextData = $this->buildSharedContextData($payload);
+        $sharedContextData = $this->buildSharedContextData($payload, $resolvedIntent, $message);
 
         $response = [
             'reply' => $faqResult['answer'],
@@ -58,6 +60,8 @@ class AiAssistantOrchestratorService
             ], $sharedContextData),
         ];
 
+        $response = $this->enrichResponseWithComplexCaseContext($response);
+
         return $this->decorateWithProviderReply($response, $message, $resolvedIntent);
     }
 
@@ -65,7 +69,7 @@ class AiAssistantOrchestratorService
     {
         $trackingResult = $this->orderTrackingTool->lookup($payload, $authenticatedUser);
         $message = trim((string) ($payload['message'] ?? ''));
-        $sharedContextData = $this->buildSharedContextData($payload);
+        $sharedContextData = $this->buildSharedContextData($payload, 'order_tracking', $message);
 
         $response = [
             'reply' => $trackingResult['reply'],
@@ -78,6 +82,8 @@ class AiAssistantOrchestratorService
             ], $sharedContextData),
         ];
 
+        $response = $this->enrichResponseWithComplexCaseContext($response);
+
         return $this->decorateWithProviderReply($response, $message, 'order_tracking');
     }
 
@@ -88,7 +94,7 @@ class AiAssistantOrchestratorService
         $recommendationMeta = is_array($recommendationResult['meta'] ?? null)
             ? $recommendationResult['meta']
             : [];
-        $sharedContextData = $this->buildSharedContextData($payload);
+        $sharedContextData = $this->buildSharedContextData($payload, 'product_recommendation', $message);
 
         $response = [
             'reply' => $recommendationResult['reply'],
@@ -121,6 +127,8 @@ class AiAssistantOrchestratorService
                 )));
             }
         }
+
+        $response = $this->enrichResponseWithComplexCaseContext($response);
 
         return $this->decorateWithProviderReply($response, $message, 'product_recommendation');
     }
@@ -234,12 +242,26 @@ class AiAssistantOrchestratorService
             'attempts' => $providerResponse['attempts'],
         ];
 
+        if (is_array($providerResponse['budget'] ?? null)) {
+            $baseResponse['data']['llm']['budget'] = $providerResponse['budget'];
+        }
+
         return $baseResponse;
     }
 
-    private function buildSharedContextData(array $payload): array
+    private function buildSharedContextData(array $payload, string $intent, string $message): array
     {
-        $sharedContextData = [];
+        $sharedContextData = [
+            'assistant_meta' => [
+                'prompt_version' => (string) config('services.ai.prompt_version', 'v2'),
+                'rule_version' => $this->promptLearning->currentRuleVersion(),
+            ],
+        ];
+
+        $complexCaseProfile = $this->complexCaseCoach->buildCaseProfile($intent, $message, $payload);
+        if ($complexCaseProfile !== []) {
+            $sharedContextData['complex_case_profile'] = $complexCaseProfile;
+        }
 
         $pageContext = $this->extractPageContext($payload);
         if ($pageContext !== []) {
@@ -252,6 +274,35 @@ class AiAssistantOrchestratorService
         }
 
         return $sharedContextData;
+    }
+
+    private function enrichResponseWithComplexCaseContext(array $response): array
+    {
+        $complexCaseProfile = is_array(data_get($response, 'data.complex_case_profile'))
+            ? data_get($response, 'data.complex_case_profile')
+            : [];
+
+        if ($complexCaseProfile === []) {
+            return $response;
+        }
+
+        $caseWeight = strtolower(trim((string) ($complexCaseProfile['case_weight'] ?? 'low')));
+
+        if (in_array($caseWeight, ['high', 'critical'], true)) {
+            $response['used_tools'][] = 'ComplexCaseCoach';
+            $response['used_tools'] = array_values(array_unique($response['used_tools']));
+
+            $followUpSuggestions = is_array($complexCaseProfile['suggested_follow_up'] ?? null)
+                ? $complexCaseProfile['suggested_follow_up']
+                : [];
+
+            $response['suggestions'] = array_values(array_unique(array_merge(
+                is_array($response['suggestions'] ?? null) ? $response['suggestions'] : [],
+                array_slice($followUpSuggestions, 0, 3),
+            )));
+        }
+
+        return $response;
     }
 
     private function extractPageContext(array $payload): array

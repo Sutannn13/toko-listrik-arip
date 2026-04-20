@@ -14,7 +14,7 @@
 
 ## Required Agent Behavior
 
-1. Before editing a `critical` area, load `.agent-context/review-checklists/security-audit.md` and `.agent-context/review-checklists/performance-audit.md`.
+1. Before editing a `critical` area, load `.agent-context/review-checklists/pr-checklist.md` and `.agent-context/review-checklists/architecture-review.md`.
 2. For boundary-crossing changes, verify no circular dependencies are introduced (see `dependency-map.md`).
 3. Every critical-path change must include explicit risk notes in PR description.
 

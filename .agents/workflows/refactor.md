@@ -10,7 +10,7 @@ description: Refactor code or extract a module following architecture and naming
 
 3. Read `.agent-context/rules/error-handling.md` to understand error handling patterns.
 
-4. Read the active language profile from `.agent-context/stacks/` (e.g., `typescript.md`).
+4. Resolve the active language profile from dynamic stack signals (e.g., TypeScript guidance).
 
 5. Analyze the target code for violations:
    - Layer leaks (business logic in controllers, SQL in services)

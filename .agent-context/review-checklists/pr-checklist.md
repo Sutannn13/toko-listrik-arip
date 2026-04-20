@@ -44,7 +44,7 @@ VERDICT: PASS / FAIL (X/Y items passed)
 - [ ] No premature abstraction (base classes/util layers created only after repeated stable patterns)
 - [ ] Readability over brevity for maintainability (no compressed one-liners that hide intent)
 
-### 3. Type Safety (→ stacks/typescript.md)
+### 3. Type Safety (→ dynamic TypeScript stack guidance)
 - [ ] No `any` type anywhere (use `unknown` + narrowing)
 - [ ] No `// @ts-ignore` (use `@ts-expect-error` with justification comment)
 - [ ] All function return types are explicit
@@ -124,3 +124,15 @@ VERDICT: PASS / FAIL (X/Y items passed)
 - [ ] Default responses avoid unnecessary state-file internals
 - [ ] State internals are exposed only on explicit request
 - [ ] Diagnostic mode can explain relevant state decisions when needed
+
+### 14. Single Source and Lazy Rule Loading
+- [ ] Canonical rule source is explicitly defined and enforced
+- [ ] Language-specific guidance is loaded lazily based on detected scope
+- [ ] No conflicting duplicate rule instructions during normal flow
+
+### 15. Universal SOP Consolidation
+- [ ] `.agent-context/rules/` remains the default guidance source for implementation and review
+- [ ] Backend and frontend mindset checks are both applied when scope spans API and UI boundaries
+- [ ] Security and testing requirements remain mandatory after static template purge
+- [ ] Coding flow is blocked if `docs/architecture-decision-record.md` (or `docs/Architecture-Decision-Record.md`) is missing
+- [ ] UI implementation flow is blocked if `docs/DESIGN.md` or `docs/design-intent.json` is missing

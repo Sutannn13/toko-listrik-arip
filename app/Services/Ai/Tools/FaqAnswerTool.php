@@ -115,8 +115,25 @@ Jadi kalau Anda pesan via COD, tinggal tunggu di rumah saja — kurir yang datan
             );
         }
 
+        // ── BELI DI LUAR JAM OPERASIONAL (contextual purchase policy) ──
+        if (
+            $this->matches($q, ['di luar jam operasional', 'diluar jam operasional', 'melewati jam operasional', 'di luar jam kerja', 'order malam', 'checkout malam', 'pesan malam'])
+            && $this->matches($q, ['beli', 'pesan', 'checkout', 'order', 'transaksi', 'bayar'])
+        ) {
+            return $this->response(
+                'Tenang, tetap bisa kok kak belanja kapan pun :)\n\nKalau checkout di luar jam operasional:\n1. Pesanan tetap masuk otomatis ke sistem (website bisa dipakai 24 jam).\n2. Verifikasi pembayaran manual akan diproses saat jam operasional berikutnya.\n3. Setelah terverifikasi, pesanan lanjut diproses lalu dikirim sesuai antrean.\n\nJadi tidak hilang ya kak, hanya proses admin/pengiriman dimulai saat jam kerja aktif.',
+                'faq.policy.after_hours_purchase',
+                0.96,
+                [
+                    'Jam operasional toko',
+                    'Cara cek status pesanan',
+                    'Metode pembayaran',
+                ],
+            );
+        }
+
         // ── ALAMAT TOKO & LOKASI (generic "alamat" — only if not caught above) ──
-        if ($this->matches($q, ['alamat toko', 'lokasi toko', 'lokasi', 'dimana', 'di mana', 'maps', 'gmaps', 'google maps', 'peta', 'alamat'])) {
+        if ($this->matches($q, ['alamat toko', 'lokasi toko', 'lokasi', 'toko dimana', 'dimana toko', 'di mana toko', 'maps', 'gmaps', 'google maps', 'peta', 'alamat'])) {
             $address = (string) Setting::get('store_address', '');
             $mapsUrl = (string) Setting::get('store_maps_url', '');
 
@@ -170,6 +187,8 @@ Jadi kalau Anda pesan via COD, tinggal tunggu di rumah saja — kurir yang datan
             if ($note !== '') {
                 $answer .= "\nCatatan: {$note}";
             }
+
+            $answer .= "\n\nPesan online tetap bisa 24 jam. Jika order masuk di luar jam operasional, proses verifikasi dan pengiriman dimulai pada jam kerja berikutnya.";
 
             return $this->response($answer, 'faq.store.hours', 0.93, [
                 'Alamat toko',
@@ -560,12 +579,14 @@ Catatan: Anda hanya bisa memberi ulasan untuk produk yang sudah pernah Anda beli
         }
 
         // ── RIWAYAT TRANSAKSI ──
-        if ($this->matches($q, ['riwayat', 'transaksi', 'history', 'pesanan lama', 'pesanan sebelumnya'])) {
+        if ($this->matches($q, ['riwayat', 'transaksi', 'history', 'pesanan lama', 'pesanan sebelumnya', 'invoice', 'download invoice', 'unduh invoice', 'cetak invoice'])) {
             return $this->response(
                 'Untuk melihat riwayat transaksi Anda:
 1. Login ke akun.
 2. Buka menu "Riwayat Transaksi".
-3. Semua pesanan yang pernah Anda buat akan ditampilkan di sini, termasuk yang sudah selesai, dibatalkan, atau sedang diproses.',
+3. Klik detail pesanan untuk melihat status lengkap.
+4. Untuk invoice, klik tombol "Download Invoice" di halaman detail pesanan.
+5. Semua pesanan lama tetap bisa dilihat di menu ini, termasuk yang sudah selesai, dibatalkan, atau sedang diproses.',
                 'faq.guide.transaction_history',
                 0.9,
                 [

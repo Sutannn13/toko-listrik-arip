@@ -23,6 +23,16 @@ class AiIntentRouterService
             return 'order_tracking';
         }
 
+        // ── Heavy multi-issue complaints should be handled as troubleshooting first ──
+        if ($this->containsComplexIssueHint($normalizedMessage)) {
+            return 'troubleshooting';
+        }
+
+        // ── Explicit problem statements should win over tutorial/store intent ──
+        if ($this->containsTroubleshootingHint($normalizedMessage)) {
+            return 'troubleshooting';
+        }
+
         // ── Website Help MUST come before Store Info ──
         if ($this->containsWebsiteHelpHint($normalizedMessage)) {
             return 'website_help';
@@ -41,11 +51,6 @@ class AiIntentRouterService
 
         if ($this->containsStoreInfoHint($normalizedMessage)) {
             return 'store_info';
-        }
-
-        // ── Troubleshooting: user has a problem and needs a solution ──
-        if ($this->containsTroubleshootingHint($normalizedMessage)) {
-            return 'troubleshooting';
         }
 
         // ── Emotional support: user is venting, frustrated, sad, or confused ──
@@ -157,18 +162,31 @@ class AiIntentRouterService
             'status pesanan',
             'lacak pesanan',
             'nomor resi',
-            'order saya',
-            'status order',
+            'status order saya',
+            'cek status order',
             'pesanan saya dimana',
         ];
 
+        $hasTrackingKeyword = false;
+
         foreach ($trackingKeywords as $keyword) {
             if (str_contains($message, $keyword)) {
-                return true;
+                $hasTrackingKeyword = true;
+                break;
             }
         }
 
-        return false;
+        if (! $hasTrackingKeyword) {
+            return false;
+        }
+
+        // If there is no order code and complaint signals are strong,
+        // route to troubleshooting first for actionable resolution.
+        if ($this->hasStrongIssueSignal($message)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -250,6 +268,25 @@ class AiIntentRouterService
             'upload bukti',
             'bukti bayar',
             'bukti transfer',
+
+            // History/invoice flows
+            'riwayat transaksi',
+            'riwayat pesanan',
+            'riwayat order',
+            'download invoice',
+            'unduh invoice',
+            'lihat invoice',
+            'cetak invoice',
+            'invoice pesanan',
+
+            // Purchase policy flow
+            'di luar jam operasional',
+            'diluar jam operasional',
+            'melewati jam operasional',
+            'order malam',
+            'checkout malam',
+            'pesan malam',
+            'beli malam',
 
             // Warranty process
             'cara klaim',
@@ -336,6 +373,124 @@ class AiIntentRouterService
 
         foreach ($recommendationKeywords as $keyword) {
             if (str_contains($message, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect heavy multi-issue complaints before product/store intent checks.
+     * Example: "produk rusak + bukti bayar ditolak + belum dikirim".
+     */
+    private function containsComplexIssueHint(string $message): bool
+    {
+        $issueClusters = [
+            [
+                'bayar',
+                'pembayaran',
+                'transfer',
+                'bukti',
+                'ditolak',
+                'gagal bayar',
+            ],
+            [
+                'kirim',
+                'pengiriman',
+                'belum sampai',
+                'belum dikirim',
+                'salah alamat',
+                'resi',
+                'paket',
+            ],
+            [
+                'rusak',
+                'cacat',
+                'retak',
+                'pecah',
+                'tidak sesuai',
+                'salah kirim',
+                'garansi',
+            ],
+            [
+                'login',
+                'akun',
+                'checkout gagal',
+                'error',
+                'tidak bisa masuk',
+            ],
+            [
+                'panik',
+                'frustasi',
+                'kecewa',
+                'kesal',
+                'ribet banget',
+                'berat banget',
+            ],
+            [
+                'privasi',
+                'privacy',
+                'takut',
+                'khawatir',
+                'pending',
+                'reviewing',
+            ],
+        ];
+
+        $clusterHits = 0;
+
+        foreach ($issueClusters as $cluster) {
+            foreach ($cluster as $keyword) {
+                if (str_contains($message, $keyword)) {
+                    $clusterHits++;
+                    break;
+                }
+            }
+        }
+
+        if ($clusterHits < 2) {
+            return false;
+        }
+
+        $linkerKeywords = [' dan ', ' tapi ', ' sekaligus ', ' plus ', ' sementara ', ' sekalinya '];
+        $hasLinkerSignal = false;
+
+        foreach ($linkerKeywords as $linkerKeyword) {
+            if (str_contains($message, $linkerKeyword)) {
+                $hasLinkerSignal = true;
+                break;
+            }
+        }
+
+        $hasExplicitTroubleSignal = preg_match('/\b(error|kendala|masalah|gimana dong|tolong bantu|solusi|beresin)\b/i', $message) === 1;
+
+        return $clusterHits >= 3 || $hasLinkerSignal || $hasExplicitTroubleSignal;
+    }
+
+    private function hasStrongIssueSignal(string $message): bool
+    {
+        $issueSignalKeywords = [
+            'ditolak',
+            'gagal',
+            'rusak',
+            'cacat',
+            'retak',
+            'pecah',
+            'belum diproses',
+            'belum dikirim',
+            'lama sekali',
+            'lama banget',
+            'reviewing',
+            'pending terus',
+            'khawatir',
+            'takut',
+            'kecewa',
+            'panik',
+        ];
+
+        foreach ($issueSignalKeywords as $issueSignalKeyword) {
+            if (str_contains($message, $issueSignalKeyword)) {
                 return true;
             }
         }
@@ -442,6 +597,17 @@ class AiIntentRouterService
      */
     private function containsTroubleshootingHint(string $message): bool
     {
+        $hasUploadProofFlow = str_contains($message, 'upload bukti') || str_contains($message, 'bukti bayar') || str_contains($message, 'bukti pembayaran');
+        $hasFailureSignal = str_contains($message, 'gagal')
+            || str_contains($message, 'error')
+            || str_contains($message, 'tidak bisa')
+            || str_contains($message, 'ga bisa')
+            || str_contains($message, 'gak bisa');
+
+        if ($hasUploadProofFlow && $hasFailureSignal) {
+            return true;
+        }
+
         $troubleshootingKeywords = [
             // Payment issues
             'pembayaran ditolak',
@@ -459,6 +625,12 @@ class AiIntentRouterService
             'sudah bayar tapi',
             'udah bayar tapi',
             'udah transfer tapi',
+            'upload bukti bayar gagal',
+            'upload bukti gagal',
+            'gagal upload bukti',
+            'tidak bisa upload bukti',
+            'ga bisa upload bukti',
+            'gak bisa upload bukti',
 
             // Order/delivery issues
             'pesanan hilang',
@@ -522,6 +694,29 @@ class AiIntentRouterService
             'minta tolong',
             'kenapa',
             'mengapa',
+
+            // Privacy / security concerns about payment proof
+            'aman ga',
+            'aman gak',
+            'aman nggak',
+            'aman tidak',
+            'apakah aman',
+            'aman kah',
+            'amankah',
+            'privasi',
+            'privacy',
+            'data aman',
+            'data saya',
+            'takut disalahgunakan',
+            'takut tersebar',
+            'takut bocor',
+            'bocor data',
+            'keamanan data',
+            'keamanan upload',
+            'aman upload',
+            'khawatir',
+            'ragu upload',
+            'takut upload',
         ];
 
         foreach ($troubleshootingKeywords as $keyword) {

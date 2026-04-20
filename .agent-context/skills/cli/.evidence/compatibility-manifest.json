@@ -1,5 +1,0 @@
-{
-  "ides": ["cursor", "windsurf", "copilot"],
-  "nodeMin": "18.15",
-  "platforms": ["windows", "mac", "linux"]
-}

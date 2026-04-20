@@ -8,13 +8,13 @@ description: Initialize a new project using Agentic-Senior-Core blueprints and e
 
 1. Read all rule files from `.agent-context/rules/` to understand engineering standards.
 
-2. Read the language-specific profile from `.agent-context/stacks/` based on the project's tech stack.
+2. Resolve language-specific guidance from dynamic stack signals based on the project's goals and constraints.
 
-3. Read the chosen blueprint from `.agent-context/blueprints/` (e.g., `api-nextjs.md` or `nestjs-logic.md`).
+3. Resolve the chosen architecture playbook (e.g., `api-nextjs` or `nestjs-logic`).
 
 4. Scaffold the complete project structure following the blueprint exactly:
    - Create all directories and files
-   - Set up strict `tsconfig.json` (all flags from `stacks/typescript.md`)
+   - Set up strict `tsconfig.json` (using active TypeScript guidance)
    - Create `.env.example` with placeholder values
    - Set up Zod-validated environment config
    - Set up error handling foundation (base error class + global handler)

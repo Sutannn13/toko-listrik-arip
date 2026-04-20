@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -20,10 +21,18 @@ class AiAssistantChatEndpointTest extends TestCase
     {
         parent::setUp();
 
+        Cache::flush();
+
         config()->set('services.ai.assistant_enabled', true);
         config()->set('services.ai.provider', 'rule_based');
         config()->set('services.ai.model_fast', 'gemini-2.5-flash');
         config()->set('services.ai.model_fallback', 'deepseek-chat');
+        config()->set('services.ai.prompt_version', 'v2');
+        config()->set('services.ai.daily_budget_idr', 50000);
+        config()->set('services.ai.estimated_cost_per_request_idr', 350);
+        config()->set('services.ai.complex_case_enabled', true);
+        config()->set('services.ai.complex_case_high_threshold', 65);
+        config()->set('services.ai.complex_case_critical_threshold', 85);
         config()->set('services.ai.gemini_api_key', null);
         config()->set('services.ai.deepseek_api_key', null);
         config()->set('services.ai.web_search_enabled', false);
@@ -160,6 +169,98 @@ class AiAssistantChatEndpointTest extends TestCase
         }
     }
 
+    public function test_ai_chat_detects_complex_multi_issue_case_and_exposes_resolution_profile(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-complex-case-001',
+            'message' => 'Produk lampu saya rusak, bukti pembayaran juga ditolak, dan pesanan belum dikirim. Saya panik dan kecewa banget, tolong langkah jelasnya satu per satu sekarang.',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+        $response->assertJsonPath('data.complex_case_profile.needs_tutorial_mode', true);
+        $response->assertJsonPath('data.complex_case_profile.case_weight', 'critical');
+
+        $usedTools = (array) $response->json('used_tools');
+        $this->assertContains('ComplexCaseCoach', $usedTools);
+
+        $priorityActions = (array) $response->json('data.complex_case_profile.priority_actions');
+        $this->assertNotEmpty($priorityActions);
+    }
+
+    public function test_ai_chat_prioritizes_troubleshooting_when_order_status_phrase_is_part_of_multi_issue_complaint(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-troubleshoot-priority-001',
+            'message' => 'Bukti pembayaran saya ditolak padahal saldo kepotong, status order belum diproses, dan saya butuh solusi sekarang.',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+    }
+
+    public function test_ai_chat_handles_after_hours_purchase_policy_as_website_help(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-after-hours-policy-001',
+            'message' => 'Kalau saya beli barang melewati jam operasional, nanti akan gimana prosesnya?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'website_help');
+
+        $reply = strtolower((string) $response->json('reply'));
+        $this->assertStringContainsString('24 jam', $reply);
+        $this->assertStringContainsString('jam operasional', $reply);
+    }
+
+    public function test_ai_chat_injects_complex_case_profile_into_provider_prompt(): void
+    {
+        $this->configureExternalAiProviderForTest([
+            'provider' => 'gemini',
+            'model_fast' => 'gemini-2.5-flash',
+            'model_fallback' => 'deepseek-chat',
+            'gemini_api_key' => 'test-gemini-key',
+            'deepseek_api_key' => 'test-deepseek-key',
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'parts' => [
+                                ['text' => 'Tenang kak, ini langkah pemulihan paling aman buat kasus kakak.'],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-complex-case-provider-001',
+            'message' => 'Saya kecewa, bukti transfer ditolak dan paket belum dikirim. Tolong bantu langkah jelasnya.',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+        $response->assertJsonPath('data.llm.provider', 'gemini');
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+            if (! str_contains($request->url(), 'generativelanguage.googleapis.com')) {
+                return false;
+            }
+
+            $requestPayload = $request->data();
+            $compiledPrompt = (string) data_get($requestPayload, 'contents.0.parts.0.text', '');
+
+            return str_contains($compiledPrompt, '[Complex Case Intelligence Profile]')
+                && str_contains($compiledPrompt, 'case_weight')
+                && str_contains($compiledPrompt, 'priority_actions');
+        });
+    }
+
     public function test_ai_chat_returns_order_tracking_for_authenticated_order_owner(): void
     {
         [$customer, $order] = $this->createOrderFixture();
@@ -190,6 +291,8 @@ class AiAssistantChatEndpointTest extends TestCase
         $response->assertJsonPath('intent', 'order_tracking');
         $response->assertJsonPath('data.requires_verification', true);
         $response->assertJsonPath('data.order', null);
+
+        $this->assertStringContainsString($order->order_code, (string) $response->json('reply'));
     }
 
     public function test_ai_chat_allows_guest_tracking_when_email_matches_order(): void
@@ -427,6 +530,57 @@ class AiAssistantChatEndpointTest extends TestCase
         $response->assertJsonPath('data.llm.attempts.1.success', false);
     }
 
+    public function test_ai_chat_skips_external_provider_for_order_tracking_due_to_privacy_guard(): void
+    {
+        [$customer, $order] = $this->createOrderFixture();
+        Sanctum::actingAs($customer);
+
+        $this->configureExternalAiProviderForTest([
+            'provider' => 'gemini',
+            'gemini_api_key' => 'test-gemini-key',
+            'deepseek_api_key' => 'test-deepseek-key',
+        ]);
+
+        Http::fake();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-privacy-guard-001',
+            'message' => 'Tolong cek status pesanan ' . $order->order_code,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'order_tracking');
+        $response->assertJsonPath('data.llm.status', 'privacy_guard_skipped');
+        $response->assertJsonPath('data.llm.provider', 'rule_based');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_ai_chat_skips_external_provider_when_daily_budget_is_exhausted(): void
+    {
+        $this->configureExternalAiProviderForTest([
+            'provider' => 'gemini',
+            'gemini_api_key' => 'test-gemini-key',
+            'deepseek_api_key' => 'test-deepseek-key',
+            'daily_budget_idr' => 100,
+            'estimated_cost_per_request_idr' => 250,
+        ]);
+
+        Http::fake();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-budget-guard-001',
+            'message' => 'Cara bayar di website ini bagaimana?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.llm.status', 'budget_exhausted');
+        $response->assertJsonPath('data.llm.provider', 'gemini');
+        $response->assertJsonPath('data.llm.budget.guard_enabled', true);
+
+        Http::assertNothingSent();
+    }
+
     private function createOrderFixture(): array
     {
         $customer = User::factory()->create([
@@ -534,6 +688,8 @@ class AiAssistantChatEndpointTest extends TestCase
             'model_fallback' => 'deepseek-chat',
             'request_timeout' => 20,
             'max_output_tokens' => 500,
+            'daily_budget_idr' => 50000,
+            'estimated_cost_per_request_idr' => 350,
             'gemini_api_key' => 'test-gemini-key',
             'deepseek_api_key' => 'test-deepseek-key',
         ], $overrides);

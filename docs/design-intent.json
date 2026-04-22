@@ -1,73 +1,404 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
   "mode": "dynamic",
-  "status": "seed-generated-during-upgrade",
+  "status": "active",
   "project": {
     "name": "toko-listrik-arip",
-    "context": "Existing web application detected during upgrade. Create a project-specific dynamic design contract before shipping new UI work.",
-    "domain": "Web application",
-    "stack": "Php",
-    "blueprint": "Laravel Api"
-  },
-  "brandAdjectives": [
-    "clear",
-    "human",
-    "distinct"
-  ],
-  "antiAdjectives": [
-    "generic",
-    "template-like",
-    "trend-chasing"
-  ],
-  "visualDirection": {
-    "trendStance": "trend-aware-not-trend-chasing",
-    "distinctiveMoves": [
-      "Create a visual direction with one memorable tension instead of stacking fashionable effects.",
-      "Use rhythm, hierarchy, and motion intentionally so the interface feels authored.",
-      "Keep the system flexible enough to evolve with product scope without losing identity."
+    "domain": "laravel-ecommerce-electric-store",
+    "frontend_stack": [
+      "blade",
+      "alpinejs",
+      "tailwindcss",
+      "vite"
     ],
-    "copiedReferenceAllowed": false
+    "javascript_framework": "alpinejs",
+    "react_presence": {
+      "enabled": false,
+      "jsx_tsx_files_found": 0,
+      "react_imports_in_resources_js": 0
+    }
   },
-  "experiencePrinciples": [
-    "Design must feel project-specific, not interchangeable with generic SaaS templates.",
-    "Major interface decisions must be explainable in product and user terms.",
-    "Accessibility, responsiveness, and implementation realism are non-negotiable."
-  ],
-  "forbiddenPatterns": [
-    "generic-saas-hero",
-    "copycat-brand-system",
-    "unjustified-default-gradients",
-    "placeholder-design-language"
-  ],
-  "requiredDesignSections": [
-    "Design Intent and Product Personality",
-    "Audience and Use-Context Signals",
-    "Visual Direction and Distinctive Moves",
-    "Color System and Semantic Roles",
-    "Typography System and Hierarchy",
-    "Spacing, Layout Rhythm, and Density Strategy",
-    "Interaction, Motion, and Feedback Rules",
-    "Component Language and Shared Patterns",
-    "Accessibility Non-Negotiables",
-    "Responsive Strategy",
-    "Anti-Patterns to Avoid",
-    "Implementation Notes for Future UI Tasks"
-  ],
-  "implementation": {
-    "requiredDeliverables": [
-      "docs/DESIGN.md",
-      "docs/design-intent.json"
+  "frontend_architecture": {
+    "rendering_model": "server-rendered-blade-templates",
+    "interactivity_model": "alpinejs-inline-components-and-transitions",
+    "css_architecture": "tailwind-utilities-plus-@layer-base-components-utilities",
+    "entrypoints": {
+      "css": "resources/css/app.css",
+      "js": [
+        "resources/js/app.js",
+        "resources/js/bootstrap.js"
+      ]
+    },
+    "primary_layouts": [
+      "resources/views/layouts/storefront.blade.php",
+      "resources/views/layouts/admin.blade.php",
+      "resources/views/layouts/guest.blade.php",
+      "resources/views/layouts/app.blade.php"
     ],
-    "requireDesignRationale": true,
-    "requireDistinctVisualDirection": true,
-    "requireMachineReadableContract": true,
-    "bootstrapPrompt": ".agent-context/prompts/bootstrap-design.md"
+    "surface_scope": {
+      "admin_blade_templates": 14,
+      "storefront_blade_templates": 15,
+      "auth_templates": "lightweight-tailwind-custom-pages"
+    }
   },
-  "architectSignals": null,
-  "upgradeSignals": {
-    "detectedFrom": [
-      "ui markers: tailwind.config.js, vite.config.js, app, public",
-      "ui dependencies: tailwindcss"
+  "design_tokens": {
+    "colors": {
+      "tailwind_extended": {
+        "primary": {
+          "50": "#f2fdf4",
+          "100": "#dcfce4",
+          "200": "#baf7c8",
+          "300": "#84ee98",
+          "400": "#43de67",
+          "500": "#03ac0e",
+          "600": "#028f0c",
+          "700": "#02730b",
+          "800": "#055c0f",
+          "900": "#064b10",
+          "950": "#022909"
+        },
+        "brand": {
+          "25": "#F5F8FF",
+          "50": "#EFF4FF",
+          "100": "#D1E0FF",
+          "200": "#B2CCFF",
+          "300": "#84ADFF",
+          "400": "#528BFF",
+          "500": "#3B82F6",
+          "600": "#2563EB",
+          "700": "#1D4ED8",
+          "800": "#1E40AF",
+          "900": "#1E3A8A",
+          "950": "#172554"
+        },
+        "gray": {
+          "50": "#F9FAFB",
+          "100": "#F3F4F6",
+          "200": "#E5E7EB",
+          "300": "#D1D5DB",
+          "400": "#9CA3AF",
+          "500": "#6B7280",
+          "600": "#4B5563",
+          "700": "#374151",
+          "800": "#1F2937",
+          "900": "#111928",
+          "950": "#030712"
+        },
+        "success": {
+          "50": "#F0FDF4",
+          "100": "#DCFCE7",
+          "200": "#BBF7D0",
+          "300": "#86EFAC",
+          "400": "#4ADE80",
+          "500": "#22C55E",
+          "600": "#16A34A",
+          "700": "#15803D"
+        },
+        "warning": {
+          "50": "#FFFBEB",
+          "100": "#FEF3C7",
+          "200": "#FDE68A",
+          "300": "#FCD34D",
+          "400": "#FBBF24",
+          "500": "#F59E0B",
+          "600": "#D97706",
+          "700": "#B45309"
+        },
+        "error": {
+          "50": "#FEF2F2",
+          "100": "#FEE2E2",
+          "200": "#FECACA",
+          "300": "#FCA5A5",
+          "400": "#F87171",
+          "500": "#EF4444",
+          "600": "#DC2626",
+          "700": "#B91C1C"
+        },
+        "dark": {
+          "bg": "#1A2332",
+          "sidebar": "#1C2A3A",
+          "card": "#1F2A3C",
+          "border": "#2D3A4A",
+          "hover": "#253243",
+          "input": "#2D3A4A"
+        }
+      },
+      "css_variables": {
+        "--ui-brand-navy": "#0b1f3a",
+        "--ui-brand-cyan": "#03ac0e",
+        "--ui-brand-cyan-soft": "#f2fdf4",
+        "--ui-surface": "#ffffff",
+        "--ui-border": "#e2e8f0"
+      },
+      "surface_role_mapping": {
+        "storefront_primary_cta": "primary.500-700 (green)",
+        "admin_primary_cta": "brand.500-700 (blue)",
+        "status_success": "success.50/100/500/700",
+        "status_warning": "warning.50/100/500/700",
+        "status_error": "error.50/100/500/700",
+        "neutral_text_and_surface": "gray.50-900"
+      }
+    },
+    "typography": {
+      "font_sources": [
+        "Google Fonts (Inter, Plus Jakarta Sans) via resources/css/app.css",
+        "Bunny Fonts (Inter, Plus Jakarta Sans/Figtree in legacy layouts)"
+      ],
+      "font_family_config": {
+        "tailwind_body": [
+          "Inter",
+          "defaultTheme.sans"
+        ],
+        "tailwind_sans": [
+          "Plus Jakarta Sans",
+          "Inter",
+          "defaultTheme.sans"
+        ],
+        "base_html": "Plus Jakarta Sans, Inter, Segoe UI, sans-serif",
+        "auth_pages_override": "Inter, Segoe UI, sans-serif"
+      },
+      "tracking": {
+        "body_letter_spacing": "0.01em",
+        "heading_letter_spacing": "-0.01em"
+      },
+      "weight_usage": [
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ]
+    },
+    "spacing": {
+      "scale_source": "tailwind-default-spacing-scale (no custom extension in tailwind.config.js)",
+      "layout_constants": {
+        "--ta-sidebar-width": "18.125rem",
+        "--ta-header-height": "4rem",
+        "--ta-transition": "300ms"
+      },
+      "most_common_spacing_utilities": [
+        "gap-2",
+        "gap-3",
+        "gap-4",
+        "px-3",
+        "px-4",
+        "px-5",
+        "px-6",
+        "py-2",
+        "py-2.5",
+        "py-3",
+        "py-4",
+        "p-4",
+        "p-5",
+        "p-6",
+        "mb-4",
+        "mb-6",
+        "mb-8"
+      ]
+    },
+    "border_radius": {
+      "global_usage": [
+        "rounded-md",
+        "rounded-lg",
+        "rounded-xl",
+        "rounded-2xl",
+        "rounded-full"
+      ],
+      "pattern_mapping": {
+        "inputs_buttons": "rounded-lg",
+        "panels_alerts_dropdown": "rounded-xl",
+        "cards_major_containers": "rounded-2xl",
+        "badges_chips_status": "rounded-full"
+      }
+    },
+    "shadows": {
+      "tailwind_extended": {
+        "tailadmin": "0px 1px 3px rgba(0, 0, 0, 0.08)",
+        "tailadmin-md": "0px 4px 6px -1px rgba(0, 0, 0, 0.06)",
+        "tailadmin-lg": "0px 10px 15px -3px rgba(0, 0, 0, 0.08)",
+        "sidebar": "4px 0 20px rgba(0, 0, 0, 0.08)"
+      },
+      "usage": "dashboard cards, admin dropdowns, sticky sidebar, storefront product cards"
+    },
+    "z_index": {
+      "sidebar": 40,
+      "header": 30,
+      "overlay": 50,
+      "dropdown": 60,
+      "modal": 70,
+      "toast": 80
+    }
+  },
+  "dark_mode": {
+    "strategy": "class-based",
+    "tailwind_config": "darkMode: class",
+    "activation": {
+      "scope": "admin-layout",
+      "mechanism": "alpine state + localStorage darkMode flag + html.dark class",
+      "file": "resources/views/layouts/admin.blade.php"
+    },
+    "coverage": {
+      "admin_panel": "full tokenized dark classes (dark:bg-dark-*, dark:border-dark-*)",
+      "storefront": "light-first with no user dark toggle",
+      "auth": "light-card over dark image overlay"
+    }
+  },
+  "ui_patterns": {
+    "utility_class_usage_frequency": [
+      {
+        "class": "ui-card",
+        "count": 28
+      },
+      {
+        "class": "ui-input",
+        "count": 24
+      },
+      {
+        "class": "ui-btn",
+        "count": 20
+      },
+      {
+        "class": "ta-nav-item",
+        "count": 12
+      },
+      {
+        "class": "ui-btn-secondary",
+        "count": 9
+      },
+      {
+        "class": "ui-alert",
+        "count": 6
+      },
+      {
+        "class": "ui-btn-primary",
+        "count": 6
+      }
     ],
-    "generatedBy": "upgrade-seed"
-  }
+    "blade_component_usage_frequency": [
+      {
+        "component": "x-input-error",
+        "count": 17
+      },
+      {
+        "component": "x-dropdown",
+        "count": 8
+      },
+      {
+        "component": "x-responsive-nav-link",
+        "count": 8
+      },
+      {
+        "component": "x-input-label",
+        "count": 6
+      },
+      {
+        "component": "x-text-input",
+        "count": 6
+      },
+      {
+        "component": "x-ui.page-header",
+        "count": 6
+      },
+      {
+        "component": "x-primary-button",
+        "count": 4
+      }
+    ],
+    "button_patterns": {
+      "design_system_buttons": {
+        "base": "ui-btn",
+        "variants": [
+          "ui-btn-primary",
+          "ui-btn-secondary",
+          "ui-btn-soft",
+          "ui-btn-success",
+          "ui-btn-danger",
+          "ui-btn-ghost"
+        ]
+      },
+      "legacy_blade_buttons": [
+        "x-primary-button",
+        "x-secondary-button",
+        "x-danger-button"
+      ],
+      "button_shape": "rounded-lg",
+      "default_button_density": "px-4 py-2.5 text-sm"
+    },
+    "card_patterns": {
+      "primary_card": "ui-card",
+      "card_padding_helper": "ui-card-pad",
+      "compact_panel": "ui-panel",
+      "empty_state": "ui-empty",
+      "shape": "rounded-xl to rounded-2xl"
+    },
+    "form_patterns": {
+      "label": "ui-label",
+      "input": "ui-input",
+      "select": "ui-select",
+      "textarea": "ui-textarea",
+      "error_render": "x-input-error",
+      "focus_pattern": "focus:border-brand-500 + focus:ring-2 focus:ring-brand-500/20"
+    },
+    "status_patterns": {
+      "badge": "ui-badge + semantic variant",
+      "alert": "ui-alert + semantic variant",
+      "table": "ta-table",
+      "admin_navigation": "ta-nav-item + ta-nav-active/ta-nav-idle",
+      "admin_dropdown": "ta-dropdown + ta-dropdown-item"
+    }
+  },
+  "responsive_and_interaction": {
+    "breakpoint_usage": [
+      "sm",
+      "md",
+      "lg",
+      "xl"
+    ],
+    "mobile_first_rules": [
+      "storefront has fixed mobile bottom nav on lg:hidden",
+      "main storefront container reserves mobile bottom nav space via pb-24",
+      "minimum touch target enforced to 44px on coarse pointers",
+      "font-size reduced to 14px for very small screens (max-width 374px)"
+    ],
+    "motion_patterns": [
+      "alpine x-transition enter/leave for modal, dropdown, toast, chat panel",
+      "product card hover lift enabled only on hover-capable pointer devices",
+      "typing cursor and loading dots in storefront AI assistant"
+    ]
+  },
+  "design_intent": {
+    "vibe": "modern-clean-responsive-electric-ecommerce",
+    "surface_personality": {
+      "storefront": "friendly, promotional, conversion-oriented green accents",
+      "admin": "operational dashboard tone with blue semantic hierarchy",
+      "auth": "high-contrast image-backed entry funnel"
+    },
+    "non_negotiable_rules": [
+      "use ui-* and ta-* component classes before introducing one-off utility stacks",
+      "keep storefront primary actions on primary green scale",
+      "keep admin core actions and nav highlights on brand blue scale",
+      "do not introduce React-only components without architecture change decision",
+      "dark mode changes must preserve class-based strategy and admin scope"
+    ]
+  },
+  "source_of_truth_files": [
+    "tailwind.config.js",
+    "resources/css/app.css",
+    "resources/views/layouts/storefront.blade.php",
+    "resources/views/layouts/admin.blade.php",
+    "resources/views/components/primary-button.blade.php",
+    "resources/views/components/secondary-button.blade.php",
+    "resources/views/components/danger-button.blade.php",
+    "resources/views/components/text-input.blade.php",
+    "resources/views/components/ui/page-header.blade.php",
+    "resources/views/admin/dashboard.blade.php",
+    "resources/views/home/index.blade.php",
+    "resources/views/home/cart.blade.php",
+    "resources/views/home/tracking.blade.php",
+    "resources/views/auth/login.blade.php",
+    "resources/views/auth/register.blade.php"
+  ],
+  "last_verified_date": "2026-04-20"
 }

@@ -74,7 +74,7 @@
     <div x-data="heroBannerCarousel()" x-init="start()" class="mb-6 sm:mb-8">
         <div class="relative overflow-hidden rounded-2xl shadow-lg shadow-primary-500/20">
 
-            <div class="relative h-[200px] sm:h-[220px] md:h-[260px]">
+            <div class="relative h-[220px] sm:h-[240px] md:h-[280px]">
                 {{-- Slide 1: Produk Unggulan --}}
                 <div x-show="active === 0" x-transition:enter="transition duration-500 ease-out"
                     x-transition:enter-start="translate-x-8 opacity-0" x-transition:enter-end="translate-x-0 opacity-100"
@@ -85,7 +85,7 @@
                         <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
                         <div class="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-white/8 blur-2xl"></div>
                     </div>
-                    <div class="relative flex h-full items-center px-5 pb-12 sm:px-10 sm:pb-0 md:px-14">
+                    <div class="relative flex h-full items-center px-5 pb-8 sm:px-10 sm:pb-0 md:px-14">
                         <div class="flex-1 pr-2">
                             <p class="text-[10px] font-bold uppercase tracking-widest text-white/70 sm:text-xs">⚡
                                 {{ $totalProducts }} Produk Tersedia</p>
@@ -131,7 +131,7 @@
                         <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
                         <div class="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-white/8 blur-2xl"></div>
                     </div>
-                    <div class="relative flex h-full items-center px-5 pb-12 sm:px-10 sm:pb-0 md:px-14">
+                    <div class="relative flex h-full items-center px-5 pb-8 sm:px-10 sm:pb-0 md:px-14">
                         <div class="flex-1 pr-2">
                             <p class="text-[10px] font-bold uppercase tracking-widest text-white/70 sm:text-xs">🛡️ Garansi
                                 Resmi</p>
@@ -171,7 +171,7 @@
                         <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
                         <div class="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-white/8 blur-2xl"></div>
                     </div>
-                    <div class="relative flex h-full items-center px-5 pb-12 sm:px-10 sm:pb-0 md:px-14">
+                    <div class="relative flex h-full items-center px-5 pb-8 sm:px-10 sm:pb-0 md:px-14">
                         <div class="flex-1 pr-2">
                             <p class="text-[10px] font-bold uppercase tracking-widest text-white/70 sm:text-xs">🚚
                                 Pengiriman</p>

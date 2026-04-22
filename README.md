@@ -7,6 +7,18 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Troubleshooting Gambar Produk
+
+Jika kartu produk tampil tetapi gambar produk tidak muncul, biasanya link `public/storage` belum terbentuk (atau pernah terganti jadi folder biasa).
+
+Jalankan perintah berikut dari root project:
+
+```bash
+php artisan storage:link
+```
+
+Untuk memastikan setup baru langsung aman, script `composer setup` di project ini sudah otomatis menjalankan `php artisan storage:link --force`.
+
 ## API Authentication (Sanctum)
 
 Checkout dan Cart API menggunakan Bearer Token Sanctum.

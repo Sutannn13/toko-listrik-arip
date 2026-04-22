@@ -2,8 +2,10 @@
     "title": "Toko HS ELECTRIC - Katalog Produk",
     "brand": "",
     "headings": [
-        "Pusat Kebutuhan Listrik",
-        "Pencarian & Filter",
+        "Pusat KebutuhanListrik Anda",
+        "Garansi Hingga1 Tahun",
+        "Bayar di TempatCOD Tersedia",
+        "Kategori",
         "Produk Tersedia",
         "Kipas Meja Turbo",
         "Kipas Dinding Pro"
@@ -14,9 +16,9 @@
         "Beli"
     ],
     "structure": {
-        "section_count": 3,
+        "section_count": 1,
         "article_count": 2,
         "form_count": 1
     },
-    "main_text_hash": "bb176ac69e252f6c760c39e89739cf0b95a5cdc1a8c5cea6598d2523be984d57"
+    "main_text_hash": "802890cdb3d3556d185fc31ed3aa021906b0bd86960f2b9af4fc9534a78140e9"
 }

@@ -80,30 +80,7 @@ class AiIntentRouterService
      */
     private function isConversationalMessage(string $message): bool
     {
-        $greetings = [
-            'halo',
-            'hello',
-            'hi',
-            'hai',
-            'hey',
-            'assalamualaikum',
-            'assalamu',
-            'selamat pagi',
-            'selamat siang',
-            'selamat sore',
-            'selamat malam',
-            'permisi',
-            'maaf',
-            'misi',
-        ];
-
-        $hasGreeting = false;
-        foreach ($greetings as $greeting) {
-            if (str_contains($message, $greeting)) {
-                $hasGreeting = true;
-                break;
-            }
-        }
+        $hasGreeting = preg_match('/\b(halo|hello|hi|hai|hey|assalamualaikum|assalamu|selamat pagi|selamat siang|selamat sore|selamat malam|permisi|maaf|misi)\b/i', $message) === 1;
 
         if (!$hasGreeting) {
             return false;

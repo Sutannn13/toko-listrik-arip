@@ -1,7 +1,7 @@
 {
   "schemaVersion": "token-optimization-v1",
   "enabled": true,
-  "selectedAgent": "gemini",
+  "selectedAgent": "copilot",
   "preferredShellProxy": "native-fallback",
   "externalProxy": {
     "detected": false,
@@ -75,5 +75,5 @@
       "reason": "Kubernetes output is condensed and stable for agent consumption."
     }
   ],
-  "generatedAt": "2026-04-13T16:34:20.511Z"
+  "generatedAt": "2026-04-22T18:03:38.932Z"
 }

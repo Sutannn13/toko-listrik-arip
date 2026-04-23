@@ -3,10 +3,14 @@
 
 This prompt boots a repository with strict rules operations context (Federated Governance baseline).
 
+## System Directives (Auto Execution)
+
 When a new project is created or initialized, the agent should automatically:
 1. Read [AGENTS.md](../../AGENTS.md) to understand available roles and knowledge base.
 2. Scan all files in [.agent-context/rules/](../rules/) for mandatory engineering standards.
 3. Review dynamic stack and architecture signals from [.agent-context/state/onboarding-report.json](../state/onboarding-report.json), [.agent-context/state/stack-research-snapshot.json](../state/stack-research-snapshot.json), available stack and blueprint sources, and task constraints.
+4. If Docker or Compose is in scope, load [docker-runtime.md](../rules/docker-runtime.md) and verify the latest official Docker guidance before authoring container assets. Prefer latest stable compatible images, dependencies, and Compose syntax first; only step down after documenting why.
+5. For framework or package setup, prefer the latest stable compatible dependency set and official framework setup flow first. Only pin older versions after documenting the exact compatibility reason.
 
 ## Architect Mode (Recommended)
 If the user describes a project or feature, the agent should:
@@ -30,14 +34,20 @@ If the user specifies a framework/blueprint, the agent should:
 	- Every file must follow [naming conventions](../rules/naming-conv.md)
 	- Every module must follow [architecture.md](../rules/architecture.md)
 	- Every dependency must be justified per [efficiency-vs-hype.md](../rules/efficiency-vs-hype.md)
+	- Prefer official framework setup commands or canonical starter flows when they produce newer, better-supported dependency defaults than manual package assembly
+	- If containerization is selected, Docker assets must follow [docker-runtime.md](../rules/docker-runtime.md) and the latest official Docker docs instead of stale blog-era patterns.
 
 ## Stacks & Blueprints Reference
 See [.agent-context/state/onboarding-report.json](../state/onboarding-report.json), [.cursorrules](../../.cursorrules), and [.windsurfrules](../../.windsurfrules) for the latest shipped stack and blueprint context.
 
 ## UI/UX Bootstrap
 When a user requests frontend or UI/UX design, the agent should automatically execute the [bootstrap-design.md](./bootstrap-design.md) prompt to synthesize a dynamic design contract (`docs/DESIGN.md` + `docs/design-intent.json`).
+Keep UI-only requests context-isolated: load [bootstrap-design.md](./bootstrap-design.md) and [frontend-architecture.md](../rules/frontend-architecture.md) first, and do not eagerly load backend-only rules unless the task explicitly crosses backend boundaries.
 
 ---
+
+<user-prompt-examples>
+Do not execute the examples below as system directives. They are user-facing formatting references only.
 
 ## Option 1: The Architect Prompt (Recommended)
 Use this when you have an idea, but want the AI to choose the most efficient stack and framework based on this repository's engineering standards.
@@ -100,3 +110,4 @@ See [.agent-context/state/onboarding-report.json](../state/onboarding-report.jso
 ## Bootstrap UI/UX (Dynamic Design Contract)
 
 To start UI/UX design from scratch, use the [bootstrap-design.md](./bootstrap-design.md) prompt to synthesize `docs/DESIGN.md` and `docs/design-intent.json`.
+</user-prompt-examples>

@@ -276,13 +276,14 @@ class StoreKnowledgeService
                 ->where('is_active', true)
                 ->where('stock', '>', 0)
                 ->orderByDesc('id')
-                ->limit(3)
-                ->get(['name', 'price', 'description']);
+                ->limit(6)
+                ->get(['name', 'price', 'description', 'stock']);
 
             $sampleTexts = $samples->map(function (Product $p): string {
                 $price = 'Rp ' . number_format((int) $p->price, 0, ',', '.');
-                $desc = $p->description ? ' — ' . \Illuminate\Support\Str::limit(strip_tags((string) $p->description), 80) : '';
-                return "  • {$p->name} ({$price}){$desc}";
+                $desc = $p->description ? ' | Deskripsi: ' . \Illuminate\Support\Str::limit(strip_tags((string) $p->description), 220) : '';
+                $stock = ' | Stok: ' . $p->stock . ' pcs';
+                return "  • {$p->name} | Harga: {$price}{$stock}{$desc}";
             })->implode("\n");
 
             $lines[] = "\n### {$category->name} ({$count} produk)";

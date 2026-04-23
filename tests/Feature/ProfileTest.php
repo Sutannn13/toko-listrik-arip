@@ -160,7 +160,7 @@ class ProfileTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Profil Admin');
-        $response->assertDontSee('Alamat Default Pengiriman');
+        $response->assertDontSee('Alamat Pengiriman');
     }
 
     public function test_regular_user_profile_page_keeps_customer_sections(): void
@@ -176,7 +176,7 @@ class ProfileTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Profil Akun');
-        $response->assertSee('Alamat Default Pengiriman');
+        $response->assertSee('Alamat Pengiriman');
     }
 
     public function test_user_can_delete_their_account(): void

@@ -3,6 +3,13 @@
 > Every dependency is a liability. Every `npm install` is a trust decision.
 > The best dependency is the one you don't need.
 
+## Latest-Compatible-First Rule
+
+- Start from the latest stable compatible dependency version, not an outdated tutorial version.
+- If the framework has an official scaffolder or setup command that produces current defaults, prefer that path over manually assembling stale `package.json` entries one by one.
+- Only step down to an older dependency version after documenting the exact compatibility, runtime, platform, or ecosystem reason.
+- Treat release notes, official docs, and framework migration guides as the primary source of truth for dependency setup.
+
 ## The Dependency Decision Framework
 
 Before adding ANY dependency, answer these 5 questions:
@@ -21,7 +28,7 @@ const padded = str.padStart(10, '0');
 const flat = nested.flat(Infinity);
 ```
 
-**Dependency Defense:** If the user asks to install a new library, or if you feel the need to use one, evaluate it against the "stdlib-first" rule. If the functionality can be implemented safely in under 20 lines of code, write it yourself. If a dependency is strictly necessary, you MUST justify it by providing its bundle size, maintenance status, and why the standard library is insufficient.
+**Dependency Defense:** If the user asks to install a new library, or if you feel the need to use one, evaluate it against the "stdlib-first" rule. If the functionality can be implemented safely in under 20 lines of code, write it yourself. If a dependency is strictly necessary, you MUST justify it by providing its bundle size, maintenance status, why the standard library is insufficient, and why the chosen version is the latest stable compatible option.
 
 ### 2. Is It Maintained? (The Pulse Check)
 | Signal | 🟢 Healthy | 🔴 Dead |
@@ -94,19 +101,23 @@ Purpose: [what it does in 1 sentence]
 Stdlib Alternative: [why it's insufficient — or "none"]
 Bundle Size: [minified + gzipped]
 Maintenance: [last release date, maintainer count]
+Version Source: [official docs, release notes, or framework reference]
 Lock-in Risk: [low/medium/high — how many files would it touch]
 Exit Strategy: [how to remove it if needed]
+Fallback Reason: [only required when not using the latest stable compatible version]
 ```
 
 ---
 
 ## Dependency Update Strategy
 
-1. **Pin exact versions** in lockfiles (already default with package-lock.json, bun.lockb)
-2. **Review changelogs** before major updates — never blindly `npm update`
-3. **Update in isolation** — one dependency per PR, with tests passing
-4. **Security patches immediately** — don't wait for the sprint
-5. **Monthly audit** — run `npm audit` / `bun audit` and address findings
+1. **Start from latest stable compatible versions** — older versions need a written reason
+2. **Prefer official framework setup flows** when they yield newer, canonical dependency sets
+3. **Pin exact versions** in lockfiles (already default with package-lock.json, bun.lockb)
+4. **Review changelogs** before major updates — never blindly `npm update`
+5. **Update in isolation** — one dependency per PR, with tests passing
+6. **Security patches immediately** — don't wait for the sprint
+7. **Monthly audit** — run `npm audit` / `bun audit` and address findings
 
 ---
 

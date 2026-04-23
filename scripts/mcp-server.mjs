@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { dirname, resolve, sep } from 'node:path';
@@ -8,9 +8,6 @@ import { fileURLToPath } from 'node:url';
 
 const SCRIPT_FILE_PATH = fileURLToPath(import.meta.url);
 const REPOSITORY_ROOT = resolve(dirname(SCRIPT_FILE_PATH), '..');
-const PACKAGE_VERSION = JSON.parse(
-  readFileSync(resolve(REPOSITORY_ROOT, 'package.json'), 'utf8')
-).version;
 const STATE_DIRECTORY = resolve(REPOSITORY_ROOT, '.agent-context', 'state');
 const DEFAULT_PROTOCOL_VERSION = '2024-11-05';
 const DEFAULT_FETCH_TIMEOUT_MS = 15000;
@@ -18,6 +15,24 @@ const DEFAULT_FETCH_MAX_CHARS = 6000;
 const MAX_FETCH_MAX_CHARS = 20000;
 const DEFAULT_TREND_WINDOW_DAYS = 90;
 const MAX_TREND_PACKAGES = 10;
+const FALLBACK_PACKAGE_VERSION = '0.0.0-local';
+
+function resolvePackageVersion() {
+  try {
+    const parsedPackageManifest = JSON.parse(
+      readFileSync(resolve(REPOSITORY_ROOT, 'package.json'), 'utf8')
+    );
+    const rawVersion = typeof parsedPackageManifest?.version === 'string'
+      ? parsedPackageManifest.version.trim()
+      : '';
+
+    return rawVersion || FALLBACK_PACKAGE_VERSION;
+  } catch {
+    return FALLBACK_PACKAGE_VERSION;
+  }
+}
+
+const PACKAGE_VERSION = resolvePackageVersion();
 
 const TEST_SUITE_ARGS = {
   full: ['--test', './tests/cli-smoke.test.mjs', './tests/mcp-server.test.mjs', './tests/llm-judge.test.mjs', './tests/enterprise-ops.test.mjs'],
@@ -26,132 +41,172 @@ const TEST_SUITE_ARGS = {
   'llm-judge': ['--test', './tests/llm-judge.test.mjs'],
 };
 
-const TOOL_DEFINITIONS = [
-  {
-    name: 'validate',
-    description: 'Run repository validation checks.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      additionalProperties: false,
-    },
-  },
-  {
-    name: 'test',
-    description: 'Run test suites (full or targeted).',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        suite: {
-          type: 'string',
-          enum: ['full', 'cli', 'enterprise', 'llm-judge'],
-          description: 'Target test suite. Defaults to full.',
-        },
+const INTERNAL_SCRIPT_PATHS = {
+  validate: resolve(REPOSITORY_ROOT, 'scripts', 'validate.mjs'),
+  release_gate: resolve(REPOSITORY_ROOT, 'scripts', 'release-gate.mjs'),
+  forbidden_content_check: resolve(REPOSITORY_ROOT, 'scripts', 'forbidden-content-check.mjs'),
+};
+
+function getAvailableTestSuites() {
+  return Object.entries(TEST_SUITE_ARGS)
+    .filter(([, commandArguments]) => (
+      Array.isArray(commandArguments)
+      && commandArguments.length > 1
+      && commandArguments
+        .slice(1)
+        .every((relativeTestPath) => existsSync(resolve(REPOSITORY_ROOT, relativeTestPath)))
+    ))
+    .map(([suiteName]) => suiteName);
+}
+
+const AVAILABLE_TEST_SUITES = getAvailableTestSuites();
+
+function buildToolDefinitions() {
+  const toolDefinitions = [];
+
+  if (existsSync(INTERNAL_SCRIPT_PATHS.validate)) {
+    toolDefinitions.push({
+      name: 'validate',
+      description: 'Run repository validation checks.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
       },
-      additionalProperties: false,
-    },
-  },
-  {
-    name: 'release_gate',
-    description: 'Run release gate checks.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      additionalProperties: false,
-    },
-  },
-  {
-    name: 'forbidden_content_check',
-    description: 'Run forbidden content scan used by publish gate.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      additionalProperties: false,
-    },
-  },
-  {
-    name: 'research_fetch',
-    description: 'Fetch external documentation/news content and return query-focused excerpts with citation metadata.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: {
-          type: 'string',
-          description: 'Absolute HTTP/HTTPS URL to fetch.',
+    });
+  }
+
+  if (AVAILABLE_TEST_SUITES.length > 0) {
+    toolDefinitions.push({
+      name: 'test',
+      description: 'Run test suites (full or targeted).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          suite: {
+            type: 'string',
+            enum: AVAILABLE_TEST_SUITES,
+            description: 'Target test suite. Defaults to the first available suite.',
+          },
         },
-        query: {
-          type: 'string',
-          description: 'Optional search query used to extract focused excerpts.',
-        },
-        maxChars: {
-          type: 'integer',
-          description: 'Maximum characters to return when query is not provided (default 6000, max 20000).',
-        },
+        additionalProperties: false,
       },
-      required: ['url'],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: 'trend_snapshot',
-    description: 'Generate ecosystem trend snapshot from npm registry metadata with source timestamps.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        packages: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Package names to inspect (max 10).',
-        },
-        windowDays: {
-          type: 'integer',
-          description: 'Release activity window in days (default 90).',
-        },
+    });
+  }
+
+  if (existsSync(INTERNAL_SCRIPT_PATHS.release_gate)) {
+    toolDefinitions.push({
+      name: 'release_gate',
+      description: 'Run release gate checks.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
       },
-      required: ['packages'],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: 'state_read',
-    description: 'Read a file from .agent-context/state for cross-session continuity.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        path: {
-          type: 'string',
-          description: 'Path relative to .agent-context/state (for example memory-continuity-benchmark.json).',
-        },
+    });
+  }
+
+  if (existsSync(INTERNAL_SCRIPT_PATHS.forbidden_content_check)) {
+    toolDefinitions.push({
+      name: 'forbidden_content_check',
+      description: 'Run forbidden content scan used by publish gate.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
       },
-      required: ['path'],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: 'state_write',
-    description: 'Write a file under .agent-context/state for cross-session continuity updates.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        path: {
-          type: 'string',
-          description: 'Path relative to .agent-context/state.',
+    });
+  }
+
+  toolDefinitions.push(
+    {
+      name: 'research_fetch',
+      description: 'Fetch external documentation/news content and return query-focused excerpts with citation metadata.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          url: {
+            type: 'string',
+            description: 'Absolute HTTP/HTTPS URL to fetch.',
+          },
+          query: {
+            type: 'string',
+            description: 'Optional search query used to extract focused excerpts.',
+          },
+          maxChars: {
+            type: 'integer',
+            description: 'Maximum characters to return when query is not provided (default 6000, max 20000).',
+          },
         },
-        content: {
-          type: 'string',
-          description: 'UTF-8 content to write.',
-        },
-        mode: {
-          type: 'string',
-          enum: ['overwrite', 'append'],
-          description: 'Write mode. Defaults to overwrite.',
-        },
+        required: ['url'],
+        additionalProperties: false,
       },
-      required: ['path', 'content'],
-      additionalProperties: false,
     },
-  },
-];
+    {
+      name: 'trend_snapshot',
+      description: 'Generate ecosystem trend snapshot from npm registry metadata with source timestamps.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          packages: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Package names to inspect (max 10).',
+          },
+          windowDays: {
+            type: 'integer',
+            description: 'Release activity window in days (default 90).',
+          },
+        },
+        required: ['packages'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'state_read',
+      description: 'Read a file from .agent-context/state for cross-session continuity.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Path relative to .agent-context/state (for example memory-continuity-benchmark.json).',
+          },
+        },
+        required: ['path'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'state_write',
+      description: 'Write a file under .agent-context/state for cross-session continuity updates.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Path relative to .agent-context/state.',
+          },
+          content: {
+            type: 'string',
+            description: 'UTF-8 content to write.',
+          },
+          mode: {
+            type: 'string',
+            enum: ['overwrite', 'append'],
+            description: 'Write mode. Defaults to overwrite.',
+          },
+        },
+        required: ['path', 'content'],
+        additionalProperties: false,
+      },
+    },
+  );
+
+  return toolDefinitions;
+}
+
+const TOOL_DEFINITIONS = buildToolDefinitions();
 
 let incomingBuffer = Buffer.alloc(0);
 
@@ -539,23 +594,50 @@ function runNodeCommand(commandLabel, commandArguments) {
 
 async function executeToolCall(toolName, toolArguments = {}) {
   if (toolName === 'validate') {
+    if (!existsSync(INTERNAL_SCRIPT_PATHS.validate)) {
+      return buildJsonResult({
+        error: 'validate tool is unavailable because scripts/validate.mjs is missing in this workspace.',
+      }, true);
+    }
+
     return runNodeCommand('validate', ['./scripts/validate.mjs']);
   }
 
   if (toolName === 'test') {
+    if (AVAILABLE_TEST_SUITES.length === 0) {
+      return buildJsonResult({
+        error: 'test tool is unavailable because the managed test suites are not present in this workspace.',
+      }, true);
+    }
+
+    const defaultSuite = AVAILABLE_TEST_SUITES[0];
     const requestedSuite = typeof toolArguments.suite === 'string'
       ? toolArguments.suite
-      : 'full';
+      : defaultSuite;
 
-    const selectedSuite = TEST_SUITE_ARGS[requestedSuite] ? requestedSuite : 'full';
+    const selectedSuite = AVAILABLE_TEST_SUITES.includes(requestedSuite)
+      ? requestedSuite
+      : defaultSuite;
     return runNodeCommand(`test:${selectedSuite}`, TEST_SUITE_ARGS[selectedSuite]);
   }
 
   if (toolName === 'release_gate') {
+    if (!existsSync(INTERNAL_SCRIPT_PATHS.release_gate)) {
+      return buildJsonResult({
+        error: 'release_gate tool is unavailable because scripts/release-gate.mjs is missing in this workspace.',
+      }, true);
+    }
+
     return runNodeCommand('release_gate', ['./scripts/release-gate.mjs']);
   }
 
   if (toolName === 'forbidden_content_check') {
+    if (!existsSync(INTERNAL_SCRIPT_PATHS.forbidden_content_check)) {
+      return buildJsonResult({
+        error: 'forbidden_content_check tool is unavailable because scripts/forbidden-content-check.mjs is missing in this workspace.',
+      }, true);
+    }
+
     return runNodeCommand('forbidden_content_check', ['./scripts/forbidden-content-check.mjs']);
   }
 

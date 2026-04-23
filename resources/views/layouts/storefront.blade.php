@@ -172,7 +172,8 @@
     </nav>
 
     <div x-data="storefrontAiAssistant({ chatEndpoint: @js(route('api.ai.chat', [], false)), feedbackEndpoint: @js(route('api.ai.feedback', [], false)) })" x-init="init()"
-        class="fixed bottom-20 right-4 z-modal sm:bottom-6 sm:right-6 lg:bottom-6">
+        x-on:header-panel-opened.window="closePanel()"
+        class="fixed bottom-20 right-4 z-[90] sm:bottom-6 sm:right-6 lg:bottom-6">
         {{-- Floating Trigger Button — Clean & Professional --}}
         <button x-show="!isOpen" x-cloak @click="openPanel()"
             class="group hidden lg:inline-flex items-center gap-2.5 rounded-full bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-lg shadow-gray-900/10 ring-1 ring-gray-200 transition hover:shadow-xl hover:ring-primary-300 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
@@ -387,6 +388,7 @@
 
                 openPanel() {
                     this.isOpen = true;
+                    window.dispatchEvent(new CustomEvent('chat-panel-opened'));
                     this.$nextTick(() => this.scrollToBottom());
                 },
 

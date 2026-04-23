@@ -20,9 +20,16 @@ The `.agent-context/rules/` directory is the default guidance source for impleme
 - Backend and frontend mindset checks are both required when a task spans API and UI boundaries.
 - Security and testing are non-negotiable baseline requirements.
 - Hard block before coding:
+  - `docs/project-brief.md` must exist.
   - `docs/architecture-decision-record.md` (alias: `docs/Architecture-Decision-Record.md`) must exist.
+  - `docs/flow-overview.md` must exist.
+  - If the project uses persistent data, `docs/database-schema.md` must exist.
+  - If the project exposes API or web application flows, `docs/api-contract.md` must exist.
   - For UI scope, `docs/DESIGN.md` and `docs/design-intent.json` must exist.
 - If required project context docs are missing, stop implementation and bootstrap docs before writing application code.
+- Bootstrap flow: analyze the real repo plus the latest user prompt before authoring those docs.
+- Bootstrap docs must be adaptive and project-specific. Do not create generic placeholder templates.
+- When context is incomplete, separate confirmed facts from assumptions, add an `Assumptions to Validate` section, and end with the next validation action.
 
 ## Rules as Guardian (Cross-Session Consistency)
 
@@ -159,6 +166,19 @@ If these triggers don't exist, microservices are **premature complexity**.
 ---
 
 ## Project Structure: Feature-Based Grouping
+
+## Code Organization and File Size Discipline
+
+Keep modules small enough to understand in one focused read.
+
+- Prefer grouping by responsibility, not by convenience.
+- One folder should represent one clear area of responsibility.
+- Split discovery, validation, prompt building, persistence, and contract logic into separate modules when they grow.
+- Avoid mixed-purpose mega-files that combine constants, parsing, orchestration, validation, and I/O in one place.
+- Treat files above roughly 1000 lines as a refactor trigger, not a badge of completeness.
+- If a file grows past that threshold, extract stable submodules with clear names before adding more behavior.
+- Preserve one public entrypoint when it helps callers, but move the real implementation behind focused modules.
+- Tests may aggregate scenarios, but shared helpers and repeated setup should move into dedicated support files when the suite becomes hard to scan.
 
 ### ❌ BANNED: Technical Grouping
 ```

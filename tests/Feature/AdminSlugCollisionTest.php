@@ -61,6 +61,7 @@ class AdminSlugCollisionTest extends TestCase
                 'unit' => 'pcs',
                 'description' => 'Produk lampu pertama.',
                 'is_electronic' => '1',
+                'warranty_days' => 30,
             ]);
 
         $firstResponse->assertRedirect(route('admin.products.index'));
@@ -75,6 +76,7 @@ class AdminSlugCollisionTest extends TestCase
                 'unit' => 'pcs',
                 'description' => 'Produk lampu kedua.',
                 'is_electronic' => '1',
+                'warranty_days' => 30,
             ]);
 
         $secondResponse->assertRedirect(route('admin.products.index'));

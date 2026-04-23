@@ -16,9 +16,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $isProduction = app()->isProduction();
+        $allowProductionSeed = filter_var((string) env('ALLOW_PRODUCTION_SEED', 'false'), FILTER_VALIDATE_BOOL);
+
+        if ($isProduction && ! $allowProductionSeed) {
+            $this->command?->error('Seeder diblokir di production. Set ALLOW_PRODUCTION_SEED=true untuk melanjutkan.');
+
+            return;
+        }
+
         $this->call([
             RolePermissionSeeder::class,
         ]);
+
+        if (! app()->environment(['local', 'testing'])) {
+            return;
+        }
 
         User::query()->firstOrCreate(
             ['email' => 'test@example.com'],

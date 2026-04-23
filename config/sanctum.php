@@ -47,7 +47,21 @@ return [
     |
     */
 
-    'expiration' => null,
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION') !== null
+        ? (int) env('SANCTUM_TOKEN_EXPIRATION')
+        : 120,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Revoke Existing Tokens On Login
+    |--------------------------------------------------------------------------
+    |
+    | If enabled, all existing personal access tokens for the authenticated
+    | user are revoked whenever a new token is issued from login endpoint.
+    |
+    */
+
+    'revoke_on_login' => filter_var(env('SANCTUM_REVOKE_ON_LOGIN', true), FILTER_VALIDATE_BOOL),
 
     /*
     |--------------------------------------------------------------------------

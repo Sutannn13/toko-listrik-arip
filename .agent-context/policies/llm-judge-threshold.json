@@ -1,5 +1,5 @@
 {
-  "selectedProfile": "beginner",
+  "selectedProfile": "balanced",
   "profileThresholds": {
     "beginner": {
       "blockingSeverities": [

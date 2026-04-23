@@ -315,7 +315,8 @@ class AiProviderResponderService
             ];
         }
 
-        $response = Http::acceptJson()
+        $response = Http::withoutVerifying()
+            ->acceptJson()
             ->asJson()
             ->timeout($this->requestTimeout())
             ->withQueryParameters(['key' => $apiKey])
@@ -434,7 +435,8 @@ class AiProviderResponderService
             throw new RuntimeException('AI_DEEPSEEK_API_KEY belum diisi.');
         }
 
-        $response = Http::acceptJson()
+        $response = Http::withoutVerifying()
+            ->acceptJson()
             ->asJson()
             ->timeout($this->requestTimeout())
             ->withToken($apiKey)
@@ -559,15 +561,39 @@ class AiProviderResponderService
 
         if ($intent === 'product_recommendation') {
             $sections[] = '';
-            $sections[] = '# PANDUAN REKOMENDASI PRODUK';
-            $sections[] = '- Ketika merekomendasikan produk, jelaskan MENGAPA produk itu cocok berdasarkan kebutuhan user.';
-            $sections[] = '- Jika user menyebut ruangan (kamar tidur, dapur, dll), berikan saran watt, tipe cahaya, dan desain yang cocok.';
-            $sections[] = '- Jika ada budget, filter produk yang masuk budget dan berikan pilihan terbaik dengan penjelasan value-for-money.';
-            $sections[] = '- Sertakan tips penggunaan jika relevan (misalnya: watt ideal, warm white vs cool daylight, hemat listrik, dll).';
-            $sections[] = '- Gunakan pengetahuan umum tentang produk listrik untuk memberikan saran yang bermanfaat dan meyakinkan.';
-            $sections[] = '- Jika produk yang pas tidak tersedia, sarankan alternatif terdekat atau hubungi WhatsApp toko.';
-            $sections[] = '- Jika [INTERNAL KNOWLEDGE] menyertakan web_search, gunakan itu sebagai referensi tambahan dan tampilkan sumber URL secara ringkas.';
+            $sections[] = '# PANDUAN REKOMENDASI PRODUK (WAJIB DIPATUHI — PENALTI JIKA MELANGGAR)';
+            $sections[] = '## ATURAN UTAMA:';
+            $sections[] = '- BACA SELURUH [INTERNAL KNOWLEDGE] dengan sangat teliti. Semua data produk (nama, harga, stok, deskripsi) ada di sana.';
+            $sections[] = '- JANGAN PERNAH memotong deskripsi produk atau menampilkan "..." di akhir. Berikan informasi SELENGKAP-LENGKAPNYA.';
+            $sections[] = '- WAJIB menyebut: nama produk, harga, spesifikasi teknis (watt, lumen, tipe, dll), dan kelebihan/kegunaannya.';
+            $sections[] = '';
+            $sections[] = '## GARANSI — WAJIB DISEBUTKAN:';
+            $sections[] = '- Semua produk ELEKTRONIK (lampu, MCB, dll) di toko ini MEMILIKI GARANSI hingga 365 hari setelah pesanan selesai.';
+            $sections[] = '- Garansi aktif otomatis setelah admin menyelesaikan pesanan. Klaim via menu "Garansi" di website.';
+            $sections[] = '- Jika user bertanya tentang produk bergaransi: TEGASKAN bahwa semua lampu/produk elektronik kami bergaransi.';
+            $sections[] = '- JANGAN hanya menyebut produk tanpa menyebut garansinya. Ini adalah nilai jual utama toko!';
+            $sections[] = '';
+            $sections[] = '## ALUR REKOMENDASI YANG SEMPURNA:';
+            $sections[] = '1. Identifikasi kebutuhan user (ruangan, anggaran, preferensi cahaya: warm/cool/daylight)';
+            $sections[] = '2. Pilih 2-4 produk PALING SESUAI dari katalog, jelaskan MENGAPA produk itu cocok';
+            $sections[] = '3. Berikan spek teknis lengkap (watt, lumen jika ada, tipe cahaya, base/fitting yang kompatibel)';
+            $sections[] = '4. Sebutkan harga dan STOK yang tersedia';
+            $sections[] = '5. Tegaskan garansi: "Tenang kak, semua lampu/produk listrik di toko kita bergaransi sampai 365 hari lho!"';
+            $sections[] = '6. Cross-sell produk pendukung (fitting, kabel, dll) secara natural';
+            $sections[] = '7. Tutup dengan ajakan action: "Langsung order sekarang yuk kak, stok terbatas!"';
+            $sections[] = '';
+            $sections[] = '## PENGETAHUAN TEKNIS WAJIB (GUNAKAN UNTUK SARAN YANG CERDAS):';
+            $sections[] = '- Kamar tidur standar (3x3m): cukup 5-9 watt LED untuk cahaya nyaman tidur (warm white 3000K)';
+            $sections[] = '- Ruang tamu/keluarga (4x4m): ideal 9-12 watt, bisa warm atau cool white sesuai selera';
+            $sections[] = '- Dapur/garasi (5x5m ke atas): butuh 12-20 watt, daylight (6500K) untuk visibilitas maksimal';
+            $sections[] = '- Warm white (2700-3000K): cocok kamar tidur, hangat dan nyaman';
+            $sections[] = '- Cool white (4000K): cocok ruang kerja, netral';
+            $sections[] = '- Daylight (6000-6500K): cocok dapur, kamar mandi, garasi — terang maksimal';
+            $sections[] = '- 1 watt LED = setara ~8-10 watt lampu pijar lama (hemat listrik!)';
+            $sections[] = '- Fitting E27 = ulir besar (standar), E14 = ulir kecil, GU10 = spotlight';
+            $sections[] = '- Jika [INTERNAL KNOWLEDGE] menyertakan web_search, gunakan sebagai referensi tambahan dan tampilkan sumber URL secara ringkas.';
         }
+
 
         if ($intent === 'store_info') {
             $sections[] = '';
@@ -754,24 +780,25 @@ class AiProviderResponderService
             '',
             '[Instruksi Balasan — WAJIB DIPATUHI]',
             'Berikan balasan LANGSUNG kepada pelanggan (sebagai manusia, CS HS Electric).',
-            'Jawab dengan gaya kasual, pintar, empati tinggi. JANGAN JADIKAN POIN-POIN KAKU — tulis mengalir seperti manusia ngobrol.',
-            'JANGAN PERNAH membuka jawaban dengan mengulang pertanyaan user (misal: "Oh, kakak mau tanya soal..."). LANGSUNG jawab isinya.',
+            'Jawab dengan gaya kasual, pintar, informatif, dan sangat membantu. Tunjukkan bahwa kamu adalah ahli kelistrikan sejati yang menguasai semua produk toko.',
+            'JANGAN menahan informasi. Jika user bertanya rekomendasi atau saran produk, berikan penjelasan yang sangat detail, spesifikasi produk, kelebihan, dan alasan mengapa produk itu cocok.',
+            'JANGAN PERNAH membuka jawaban dengan mengulang pertanyaan user (misal: "Oh, kakak mau tanya soal..."). LANGSUNG jawab isinya secara komprehensif.',
             $complexCaseDirectiveText,
             '',
             '[Aturan Problem Solving]',
-            'Jika user punya MASALAH: diagnosa root cause, berikan 2-4 langkah solusi mandiri, baru tawarkan WA jika semua langkah gagal.',
-            'Jika user bertanya hal teknis: jelaskan dengan analogi sederhana yang bisa dipahami orang awam.',
-            'Jika user menyebut produk: tawarkan juga produk komplementer jika relevan (cross-sell halus).',
+            'Jika user punya MASALAH: diagnosa root cause, berikan langkah solusi mandiri yang sangat detail dan tuntas, baru tawarkan WA jika semua langkah gagal.',
+            'Jika user bertanya hal teknis: jelaskan secara detail dengan analogi yang mudah dipahami, berikan wawasan tambahan agar pelanggan merasa teredukasi dan terbantu.',
+            'Jika user menyebut produk atau mencari saran: jelaskan spesifikasi produk, tawarkan rekomendasi produk terbaik dari katalog, dan selalu lakukan cross-sell produk komplementer (contoh: lampu dengan fitting/kabel).',
             '',
             '[Aturan Konteks]',
             'Jika konteks halaman tersedia, prioritaskan jawaban yang relevan dengan halaman tersebut agar user langsung dapat langkah yang tepat.',
             'Jika riwayat percakapan tersedia, pahami referensi seperti "yang tadi" atau "itu" berdasarkan konteks sebelumnya, jangan jawab seolah percakapan baru.',
-            'Jika ada [INTERNAL KNOWLEDGE], itu adalah otakmu. Pahami nilainya dan sampaikan dengan bahasamu sendiri (jangan sebut kata "knowledge" atau "json").',
+            'Kamu WAJIB membaca [INTERNAL KNOWLEDGE] (terutama data produk) dengan teliti. Ekstrak nama produk, harga, dan speknya, lalu jelaskan dengan bahasamu sendiri (jangan sebut kata "knowledge" atau "json").',
             'Jika ada data web_search di INTERNAL KNOWLEDGE, gunakan sebagai referensi tambahan dan sebutkan sumber URL agar pelanggan bisa cek mandiri.',
             '',
             '[Format Output]',
-            'Panjang jawaban: 2-6 kalimat untuk pertanyaan simpel, 1-2 paragraf untuk pertanyaan kompleks. Jangan terlalu panjang.',
-            'Gunakan penomoran HANYA untuk step-by-step guide. Untuk jawaban biasa, tulis mengalir.',
+            'Berikan jawaban yang LENGKAP, DETAIL, dan TUNTAS. JANGAN batasi panjang jawabanmu jika memang informasi yang diberikan sangat penting untuk pelanggan. Pastikan tidak ada informasi yang terpotong.',
+            'Gunakan paragraf yang rapi dan penomoran/bullet point untuk menjelaskan spesifikasi produk atau langkah panduan agar mudah dibaca.',
             'Saran tindak lanjut yang bisa ditawarkan: ' . $suggestionText,
         ], static fn(string $line): bool => $line !== ''));
 

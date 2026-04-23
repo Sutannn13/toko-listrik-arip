@@ -31,13 +31,23 @@ class AuthTokenController extends Controller
         }
 
         $tokenName = (string) ($validated['device_name'] ?? 'mobile-app');
-        $plainTextToken = $user->createToken($tokenName)->plainTextToken;
+
+        if (config('sanctum.revoke_on_login', true)) {
+            $user->tokens()->delete();
+        }
+
+        $expirationMinutes = (int) config('sanctum.expiration', 0);
+        $expiresAt = $expirationMinutes > 0 ? now()->addMinutes($expirationMinutes) : null;
+
+        $newToken = $user->createToken($tokenName, ['*'], $expiresAt);
+        $plainTextToken = $newToken->plainTextToken;
 
         return response()->json([
             'message' => 'Token API berhasil dibuat.',
             'data' => [
                 'token_type' => 'Bearer',
                 'access_token' => $plainTextToken,
+                'expires_at' => $newToken->accessToken->expires_at?->toISOString(),
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -54,6 +64,14 @@ class AuthTokenController extends Controller
             return response()->json([
                 'message' => 'Autentikasi tidak valid.',
             ], 401);
+        }
+
+        if ($request->boolean('all')) {
+            $authenticatedUser->tokens()->delete();
+
+            return response()->json([
+                'message' => 'Semua token API berhasil dicabut.',
+            ]);
         }
 
         $currentToken = $authenticatedUser->currentAccessToken();

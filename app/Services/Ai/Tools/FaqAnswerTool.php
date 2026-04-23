@@ -1073,8 +1073,15 @@ Yang bisa dilakukan:
     private function matches(string $question, array $keywords): bool
     {
         foreach ($keywords as $keyword) {
-            if (str_contains($question, $keyword)) {
-                return true;
+            // Use word boundaries for short keywords to prevent 'wa' matching 'watt'
+            if (strlen($keyword) <= 4) {
+                if (preg_match('/\b' . preg_quote($keyword, '/') . '\b/i', $question)) {
+                    return true;
+                }
+            } else {
+                if (str_contains($question, $keyword)) {
+                    return true;
+                }
             }
         }
 

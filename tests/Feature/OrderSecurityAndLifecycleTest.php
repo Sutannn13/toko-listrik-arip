@@ -127,7 +127,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
         $response->assertOk();
         $response->assertSee($order->order_code);
-        $response->assertSee('Status Pesanan');
+        $response->assertSee('Kode Pesanan');
     }
 
     public function test_tracking_check_form_redirects_to_new_tracking_detail_page(): void

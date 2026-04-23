@@ -15,13 +15,19 @@ Mandatory behavior when triggered:
 - apply structural checks from `.agent-context/review-checklists/architecture-review.md`
 - score and review generated UI work against visual intent, interaction quality, and conversion clarity
 - reject template-only repetitive outputs and force a distinct layout direction
+- treat prior website memory or old-project visual carryover as invalid evidence unless the user explicitly requests continuity with that exact system
+- do not flatten ambitious visual or motion ideas by default; keep them when they are optimized, intentional, and accessible
 
 ## UI Consistency Guardrails (Mandatory)
 
 - Content language must stay consistent per screen and flow unless user requests multilingual output.
 - Text color must remain contrast-safe against its background; no color collisions.
 - Layout must avoid overlap, clipped text, and misaligned key actions across breakpoints.
+- Responsive quality requires layout mutation and task reprioritization across breakpoints. Shrinking the desktop layout is not enough.
 - Keep spacing and positioning token-driven so repeated outputs stay stable.
+- Distinctive visual direction is allowed. Originality is a quality signal when hierarchy, task clarity, and accessibility still hold.
+- Motion is allowed to be expressive. Judge it by clarity, reduced-motion safety, and rendering cost, not by how restrained it looks.
+- Prefer transform and opacity for rich motion. Treat layout-thrashing animation, uncontrolled autoplay, and heavy continuous effects as optimization problems to solve, not reasons to remove personality from the UI entirely.
 
 ## 1. File Structure (Feature-Driven Design)
 Organize your application by feature domain, not by file type.

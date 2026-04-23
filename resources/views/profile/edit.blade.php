@@ -2,7 +2,7 @@
 
 @section('title', 'Profil Akun - Toko HS ELECTRIC')
 @section('header_subtitle', 'Akun Saya')
-@section('main_container_class', 'mx-auto w-full max-w-3xl px-4 py-5 pb-24 sm:px-6 sm:py-8 lg:px-8 lg:pb-8')
+@section('main_container_class', 'mx-auto w-full max-w-3xl px-4 py-5 pb-16 sm:px-6 sm:py-8 lg:px-8 lg:pb-8')
 
 @section('header_actions')
     <a href="{{ route('home') }}" class="ui-btn ui-btn-secondary hidden lg:inline-flex">

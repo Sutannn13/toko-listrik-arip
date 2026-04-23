@@ -2,7 +2,7 @@
 
 @section('title', 'Toko HS ELECTRIC - Katalog Produk')
 @section('header_subtitle', 'Katalog Produk')
-@section('main_container_class', 'flex-1 w-full mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 pb-24 lg:pb-8')
+@section('main_container_class', 'flex-1 w-full mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 pb-6')
 
 @php
     $baseSearchQuery = array_filter([
@@ -640,7 +640,7 @@
         @endforelse
 
         @if ($products->hasPages())
-            <div class="mt-8 rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
+            <div class="mt-4 rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
                 {{ $products->links() }}
             </div>
         @endif

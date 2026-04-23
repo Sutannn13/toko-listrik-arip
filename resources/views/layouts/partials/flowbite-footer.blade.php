@@ -38,7 +38,7 @@
 @endphp
 
 <footer class="mt-auto border-t border-slate-700/70 bg-slate-900 text-slate-300 font-body {{ $footerClass ?? '' }}">
-    <div class="mx-auto w-full max-w-7xl px-4 py-8 pb-24 sm:px-6 lg:px-8 lg:pb-8">
+    <div class="mx-auto w-full max-w-7xl px-4 py-8 pb-16 sm:px-6 lg:px-8 lg:pb-8">
         <div class="gap-8 md:flex md:justify-between">
             <div class="mb-8 md:mb-0">
                 <a href="{{ route('home') }}" class="flex items-center gap-3">
@@ -53,65 +53,16 @@
                     <h2 class="mb-5 text-sm font-semibold uppercase tracking-wide text-white">Resources</h2>
                     <ul class="space-y-3 text-sm">
                         <li>
-                            <div x-data="{ open: false }" class="relative inline-block">
-                                <a href="{{ route('home') }}" x-on:mouseenter="open = true"
-                                    x-on:mouseleave="open = false" x-on:focus="open = true" x-on:blur="open = false"
-                                    class="inline-flex rounded-sm text-slate-400 transition hover:text-brand-300 focus:text-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60">Katalog</a>
-                                <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-150"
-                                    x-transition:enter-start="opacity-0 translate-y-2"
-                                    x-transition:enter-end="opacity-100 translate-y-0"
-                                    x-transition:leave="transition ease-in duration-100"
-                                    x-transition:leave-start="opacity-100 translate-y-0"
-                                    x-transition:leave-end="opacity-0 -translate-y-3"
-                                    class="pointer-events-none absolute bottom-full start-1/2 z-20 mb-2 flex w-64 -translate-x-1/2 flex-col items-center will-change-transform"
-                                    role="tooltip">
-                                    <div
-                                        class="overflow-hidden rounded-lg border border-slate-600/80 bg-slate-800/95 text-start text-sm shadow-2xl backdrop-blur">
-                                        <h4
-                                            class="border-b border-slate-700/80 bg-slate-700/40 px-3 py-2 font-semibold text-slate-100">
-                                            Katalog Produk
-                                        </h4>
-                                        <p class="px-3 py-2.5 text-xs leading-relaxed text-slate-300">
-                                            Lihat koleksi perlengkapan listrik terbaru, promo, dan produk terlaris.
-                                        </p>
-                                    </div>
-                                    <div class="relative z-10 -mt-px h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-800/95"
-                                        aria-hidden="true"></div>
-                                    <div class="relative z-0 -mt-[7px] h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-500/70"
-                                        aria-hidden="true"></div>
-                                </div>
-                            </div>
+                            <a href="{{ route('home') }}"
+                                class="text-slate-400 transition hover:text-brand-300 focus:text-brand-300"
+                                title="Lihat koleksi perlengkapan listrik terbaru, promo, dan produk terlaris.">Katalog
+                                Produk</a>
                         </li>
                         <li>
-                            <div x-data="{ open: false }" class="relative inline-block">
-                                <a href="{{ route('home.tracking') }}" x-on:mouseenter="open = true"
-                                    x-on:mouseleave="open = false" x-on:focus="open = true" x-on:blur="open = false"
-                                    class="inline-flex rounded-sm text-slate-400 transition hover:text-brand-300 focus:text-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60">Lacak
-                                    Pesanan</a>
-                                <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-150"
-                                    x-transition:enter-start="opacity-0 translate-y-2"
-                                    x-transition:enter-end="opacity-100 translate-y-0"
-                                    x-transition:leave="transition ease-in duration-100"
-                                    x-transition:leave-start="opacity-100 translate-y-0"
-                                    x-transition:leave-end="opacity-0 -translate-y-3"
-                                    class="pointer-events-none absolute bottom-full start-1/2 z-20 mb-2 flex w-64 -translate-x-1/2 flex-col items-center will-change-transform"
-                                    role="tooltip">
-                                    <div
-                                        class="overflow-hidden rounded-lg border border-slate-600/80 bg-slate-800/95 text-start text-sm shadow-2xl backdrop-blur">
-                                        <h4
-                                            class="border-b border-slate-700/80 bg-slate-700/40 px-3 py-2 font-semibold text-slate-100">
-                                            Tracking Pesanan
-                                        </h4>
-                                        <p class="px-3 py-2.5 text-xs leading-relaxed text-slate-300">
-                                            Pantau status pesanan Anda secara real-time mulai dari diproses sampai tiba.
-                                        </p>
-                                    </div>
-                                    <div class="relative z-10 -mt-px h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-800/95"
-                                        aria-hidden="true"></div>
-                                    <div class="relative z-0 -mt-[7px] h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-500/70"
-                                        aria-hidden="true"></div>
-                                </div>
-                            </div>
+                            <a href="{{ route('home.tracking') }}"
+                                class="text-slate-400 transition hover:text-brand-300 focus:text-brand-300"
+                                title="Pantau status pesanan Anda secara real-time mulai dari diproses sampai tiba.">Lacak
+                                Pesanan</a>
                         </li>
                     </ul>
                 </div>
@@ -132,67 +83,16 @@
                     <h2 class="mb-5 text-sm font-semibold uppercase tracking-wide text-white">Legal</h2>
                     <ul class="space-y-3 text-sm">
                         <li>
-                            <div x-data="{ open: false }" class="relative inline-block">
-                                <a href="{{ route('legal.privacy') }}" x-on:mouseenter="open = true"
-                                    x-on:mouseleave="open = false" x-on:focus="open = true" x-on:blur="open = false"
-                                    class="inline-flex rounded-sm text-slate-400 transition hover:text-brand-300 focus:text-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60">Privacy
-                                    Policy</a>
-                                <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-150"
-                                    x-transition:enter-start="opacity-0 translate-y-2"
-                                    x-transition:enter-end="opacity-100 translate-y-0"
-                                    x-transition:leave="transition ease-in duration-100"
-                                    x-transition:leave-start="opacity-100 translate-y-0"
-                                    x-transition:leave-end="opacity-0 -translate-y-3"
-                                    class="pointer-events-none absolute bottom-full start-1/2 z-20 mb-2 flex w-64 -translate-x-1/2 flex-col items-center will-change-transform"
-                                    role="tooltip">
-                                    <div
-                                        class="overflow-hidden rounded-lg border border-slate-600/80 bg-slate-800/95 text-start text-sm shadow-2xl backdrop-blur">
-                                        <h4
-                                            class="border-b border-slate-700/80 bg-slate-700/40 px-3 py-2 font-semibold text-slate-100">
-                                            Privacy Policy
-                                        </h4>
-                                        <p class="px-3 py-2.5 text-xs leading-relaxed text-slate-300">
-                                            Pelajari bagaimana data pribadi Anda kami simpan, gunakan, dan lindungi.
-                                        </p>
-                                    </div>
-                                    <div class="relative z-10 -mt-px h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-800/95"
-                                        aria-hidden="true"></div>
-                                    <div class="relative z-0 -mt-[7px] h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-500/70"
-                                        aria-hidden="true"></div>
-                                </div>
-                            </div>
+                            <a href="{{ route('legal.privacy') }}"
+                                class="text-slate-400 transition hover:text-brand-300 focus:text-brand-300"
+                                title="Pelajari bagaimana data pribadi Anda kami simpan, gunakan, dan lindungi.">Privacy
+                                Policy</a>
                         </li>
                         <li>
-                            <div x-data="{ open: false }" class="relative inline-block">
-                                <a href="{{ route('legal.terms') }}" x-on:mouseenter="open = true"
-                                    x-on:mouseleave="open = false" x-on:focus="open = true" x-on:blur="open = false"
-                                    class="inline-flex rounded-sm text-slate-400 transition hover:text-brand-300 focus:text-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60">Terms
-                                    &amp; Conditions</a>
-                                <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-150"
-                                    x-transition:enter-start="opacity-0 translate-y-2"
-                                    x-transition:enter-end="opacity-100 translate-y-0"
-                                    x-transition:leave="transition ease-in duration-100"
-                                    x-transition:leave-start="opacity-100 translate-y-0"
-                                    x-transition:leave-end="opacity-0 -translate-y-3"
-                                    class="pointer-events-none absolute bottom-full start-1/2 z-20 mb-2 flex w-64 -translate-x-1/2 flex-col items-center will-change-transform"
-                                    role="tooltip">
-                                    <div
-                                        class="overflow-hidden rounded-lg border border-slate-600/80 bg-slate-800/95 text-start text-sm shadow-2xl backdrop-blur">
-                                        <h4
-                                            class="border-b border-slate-700/80 bg-slate-700/40 px-3 py-2 font-semibold text-slate-100">
-                                            Terms &amp; Conditions
-                                        </h4>
-                                        <p class="px-3 py-2.5 text-xs leading-relaxed text-slate-300">
-                                            Baca ketentuan layanan terkait pemesanan, pembayaran, pengiriman, dan
-                                            garansi.
-                                        </p>
-                                    </div>
-                                    <div class="relative z-10 -mt-px h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-800/95"
-                                        aria-hidden="true"></div>
-                                    <div class="relative z-0 -mt-[7px] h-0 w-0 flex-none border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-500/70"
-                                        aria-hidden="true"></div>
-                                </div>
-                            </div>
+                            <a href="{{ route('legal.terms') }}"
+                                class="text-slate-400 transition hover:text-brand-300 focus:text-brand-300"
+                                title="Baca ketentuan layanan terkait pemesanan, pembayaran, pengiriman, dan garansi.">Terms
+                                &amp; Conditions</a>
                         </li>
                     </ul>
                 </div>

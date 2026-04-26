@@ -21,7 +21,8 @@
         $normalizedPhotoPath = str_replace('\\', '/', (string) $user->profile_photo_path);
         $profilePhotoUrl =
             $normalizedPhotoPath !== '' &&
-            \Illuminate\Support\Facades\Storage::disk('public')->exists($normalizedPhotoPath)
+            (\Illuminate\Support\Facades\Storage::disk('local')->exists($normalizedPhotoPath) ||
+                \Illuminate\Support\Facades\Storage::disk('public')->exists($normalizedPhotoPath))
                 ? route('profile.photo', $user) . '?v=' . ($user->updated_at?->timestamp ?? now()->timestamp)
                 : null;
         $profileInitial = strtoupper(substr($user->name ?? 'A', 0, 1));

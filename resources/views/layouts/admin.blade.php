@@ -13,7 +13,8 @@
     $normalizedAdminPhotoPath = str_replace('\\', '/', (string) $authUser?->profile_photo_path);
     $adminProfilePhotoUrl =
         $normalizedAdminPhotoPath !== '' &&
-        \Illuminate\Support\Facades\Storage::disk('public')->exists($normalizedAdminPhotoPath)
+        (\Illuminate\Support\Facades\Storage::disk('local')->exists($normalizedAdminPhotoPath) ||
+            \Illuminate\Support\Facades\Storage::disk('public')->exists($normalizedAdminPhotoPath))
             ? route('profile.photo', $authUser) . '?v=' . ($authUser->updated_at?->timestamp ?? now()->timestamp)
             : null;
 

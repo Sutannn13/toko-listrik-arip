@@ -784,7 +784,7 @@ class HomeController extends Controller
                 }
 
                 $claimCode = $this->generateWarrantyClaimCode();
-                $storedProofPath = $validated['damage_proof']->store('warranty-claims/' . $claimCode, 'public');
+                $storedProofPath = $validated['damage_proof']->store('warranty-claims/' . $claimCode, 'local');
 
                 $claim = WarrantyClaim::create([
                     'claim_code' => $claimCode,
@@ -811,7 +811,7 @@ class HomeController extends Controller
             }, 3);
         } catch (\RuntimeException $e) {
             if ($storedProofPath) {
-                Storage::disk('public')->delete($storedProofPath);
+                $this->deleteSensitiveFile($storedProofPath);
             }
 
             if ($e->getMessage() === 'ACTIVE_CLAIM_EXISTS') {
@@ -833,7 +833,7 @@ class HomeController extends Controller
                 ->with('error', 'Item pesanan tidak ditemukan atau tidak valid untuk klaim.');
         } catch (\Throwable $e) {
             if ($storedProofPath) {
-                Storage::disk('public')->delete($storedProofPath);
+                $this->deleteSensitiveFile($storedProofPath);
             }
 
             return redirect()->route('home.cart')
@@ -1119,7 +1119,7 @@ class HomeController extends Controller
             $isReplacingExistingProof = true;
         }
 
-        $path = $request->file('payment_proof')->store('payments/' . $order->order_code, 'public');
+        $path = $request->file('payment_proof')->store('payments/' . $order->order_code, 'local');
 
         $payment->update([
             'proof_url' => $path,
@@ -1136,7 +1136,7 @@ class HomeController extends Controller
         ]);
 
         if ($oldProofPath) {
-            Storage::disk('public')->delete($oldProofPath);
+            $this->deleteSensitiveFile($oldProofPath);
         }
 
         $this->notifyAdminsWhenEnabled(
@@ -1171,17 +1171,100 @@ class HomeController extends Controller
             abort(403);
         }
 
-        $proofPath = trim((string) $payment->proof_url);
-        if ($proofPath === '' || ! Storage::disk('public')->exists($proofPath)) {
+        $proofFile = $this->sensitiveFileLocation($payment->proof_url);
+        if ($proofFile === null) {
             abort(404, 'File bukti pembayaran tidak ditemukan.');
         }
 
-        $absoluteProofPath = Storage::disk('public')->path($proofPath);
-        $mimeType = mime_content_type($absoluteProofPath) ?: 'application/octet-stream';
+        return $this->sensitiveFileResponse($proofFile['absolute_path']);
+    }
 
-        return response()->file($absoluteProofPath, [
+    public function viewWarrantyClaimProof(Request $request, WarrantyClaim $warrantyClaim): BinaryFileResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            abort(403);
+        }
+
+        $isAdmin = $user->hasAnyRole(['super-admin', 'admin']);
+        $ownsClaim = (int) $warrantyClaim->user_id === (int) $user->id;
+
+        if (! $isAdmin && ! $ownsClaim) {
+            abort(403);
+        }
+
+        $proofFile = $this->sensitiveFileLocation($warrantyClaim->damage_proof_url);
+        if ($proofFile === null) {
+            abort(404, 'File bukti kerusakan tidak ditemukan.');
+        }
+
+        return $this->sensitiveFileResponse(
+            $proofFile['absolute_path'],
+            $warrantyClaim->damage_proof_mime,
+        );
+    }
+
+    /**
+     * @return array{disk: string, path: string, absolute_path: string}|null
+     */
+    private function sensitiveFileLocation(?string $path): ?array
+    {
+        $path = $this->normalizeStoredFilePath($path);
+        if ($path === '') {
+            return null;
+        }
+
+        foreach (['local', 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                return [
+                    'disk' => $disk,
+                    'path' => $path,
+                    'absolute_path' => Storage::disk($disk)->path($path),
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    private function deleteSensitiveFile(?string $path): void
+    {
+        $path = $this->normalizeStoredFilePath($path);
+        if ($path === '') {
+            return;
+        }
+
+        foreach (['local', 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+            }
+        }
+    }
+
+    private function normalizeStoredFilePath(?string $path): string
+    {
+        $path = str_replace('\\', '/', trim((string) $path));
+
+        if ($path === '' || str_starts_with($path, '/') || str_contains($path, "\0")) {
+            return '';
+        }
+
+        $segments = explode('/', $path);
+        if (in_array('..', $segments, true)) {
+            return '';
+        }
+
+        return ltrim($path, '/');
+    }
+
+    private function sensitiveFileResponse(string $absolutePath, ?string $fallbackMimeType = null): BinaryFileResponse
+    {
+        $mimeType = mime_content_type($absolutePath) ?: $fallbackMimeType ?: 'application/octet-stream';
+
+        return response()->file($absolutePath, [
             'Content-Type' => $mimeType,
             'Cache-Control' => 'private, max-age=60',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 

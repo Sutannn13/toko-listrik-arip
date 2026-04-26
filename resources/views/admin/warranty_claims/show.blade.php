@@ -74,15 +74,18 @@
 
             <p class="mt-3 text-sm text-gray-600">Bukti kerusakan:</p>
             @if ($warrantyClaim->damage_proof_url)
+                @php
+                    $damageProofUrl = route('home.warranty-claims.proof.view', $warrantyClaim);
+                @endphp
                 @if (str_starts_with((string) $warrantyClaim->damage_proof_mime, 'image/'))
-                    <a href="{{ Storage::url($warrantyClaim->damage_proof_url) }}" target="_blank"
+                    <a href="{{ $damageProofUrl }}" target="_blank"
                         class="block mt-1 w-fit">
-                        <img src="{{ Storage::url($warrantyClaim->damage_proof_url) }}" alt="Bukti Kerusakan"
+                        <img src="{{ $damageProofUrl }}" alt="Bukti Kerusakan"
                             class="h-24 rounded border shadow-sm hover:opacity-80 transition">
                     </a>
                 @endif
 
-                <a href="{{ Storage::url($warrantyClaim->damage_proof_url) }}" target="_blank"
+                <a href="{{ $damageProofUrl }}" target="_blank"
                     class="mt-1 inline-flex text-xs font-semibold text-blue-600 hover:underline">
                     Buka file bukti
                 </a>

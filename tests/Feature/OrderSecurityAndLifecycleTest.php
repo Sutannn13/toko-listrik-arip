@@ -23,7 +23,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
     public function test_user_cannot_upload_payment_proof_for_another_users_order(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
         $orderOwner = User::factory()->create();
         $otherUser = User::factory()->create();
@@ -46,12 +46,13 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
         $payment->refresh();
         $this->assertNull($payment->proof_url);
+        $this->assertCount(0, Storage::disk('local')->allFiles());
         $this->assertCount(0, Storage::disk('public')->allFiles());
     }
 
     public function test_order_owner_can_upload_payment_proof_for_own_order(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
         $user = User::factory()->create();
         $product = $this->createProduct([
@@ -75,12 +76,70 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $payment->refresh();
         $this->assertNotNull($payment->proof_url);
         $this->assertStringStartsWith('payments/' . $order->order_code . '/', (string) $payment->proof_url);
-        $this->assertTrue(Storage::disk('public')->exists((string) $payment->proof_url));
+        $this->assertStringNotContainsString('proof-owner', (string) $payment->proof_url);
+        $this->assertTrue(Storage::disk('local')->exists((string) $payment->proof_url));
+        $this->assertFalse(Storage::disk('public')->exists((string) $payment->proof_url));
+    }
+
+    public function test_payment_proof_endpoint_allows_owner_and_admin_only(): void
+    {
+        $this->fakeSensitiveDisks();
+
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $admin = $this->createAdminUser();
+        $product = $this->createProduct([
+            'name' => 'Lampu Proof Endpoint',
+            'slug' => 'lampu-proof-endpoint',
+            'price' => 72000,
+            'stock' => 5,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($owner, $product, 1, now()->subMinutes(10));
+        $proofPath = UploadedFile::fake()->image('proof-private.jpg')->store('payments/' . $order->order_code, 'local');
+        $payment->update(['proof_url' => $proofPath]);
+
+        $route = route('home.tracking.proof.view', [
+            'orderCode' => $order->order_code,
+            'payment' => $payment,
+        ]);
+
+        $ownerResponse = $this->actingAs($owner)->get($route);
+        $ownerResponse->assertOk();
+        $this->assertSame('image/jpeg', $ownerResponse->headers->get('content-type'));
+
+        $this->actingAs($admin)->get($route)->assertOk();
+        $this->actingAs($otherUser)->get($route)->assertForbidden();
+    }
+
+    public function test_legacy_public_payment_proof_is_still_served_through_protected_endpoint(): void
+    {
+        $this->fakeSensitiveDisks();
+
+        $owner = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'Lampu Legacy Proof',
+            'slug' => 'lampu-legacy-proof',
+            'price' => 82000,
+            'stock' => 5,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($owner, $product, 1, now()->subMinutes(10));
+        $legacyProofPath = UploadedFile::fake()->image('legacy-proof.jpg')->store('payments/' . $order->order_code, 'public');
+        $payment->update(['proof_url' => $legacyProofPath]);
+
+        $response = $this->actingAs($owner)->get(route('home.tracking.proof.view', [
+            'orderCode' => $order->order_code,
+            'payment' => $payment,
+        ]));
+
+        $response->assertOk();
+        $this->assertSame('image/jpeg', $response->headers->get('content-type'));
     }
 
     public function test_order_with_cod_method_cannot_upload_payment_proof(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
         $user = User::factory()->create();
         $product = $this->createProduct([
@@ -107,6 +166,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
         $payment->refresh();
         $this->assertNull($payment->proof_url);
+        $this->assertCount(0, Storage::disk('local')->allFiles());
         $this->assertCount(0, Storage::disk('public')->allFiles());
     }
 
@@ -235,7 +295,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
     public function test_admin_can_reject_payment_proof_and_customer_can_reupload(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
         $admin = $this->createAdminUser();
         $customer = User::factory()->create();
@@ -299,7 +359,8 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $this->assertNotNull($payment->proof_url);
         $this->assertNotSame($oldProofPath, $payment->proof_url);
         $this->assertFalse(Storage::disk('public')->exists($oldProofPath));
-        $this->assertTrue(Storage::disk('public')->exists((string) $payment->proof_url));
+        $this->assertTrue(Storage::disk('local')->exists((string) $payment->proof_url));
+        $this->assertFalse(Storage::disk('public')->exists((string) $payment->proof_url));
     }
 
     public function test_admin_must_provide_reason_when_rejecting_payment_proof(): void
@@ -397,7 +458,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
     public function test_user_cannot_submit_second_active_warranty_claim_for_same_order_item(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
         $user = User::factory()->create();
 
@@ -433,7 +494,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
     public function test_user_can_submit_warranty_claim_again_after_previous_claims_are_closed(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
         $user = User::factory()->create();
 
@@ -481,7 +542,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
     public function test_user_cannot_submit_warranty_claim_for_non_electronic_item(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
         $user = User::factory()->create();
 
@@ -509,7 +570,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
     public function test_claim_submission_stores_damage_proof_file(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
         $user = User::factory()->create();
 
@@ -536,7 +597,85 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $claim = WarrantyClaim::query()->latest('id')->first();
         $this->assertNotNull($claim);
         $this->assertNotNull($claim?->damage_proof_url);
-        $this->assertTrue(Storage::disk('public')->exists((string) $claim?->damage_proof_url));
+        $this->assertStringNotContainsString('bukti-kerusakan', (string) $claim?->damage_proof_url);
+        $this->assertTrue(Storage::disk('local')->exists((string) $claim?->damage_proof_url));
+        $this->assertFalse(Storage::disk('public')->exists((string) $claim?->damage_proof_url));
+    }
+
+    public function test_warranty_claim_proof_endpoint_allows_owner_and_admin_only(): void
+    {
+        $this->fakeSensitiveDisks();
+
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $admin = $this->createAdminUser();
+        $product = $this->createProduct([
+            'name' => 'Pompa Proof Endpoint',
+            'slug' => 'pompa-proof-endpoint',
+            'price' => 260000,
+            'stock' => 4,
+            'is_electronic' => true,
+        ]);
+
+        [$order,, $orderItem] = $this->createPendingOrder($owner, $product, 1, now()->subMinutes(20));
+        $claimCode = 'WRN-ARIP-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
+        $proofPath = UploadedFile::fake()->image('damage-private.jpg')->store('warranty-claims/' . $claimCode, 'local');
+
+        $claim = WarrantyClaim::create([
+            'claim_code' => $claimCode,
+            'order_id' => $order->id,
+            'order_item_id' => $orderItem->id,
+            'user_id' => $owner->id,
+            'reason' => 'Pompa tidak menyala setelah digunakan.',
+            'status' => 'submitted',
+            'requested_at' => now(),
+            'damage_proof_url' => $proofPath,
+            'damage_proof_mime' => 'image/jpeg',
+        ]);
+
+        $route = route('home.warranty-claims.proof.view', $claim);
+
+        $ownerResponse = $this->actingAs($owner)->get($route);
+        $ownerResponse->assertOk();
+        $this->assertSame('image/jpeg', $ownerResponse->headers->get('content-type'));
+
+        $this->actingAs($admin)->get($route)->assertOk();
+        $this->actingAs($otherUser)->get($route)->assertForbidden();
+    }
+
+    public function test_legacy_public_warranty_claim_proof_is_still_served_through_protected_endpoint(): void
+    {
+        $this->fakeSensitiveDisks();
+
+        $owner = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'Pompa Legacy Proof',
+            'slug' => 'pompa-legacy-proof',
+            'price' => 275000,
+            'stock' => 4,
+            'is_electronic' => true,
+        ]);
+
+        [$order,, $orderItem] = $this->createPendingOrder($owner, $product, 1, now()->subMinutes(20));
+        $claimCode = 'WRN-ARIP-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
+        $legacyProofPath = UploadedFile::fake()->image('damage-legacy.jpg')->store('warranty-claims/' . $claimCode, 'public');
+
+        $claim = WarrantyClaim::create([
+            'claim_code' => $claimCode,
+            'order_id' => $order->id,
+            'order_item_id' => $orderItem->id,
+            'user_id' => $owner->id,
+            'reason' => 'Pompa bocor setelah digunakan.',
+            'status' => 'submitted',
+            'requested_at' => now(),
+            'damage_proof_url' => $legacyProofPath,
+            'damage_proof_mime' => 'image/jpeg',
+        ]);
+
+        $response = $this->actingAs($owner)->get(route('home.warranty-claims.proof.view', $claim));
+
+        $response->assertOk();
+        $this->assertSame('image/jpeg', $response->headers->get('content-type'));
     }
 
     public function test_admin_can_update_order_item_warranty_date_within_product_warranty_window(): void
@@ -636,7 +775,7 @@ class OrderSecurityAndLifecycleTest extends TestCase
 
     public function test_user_can_view_warranty_claim_history_with_admin_note_and_update_time(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
         $user = User::factory()->create();
 
@@ -860,5 +999,11 @@ class OrderSecurityAndLifecycleTest extends TestCase
         $admin->assignRole('admin');
 
         return $admin;
+    }
+
+    private function fakeSensitiveDisks(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
     }
 }

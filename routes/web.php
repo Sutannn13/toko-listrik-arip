@@ -81,6 +81,8 @@ Route::middleware('auth')->group(function () {
         ->name('home.warranty-claims.store');
     Route::get('/klaim-garansi', [HomeController::class, 'warrantyClaims'])
         ->name('home.warranty-claims.index');
+    Route::get('/klaim-garansi/{warrantyClaim}/proof', [HomeController::class, 'viewWarrantyClaimProof'])
+        ->name('home.warranty-claims.proof.view');
 
     Route::get('/garansi', [HomeController::class, 'warrantyCenter'])
         ->name('home.warranty');

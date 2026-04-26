@@ -20,7 +20,8 @@
         $normalizedPhotoPath = str_replace('\\', '/', (string) $authUser->profile_photo_path);
         $profilePhotoUrl =
             $normalizedPhotoPath !== '' &&
-            \Illuminate\Support\Facades\Storage::disk('public')->exists($normalizedPhotoPath)
+            (\Illuminate\Support\Facades\Storage::disk('local')->exists($normalizedPhotoPath) ||
+                \Illuminate\Support\Facades\Storage::disk('public')->exists($normalizedPhotoPath))
                 ? route('profile.photo', $authUser) . '?v=' . ($authUser->updated_at?->timestamp ?? now()->timestamp)
                 : null;
         $emailHandle = '@' . \Illuminate\Support\Str::before((string) $authUser->email, '@');

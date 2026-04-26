@@ -316,7 +316,7 @@ class AiAssistantOrchestratorService
         }
 
         $normalizedContext = [];
-        $allowedContextKeys = ['locale', 'channel', 'page_title', 'page_path', 'product_name'];
+        $allowedContextKeys = ['locale', 'channel', 'page_title', 'page_path', 'product_name', 'product_description'];
 
         foreach ($allowedContextKeys as $contextKey) {
             $contextValue = trim((string) ($context[$contextKey] ?? ''));
@@ -340,7 +340,7 @@ class AiAssistantOrchestratorService
 
         $normalizedHistory = [];
 
-        foreach (array_slice($history, -6) as $entry) {
+        foreach (array_slice($history, -10) as $entry) {
             if (! is_array($entry)) {
                 continue;
             }
@@ -357,7 +357,7 @@ class AiAssistantOrchestratorService
 
             $normalizedHistory[] = [
                 'role' => $role,
-                'text' => Str::limit($text, 280, '...'),
+                'text' => Str::limit($text, 500, '...'),
             ];
         }
 

@@ -592,6 +592,21 @@ class AiProviderResponderService
             $sections[] = '- 1 watt LED = setara ~8-10 watt lampu pijar lama (hemat listrik!)';
             $sections[] = '- Fitting E27 = ulir besar (standar), E14 = ulir kecil, GU10 = spotlight';
             $sections[] = '- Jika [INTERNAL KNOWLEDGE] menyertakan web_search, gunakan sebagai referensi tambahan dan tampilkan sumber URL secara ringkas.';
+            $sections[] = '';
+            $sections[] = '## PANDUAN PERTANYAAN HARGA SPESIFIK:';
+            $sections[] = '- Jika user bertanya harga produk tertentu (misal: "berapa harga kabel eterna 3x4?"), LANGSUNG jawab harganya dari data produk. Jangan tampilkan banyak produk lain yang tidak diminta.';
+            $sections[] = '- Format: "Kabel Eterna Tembaga 3x4 harganya Rp 875.000 per roll kak! Stoknya masih ada X pcs."';
+            $sections[] = '- JANGAN menampilkan daftar 5 produk jika user hanya tanya 1 produk spesifik.';
+            $sections[] = '';
+            $sections[] = '## PANDUAN PERBANDINGAN PRODUK:';
+            $sections[] = '- Jika user minta perbandingan (misal: "bedanya kabel 2x1.5 dan 2x2.5 apa?"), buat tabel perbandingan sederhana.';
+            $sections[] = '- Bandingkan: nama lengkap, harga, ukuran konduktor, kapasitas arus/daya, kegunaan umum.';
+            $sections[] = '- Berikan rekomendasi mana yang lebih cocok berdasarkan kebutuhan user.';
+            $sections[] = '- Contoh format perbandingan yang baik:';
+            $sections[] = '  "Oke kak, ini perbandingannya ya:';
+            $sections[] = '   • Kabel 2x1.5 — cocok untuk penerangan (lampu), daya max ~1300 watt, harga Rp X';
+            $sections[] = '   • Kabel 2x2.5 — cocok untuk stop kontak/AC, daya max ~2200 watt, harga Rp Y';
+            $sections[] = '   Kesimpulan: kalau buat lampu aja, 2x1.5 sudah cukup dan lebih hemat. Kalau buat AC atau peralatan berat, wajib 2x2.5."';
         }
 
 

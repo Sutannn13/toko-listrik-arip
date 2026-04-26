@@ -82,8 +82,17 @@
 
     {{-- ═══════════════════════════════════════════════════════
          MOBILE BOTTOM NAVIGATION — Tokopedia-style sticky nav
+         Hides automatically when AI chat panel is open via
+         'chat-panel-opened' / 'chat-panel-closed' custom events.
          ═══════════════════════════════════════════════════════ --}}
-    <nav class="fixed inset-x-0 bottom-0 z-dropdown border-t border-gray-200 bg-white/95 backdrop-blur-md lg:hidden"
+    <nav x-data="{ chatOpen: false }"
+        x-on:chat-panel-opened.window="chatOpen = true"
+        x-on:chat-panel-closed.window="chatOpen = false"
+        x-show="!chatOpen"
+        x-transition:leave="transition duration-150 ease-in"
+        x-transition:leave-start="translate-y-0 opacity-100"
+        x-transition:leave-end="translate-y-full opacity-0"
+        class="fixed inset-x-0 bottom-0 z-dropdown border-t border-gray-200 bg-white/95 backdrop-blur-md lg:hidden"
         id="mobile-bottom-nav">
         <div class="mx-auto flex max-w-lg items-center justify-around px-2 py-1.5">
             {{-- Home --}}
@@ -174,6 +183,15 @@
     <div x-data="storefrontAiAssistant({ chatEndpoint: @js(route('api.ai.chat', [], false)), feedbackEndpoint: @js(route('api.ai.feedback', [], false)) })" x-init="init()"
         x-on:header-panel-opened.window="closePanel()"
         class="fixed bottom-20 right-4 z-[90] sm:bottom-6 sm:right-6 lg:bottom-6">
+        {{-- Mobile Backdrop — shown when chat is open on small screens --}}
+        <div x-show="isOpen" x-cloak
+            x-transition:enter="transition duration-200 ease-out"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="transition duration-150 ease-in"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            @click="closePanel()"
+            class="fixed inset-0 z-[-1] bg-black/40 backdrop-blur-sm sm:hidden"
+            aria-hidden="true"></div>
         {{-- Floating Trigger Button — Clean & Professional --}}
         <button x-show="!isOpen" x-cloak @click="openPanel()"
             class="group hidden lg:inline-flex items-center gap-2.5 rounded-full bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-lg shadow-gray-900/10 ring-1 ring-gray-200 transition hover:shadow-xl hover:ring-primary-300 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
@@ -190,12 +208,14 @@
             <span class="hidden sm:inline">Bantuan</span>
         </button>
 
-        {{-- Chat Panel — Clean White --}}
+        {{-- Chat Panel — Full-screen on mobile, floating card on tablet/desktop --}}
         <section x-show="isOpen" x-cloak x-transition:enter="transition duration-250 ease-out"
             x-transition:enter-start="translate-y-3 opacity-0" x-transition:enter-end="translate-y-0 opacity-100"
             x-transition:leave="transition duration-180 ease-in" x-transition:leave-start="translate-y-0 opacity-100"
             x-transition:leave-end="translate-y-2 opacity-0"
-            class="flex h-[min(76vh,620px)] w-[min(94vw,390px)] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl shadow-gray-900/15 ring-1 ring-gray-200">
+            class="flex flex-col overflow-hidden bg-white shadow-2xl shadow-gray-900/15 ring-1 ring-gray-200
+                   fixed inset-0 z-[91] rounded-none
+                   sm:relative sm:inset-auto sm:z-auto sm:h-[min(76vh,620px)] sm:w-[min(94vw,390px)] sm:rounded-2xl">
             {{-- Header --}}
             <header class="relative border-b border-gray-100 bg-white p-4">
                 <div class="flex items-center justify-between gap-3">
@@ -394,6 +414,7 @@
 
                 closePanel() {
                     this.isOpen = false;
+                    window.dispatchEvent(new CustomEvent('chat-panel-closed'));
                 },
 
                 resolveSessionId() {
@@ -496,7 +517,7 @@
                     };
                 },
 
-                buildHistorySnapshot(limit = 8) {
+                buildHistorySnapshot(limit = 12) {
                     return this.messages
                         .filter((messageItem) => messageItem.role === 'user' || messageItem.role === 'assistant')
                         .slice(-limit)

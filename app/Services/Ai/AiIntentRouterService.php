@@ -86,6 +86,29 @@ class AiIntentRouterService
             return false;
         }
 
+        // If the message contains specific product/pricing terms alongside
+        // a greeting, do NOT treat it as conversational — it's a product query.
+        // e.g. "halo, berapa harga kabel eterna 3x4?" should go to product_recommendation.
+        $productQueryTerms = [
+            'harga',
+            'berapa',
+            'brp',
+            'rekomendasi',
+            'eterna',
+            'ligera',
+            'philips',
+            'panasonic',
+            'broco',
+            'watt',
+            'budget',
+        ];
+
+        foreach ($productQueryTerms as $term) {
+            if (str_contains($message, $term)) {
+                return false;
+            }
+        }
+
         // If it has a greeting + casual question pattern, route to FAQ
         $casualPatterns = [
             'jualan',
@@ -302,6 +325,16 @@ class AiIntentRouterService
             return true;
         }
 
+        // Specific price inquiry: "berapa harga kabel X" should go to recommendation
+        if ($this->isSpecificPriceInquiry($message)) {
+            return true;
+        }
+
+        // Product comparison: "bedanya X dan Y apa?"
+        if ($this->isProductComparisonQuery($message)) {
+            return true;
+        }
+
         $recommendationKeywords = [
             'rekomendasi',
             'saran produk',
@@ -329,6 +362,7 @@ class AiIntentRouterService
             'kabel',
             'saklar',
             'stop kontak',
+            'stopkontak',
             'fitting',
             'ruangan',
             'kamar',
@@ -339,6 +373,15 @@ class AiIntentRouterService
             'daya',
             'mcb',
             'downlight',
+            'antena',
+            'steker',
+            'colokan',
+            'terminal',
+            'eterna',
+            'ligera',
+            'philips',
+            'panasonic',
+            'broco',
             'cocok untuk',
             'bagus untuk',
             'nyaman',
@@ -346,10 +389,56 @@ class AiIntentRouterService
             'terang',
             'hemat',
             'irit',
+            'harga',
+            'berapa',
         ];
 
         foreach ($recommendationKeywords as $keyword) {
             if (str_contains($message, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect specific product pricing questions like "berapa harga kabel 3x4?"
+     * or "harga lampu led 9 watt" that need exact product matching.
+     */
+    private function isSpecificPriceInquiry(string $message): bool
+    {
+        $pricePatterns = [
+            '/\b(?:berapa|brp)\s+(?:harga|biaya|ongkos)/',
+            '/\bharga\s+(?:kabel|lampu|saklar|mcb|fitting|stop\s*kontak|antena|steker|downlight)/',
+            '/\b(?:kabel|lampu|saklar|mcb|fitting|stop\s*kontak|antena|steker|downlight)\s+(?:berapa|brp)/',
+        ];
+
+        foreach ($pricePatterns as $pattern) {
+            if (preg_match($pattern, $message) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect product comparison queries like:
+     * "bedanya kabel 2x1.5 dan 2x2.5 apa?"
+     * "perbandingan lampu 9w vs 12w"
+     */
+    private function isProductComparisonQuery(string $message): bool
+    {
+        $comparisonPatterns = [
+            '/\b(?:beda|bedanya|perbedaan|perbandingan|banding|bandingin|compare)\b/',
+            '/\b(?:vs|versus|atau)\b.*\b(?:mana|pilih|bagus|lebih)\b/',
+            '/\b(?:mana\s+(?:yang|yg)\s+(?:lebih|lebih\s+bagus|lebih\s+murah|lebih\s+terang))\b/',
+            '/\b(?:lebih\s+(?:bagus|murah|terang|hemat|awet))\s+(?:mana|yang\s+mana)\b/',
+        ];
+
+        foreach ($comparisonPatterns as $pattern) {
+            if (preg_match($pattern, $message) === 1) {
                 return true;
             }
         }

@@ -58,17 +58,17 @@ class ProfileController extends Controller
         }
 
         if ($request->boolean('remove_profile_photo') && $existingPhotoPath !== '') {
-            Storage::disk('public')->delete($existingPhotoPath);
+            $this->deleteProfilePhoto($existingPhotoPath);
             $user->profile_photo_path = null;
             $existingPhotoPath = '';
         }
 
         if ($request->hasFile('profile_photo')) {
             if ($existingPhotoPath !== '') {
-                Storage::disk('public')->delete($existingPhotoPath);
+                $this->deleteProfilePhoto($existingPhotoPath);
             }
 
-            $storedPath = $request->file('profile_photo')->store('profile-photos', 'public');
+            $storedPath = $request->file('profile_photo')->store('profile-photos', 'local');
             $user->profile_photo_path = str_replace('\\', '/', (string) $storedPath);
         }
 
@@ -81,17 +81,24 @@ class ProfileController extends Controller
     {
         $authUser = $request->user();
 
-        if (! $authUser || (int) $authUser->id !== (int) $user->id) {
+        $isAdmin = $authUser?->hasAnyRole(['super-admin', 'admin']) ?? false;
+        $ownsPhoto = $authUser && (int) $authUser->id === (int) $user->id;
+
+        if (! $ownsPhoto && ! $isAdmin) {
             abort(403);
         }
 
-        $photoPath = str_replace('\\', '/', (string) $user->profile_photo_path);
-        if ($photoPath === '' || ! Storage::disk('public')->exists($photoPath)) {
+        $photoFile = $this->profilePhotoLocation($user->profile_photo_path);
+        if ($photoFile === null) {
             abort(404);
         }
 
-        return response()->file(Storage::disk('public')->path($photoPath), [
+        $mimeType = mime_content_type($photoFile['absolute_path']) ?: 'application/octet-stream';
+
+        return response()->file($photoFile['absolute_path'], [
+            'Content-Type' => $mimeType,
             'Cache-Control' => 'private, max-age=604800',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
@@ -108,7 +115,7 @@ class ProfileController extends Controller
         $photoPath = str_replace('\\', '/', (string) $user->profile_photo_path);
 
         if ($photoPath !== '') {
-            Storage::disk('public')->delete($photoPath);
+            $this->deleteProfilePhoto($photoPath);
         }
 
         Auth::logout();
@@ -119,5 +126,58 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    /**
+     * @return array{disk: string, path: string, absolute_path: string}|null
+     */
+    private function profilePhotoLocation(?string $path): ?array
+    {
+        $path = $this->normalizeStoredFilePath($path);
+        if ($path === '') {
+            return null;
+        }
+
+        foreach (['local', 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                return [
+                    'disk' => $disk,
+                    'path' => $path,
+                    'absolute_path' => Storage::disk($disk)->path($path),
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    private function deleteProfilePhoto(?string $path): void
+    {
+        $path = $this->normalizeStoredFilePath($path);
+        if ($path === '') {
+            return;
+        }
+
+        foreach (['local', 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+            }
+        }
+    }
+
+    private function normalizeStoredFilePath(?string $path): string
+    {
+        $path = str_replace('\\', '/', trim((string) $path));
+
+        if ($path === '' || str_starts_with($path, '/') || str_contains($path, "\0")) {
+            return '';
+        }
+
+        $segments = explode('/', $path);
+        if (in_array('..', $segments, true)) {
+            return '';
+        }
+
+        return ltrim($path, '/');
     }
 }

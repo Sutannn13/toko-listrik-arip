@@ -146,7 +146,8 @@ class ProductRecommendationTool
             }
 
             if (str_contains($name, $term)) {
-                $score += 8;
+                // Exact name match gets highest priority for specific queries
+                $score += 15;
 
                 continue;
             }
@@ -172,6 +173,13 @@ class ProductRecommendationTool
             if ($combinedText !== '' && str_contains($combinedText, $term)) {
                 $score += 3;
             }
+        }
+
+        // Multi-word sequence bonus: if 2+ consecutive search terms appear
+        // together in the product name, it's likely an exact product match
+        $searchTermsJoined = implode(' ', $userContext['search_terms']);
+        if (strlen($searchTermsJoined) > 4 && str_contains($name, $searchTermsJoined)) {
+            $score += 20;
         }
 
         if ($userContext['is_description_driven']) {
@@ -472,6 +480,14 @@ class ProductRecommendationTool
     private function extractSearchTerms(string $message): array
     {
         $normalizedMessage = strtolower($message);
+
+        // Extract dimension patterns BEFORE normalization strips dots/special chars
+        // Matches: 2x1.5, 3x4, 2x2.5, etc.
+        $dimensionTerms = [];
+        if (preg_match_all('/\b(\d+x\d+(?:\.\d+)?)\b/', $normalizedMessage, $dimMatches)) {
+            $dimensionTerms = $dimMatches[1];
+        }
+
         $normalizedMessage = preg_replace('/[^a-z0-9\s]/', ' ', $normalizedMessage) ?? '';
 
         $rawTerms = preg_split('/\s+/', trim($normalizedMessage)) ?: [];
@@ -521,12 +537,25 @@ class ProductRecommendationTool
             'deskripsi',
             'spesifikasi',
             'fitur',
+            'bedanya',
+            'beda',
+            'perbandingan',
+            'compare',
+            'bandingin',
+            'versus',
         ];
 
         $searchTerms = [];
 
         foreach ($rawTerms as $rawTerm) {
             if ($rawTerm === '') {
+                continue;
+            }
+
+            // Preserve product dimension terms like "2x1", "3x4", "2x2 5" (from "2x2.5")
+            // These are critical for matching specific cable/product sizes
+            if (preg_match('/^\d+x\d+/', $rawTerm)) {
+                $searchTerms[] = $rawTerm;
                 continue;
             }
 
@@ -552,6 +581,11 @@ class ProductRecommendationTool
 
         if (str_contains($normalizedMessage, 'stop kontak')) {
             $searchTerms[] = 'stop kontak';
+        }
+
+        // Add preserved dimension terms (with dots intact) from pre-normalization extraction
+        foreach ($dimensionTerms as $dimTerm) {
+            $searchTerms[] = $dimTerm;
         }
 
         return array_values(array_unique($searchTerms));

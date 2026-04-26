@@ -86,6 +86,29 @@ class AiIntentRouterService
             return false;
         }
 
+        // If the message contains specific product/pricing terms alongside
+        // a greeting, do NOT treat it as conversational — it's a product query.
+        // e.g. "halo, berapa harga kabel eterna 3x4?" should go to product_recommendation.
+        $productQueryTerms = [
+            'harga',
+            'berapa',
+            'brp',
+            'rekomendasi',
+            'eterna',
+            'ligera',
+            'philips',
+            'panasonic',
+            'broco',
+            'watt',
+            'budget',
+        ];
+
+        foreach ($productQueryTerms as $term) {
+            if (str_contains($message, $term)) {
+                return false;
+            }
+        }
+
         // If it has a greeting + casual question pattern, route to FAQ
         $casualPatterns = [
             'jualan',
@@ -175,6 +198,10 @@ class AiIntentRouterService
      */
     private function containsWebsiteHelpHint(string $message): bool
     {
+        if ($this->containsShippingHelpHint($message)) {
+            return true;
+        }
+
         // ── High-priority multi-word phrases (check first) ──
         $preciseKeywords = [
             // Address management (NOT store address)
@@ -302,6 +329,16 @@ class AiIntentRouterService
             return true;
         }
 
+        // Specific price inquiry: "berapa harga kabel X" should go to recommendation
+        if ($this->isSpecificPriceInquiry($message)) {
+            return true;
+        }
+
+        // Product comparison: "bedanya X dan Y apa?"
+        if ($this->isProductComparisonQuery($message)) {
+            return true;
+        }
+
         $recommendationKeywords = [
             'rekomendasi',
             'saran produk',
@@ -329,6 +366,7 @@ class AiIntentRouterService
             'kabel',
             'saklar',
             'stop kontak',
+            'stopkontak',
             'fitting',
             'ruangan',
             'kamar',
@@ -339,6 +377,15 @@ class AiIntentRouterService
             'daya',
             'mcb',
             'downlight',
+            'antena',
+            'steker',
+            'colokan',
+            'terminal',
+            'eterna',
+            'ligera',
+            'philips',
+            'panasonic',
+            'broco',
             'cocok untuk',
             'bagus untuk',
             'nyaman',
@@ -346,10 +393,97 @@ class AiIntentRouterService
             'terang',
             'hemat',
             'irit',
+            'harga',
         ];
 
         foreach ($recommendationKeywords as $keyword) {
             if (str_contains($message, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect specific product pricing questions like "berapa harga kabel 3x4?"
+     * or "harga lampu led 9 watt" that need exact product matching.
+     */
+    private function isSpecificPriceInquiry(string $message): bool
+    {
+        $productTerms = '(?:kabel|lampu|saklar|mcb|fitting|stop\s*kontak|antena|steker|downlight|bohlam|led|terminal|colokan|eterna|ligera|philips|panasonic|broco)';
+        $pricePatterns = [
+            '/\b(?:berapa|brp)\s+harga\b.*\b' . $productTerms . '\b/',
+            '/\bharga\b.*\b' . $productTerms . '\b/',
+            '/\b' . $productTerms . '\b.*\b(?:berapa|brp)\b/',
+        ];
+
+        foreach ($pricePatterns as $pattern) {
+            if (preg_match($pattern, $message) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect shipping questions before broader product recommendation checks.
+     */
+    private function containsShippingHelpHint(string $message): bool
+    {
+        $shippingKeywords = [
+            'ongkir',
+            'ongkos kirim',
+            'biaya kirim',
+            'biaya pengiriman',
+            'pengiriman',
+            'estimasi kirim',
+            'estimasi pengiriman',
+            'kirim ke',
+            'dikirim ke',
+            'sampai kapan',
+            'berapa lama sampai',
+        ];
+
+        foreach ($shippingKeywords as $keyword) {
+            if (str_contains($message, $keyword)) {
+                return true;
+            }
+        }
+
+        $shippingPatterns = [
+            '/\b(?:berapa|brp)\s+(?:biaya|ongkos)\s+kirim\b/',
+            '/\bestimasi\s+(?:kirim|pengiriman|sampai|datang)\b/',
+            '/\b(?:berapa|brp)\s+lama\s+(?:sampai|pengiriman|kirim|dikirim)\b/',
+            '/\b(?:kapan|berapa\s+lama)\s+(?:sampai|dikirim|pengiriman)\b/',
+        ];
+
+        foreach ($shippingPatterns as $pattern) {
+            if (preg_match($pattern, $message) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect product comparison queries like:
+     * "bedanya kabel 2x1.5 dan 2x2.5 apa?"
+     * "perbandingan lampu 9w vs 12w"
+     */
+    private function isProductComparisonQuery(string $message): bool
+    {
+        $comparisonPatterns = [
+            '/\b(?:beda|bedanya|perbedaan|perbandingan|banding|bandingin|compare)\b/',
+            '/\b(?:vs|versus|atau)\b.*\b(?:mana|pilih|bagus|lebih)\b/',
+            '/\b(?:mana\s+(?:yang|yg)\s+(?:lebih|lebih\s+bagus|lebih\s+murah|lebih\s+terang))\b/',
+            '/\b(?:lebih\s+(?:bagus|murah|terang|hemat|awet))\s+(?:mana|yang\s+mana)\b/',
+        ];
+
+        foreach ($comparisonPatterns as $pattern) {
+            if (preg_match($pattern, $message) === 1) {
                 return true;
             }
         }

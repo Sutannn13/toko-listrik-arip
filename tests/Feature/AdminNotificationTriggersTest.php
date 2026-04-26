@@ -79,6 +79,7 @@ class AdminNotificationTriggersTest extends TestCase
 
     public function test_upload_payment_proof_sends_admin_notification_when_toggle_is_enabled(): void
     {
+        Storage::fake('local');
         Storage::fake('public');
 
         [$admin, $customer] = $this->createAdminAndCustomer();
@@ -117,7 +118,8 @@ class AdminNotificationTriggersTest extends TestCase
 
         $payment->refresh();
         $this->assertNotNull($payment->proof_url);
-        $this->assertTrue(Storage::disk('public')->exists((string) $payment->proof_url));
+        $this->assertTrue(Storage::disk('local')->exists((string) $payment->proof_url));
+        $this->assertFalse(Storage::disk('public')->exists((string) $payment->proof_url));
 
         $this->assertDatabaseHas('notifications', [
             'notifiable_type' => User::class,

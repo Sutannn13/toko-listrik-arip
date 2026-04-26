@@ -137,15 +137,18 @@
                         <div>
                             <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">Bukti Kerusakan</p>
                             @if ($claim->damage_proof_url)
+                                @php
+                                    $damageProofUrl = route('home.warranty-claims.proof.view', $claim);
+                                @endphp
                                 @if (str_starts_with((string) $claim->damage_proof_mime, 'image/'))
-                                    <a href="{{ Storage::url($claim->damage_proof_url) }}" target="_blank"
+                                    <a href="{{ $damageProofUrl }}" target="_blank"
                                         class="block w-fit mt-1 group">
-                                        <img src="{{ Storage::url($claim->damage_proof_url) }}" alt="Bukti Kerusakan"
+                                        <img src="{{ $damageProofUrl }}" alt="Bukti Kerusakan"
                                             class="h-28 w-auto rounded-lg border border-gray-200 shadow-sm object-cover group-hover:opacity-80 transition">
                                     </a>
                                 @endif
 
-                                <a href="{{ Storage::url($claim->damage_proof_url) }}" target="_blank"
+                                <a href="{{ $damageProofUrl }}" target="_blank"
                                     class="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:underline">
                                     <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

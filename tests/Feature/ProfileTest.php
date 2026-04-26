@@ -66,7 +66,7 @@ class ProfileTest extends TestCase
 
     public function test_user_can_upload_profile_photo(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
         $user = User::factory()->create();
 
@@ -85,14 +85,16 @@ class ProfileTest extends TestCase
         $user->refresh();
 
         $this->assertNotNull($user->profile_photo_path);
-        $this->assertTrue(Storage::disk('public')->exists($user->profile_photo_path));
+        $this->assertStringNotContainsString('avatar', (string) $user->profile_photo_path);
+        $this->assertTrue(Storage::disk('local')->exists($user->profile_photo_path));
+        $this->assertFalse(Storage::disk('public')->exists($user->profile_photo_path));
     }
 
     public function test_user_can_remove_existing_profile_photo(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
-        $existingPhotoPath = UploadedFile::fake()->image('existing.jpg')->store('profile-photos', 'public');
+        $existingPhotoPath = UploadedFile::fake()->image('existing.jpg')->store('profile-photos', 'local');
 
         $user = User::factory()->create([
             'profile_photo_path' => $existingPhotoPath,
@@ -111,14 +113,14 @@ class ProfileTest extends TestCase
             ->assertRedirect('/profile');
 
         $this->assertNull($user->fresh()->profile_photo_path);
-        $this->assertFalse(Storage::disk('public')->exists($existingPhotoPath));
+        $this->assertFalse(Storage::disk('local')->exists($existingPhotoPath));
     }
 
     public function test_user_can_access_their_own_profile_photo_endpoint(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
-        $existingPhotoPath = UploadedFile::fake()->image('self.jpg')->store('profile-photos', 'public');
+        $existingPhotoPath = UploadedFile::fake()->image('self.jpg')->store('profile-photos', 'local');
         $user = User::factory()->create([
             'profile_photo_path' => $existingPhotoPath,
         ]);
@@ -132,9 +134,9 @@ class ProfileTest extends TestCase
 
     public function test_user_cannot_access_other_users_profile_photo_endpoint(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
-        $ownerPhotoPath = UploadedFile::fake()->image('owner.jpg')->store('profile-photos', 'public');
+        $ownerPhotoPath = UploadedFile::fake()->image('owner.jpg')->store('profile-photos', 'local');
         $owner = User::factory()->create([
             'profile_photo_path' => $ownerPhotoPath,
         ]);
@@ -145,6 +147,43 @@ class ProfileTest extends TestCase
             ->get(route('profile.photo', $owner));
 
         $response->assertForbidden();
+    }
+
+    public function test_admin_can_access_user_profile_photo_endpoint(): void
+    {
+        $this->fakeSensitiveDisks();
+        Role::findOrCreate('admin', 'web');
+
+        $ownerPhotoPath = UploadedFile::fake()->image('owner-admin.jpg')->store('profile-photos', 'local');
+        $owner = User::factory()->create([
+            'profile_photo_path' => $ownerPhotoPath,
+        ]);
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $response = $this
+            ->actingAs($admin)
+            ->get(route('profile.photo', $owner));
+
+        $response->assertOk();
+        $this->assertSame('image/jpeg', $response->headers->get('content-type'));
+    }
+
+    public function test_legacy_public_profile_photo_is_still_served_through_protected_endpoint(): void
+    {
+        $this->fakeSensitiveDisks();
+
+        $legacyPhotoPath = UploadedFile::fake()->image('legacy.jpg')->store('profile-photos', 'public');
+        $user = User::factory()->create([
+            'profile_photo_path' => $legacyPhotoPath,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->get(route('profile.photo', $user));
+
+        $response->assertOk();
+        $this->assertSame('image/jpeg', $response->headers->get('content-type'));
     }
 
     public function test_admin_profile_page_uses_admin_specific_layout(): void
@@ -181,9 +220,9 @@ class ProfileTest extends TestCase
 
     public function test_user_can_delete_their_account(): void
     {
-        Storage::fake('public');
+        $this->fakeSensitiveDisks();
 
-        $existingPhotoPath = UploadedFile::fake()->image('to-delete.jpg')->store('profile-photos', 'public');
+        $existingPhotoPath = UploadedFile::fake()->image('to-delete.jpg')->store('profile-photos', 'local');
 
         $user = User::factory()->create([
             'profile_photo_path' => $existingPhotoPath,
@@ -201,7 +240,7 @@ class ProfileTest extends TestCase
 
         $this->assertGuest();
         $this->assertNull($user->fresh());
-        $this->assertFalse(Storage::disk('public')->exists($existingPhotoPath));
+        $this->assertFalse(Storage::disk('local')->exists($existingPhotoPath));
     }
 
     public function test_correct_password_must_be_provided_to_delete_account(): void
@@ -220,5 +259,11 @@ class ProfileTest extends TestCase
             ->assertRedirect('/profile');
 
         $this->assertNotNull($user->fresh());
+    }
+
+    private function fakeSensitiveDisks(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
     }
 }

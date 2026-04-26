@@ -64,9 +64,12 @@
                 </p>
             </div>
 
-            <p class="mt-3 sm:mt-6 text-sm leading-relaxed text-gray-600 sm:text-base">
-                {{ $product->description ?: 'Barang berkualitas & berstandar SNI dari Toko HS ELECTRIC.' }}
-            </p>
+            <div class="mt-4 sm:mt-6">
+                <h2 class="mb-2.5 sm:mb-3 text-sm font-bold text-gray-900 sm:text-base">Deskripsi Produk</h2>
+                <div class="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)]">
+                    <p class="text-sm leading-relaxed text-gray-700 sm:text-base whitespace-pre-wrap break-words">{{ $product->description ?: 'Barang berkualitas & berstandar SNI dari Toko HS ELECTRIC.' }}</p>
+                </div>
+            </div>
 
             <div class="mt-4 sm:mt-8 grid gap-2.5 sm:gap-4 grid-cols-2 sm:grid-cols-3">
                 <div class="rounded-xl sm:rounded-2xl border border-gray-200 bg-white p-3 sm:p-5 shadow-sm">

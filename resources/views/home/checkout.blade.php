@@ -22,25 +22,25 @@
     @endif
 
     {{-- Progress Steps --}}
-    <div class="mb-8">
-        <div class="flex items-center justify-center gap-2 sm:gap-4">
+    <div class="mb-8 w-full overflow-x-auto pb-2 scrollbar-hide">
+        <div class="flex items-center justify-center min-w-max md:min-w-0 gap-2 sm:gap-4 px-2">
             <a href="{{ route('home.cart') }}"
-                class="flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 transition">
+                class="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-500 hover:text-primary-600 transition">
                 <span
-                    class="grid h-8 w-8 place-items-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">1</span>
-                <span class="hidden sm:inline font-medium">Keranjang</span>
+                    class="grid h-6 w-6 sm:h-8 sm:w-8 place-items-center rounded-full bg-gray-200 text-[10px] sm:text-xs font-bold text-gray-600 shrink-0">1</span>
+                <span class="font-medium">Keranjang</span>
             </a>
-            <div class="h-px w-8 sm:w-16 bg-primary-400"></div>
-            <div class="flex items-center gap-2 text-sm">
+            <div class="h-px w-4 sm:w-16 bg-primary-400 shrink-0"></div>
+            <div class="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
                 <span
-                    class="grid h-8 w-8 place-items-center rounded-full bg-primary-600 text-xs font-bold text-white shadow-md shadow-primary-500/30">2</span>
-                <span class="hidden sm:inline font-bold text-primary-700">Checkout</span>
+                    class="grid h-6 w-6 sm:h-8 sm:w-8 place-items-center rounded-full bg-primary-600 text-[10px] sm:text-xs font-bold text-white shadow-md shadow-primary-500/30 shrink-0">2</span>
+                <span class="font-bold text-primary-700">Checkout</span>
             </div>
-            <div class="h-px w-8 sm:w-16 bg-gray-200"></div>
-            <div class="flex items-center gap-2 text-sm text-gray-400">
+            <div class="h-px w-4 sm:w-16 bg-gray-200 shrink-0"></div>
+            <div class="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-400">
                 <span
-                    class="grid h-8 w-8 place-items-center rounded-full bg-gray-100 text-xs font-bold text-gray-400">3</span>
-                <span class="hidden sm:inline font-medium">Selesai</span>
+                    class="grid h-6 w-6 sm:h-8 sm:w-8 place-items-center rounded-full bg-gray-100 text-[10px] sm:text-xs font-bold text-gray-400 shrink-0">3</span>
+                <span class="font-medium">Selesai</span>
             </div>
         </div>
     </div>

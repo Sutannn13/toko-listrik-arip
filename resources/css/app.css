@@ -342,4 +342,21 @@
     button.hero-banner-dot {
         min-height: 0;
     }
+
+    /* Product card buttons need adequate touch targets on small screens */
+    .product-card button,
+    .product-card a {
+        min-height: 40px;
+        min-width: 60px;
+    }
+}
+
+/* ─────────────────────────────────────────────────
+   AI CHAT — Mobile full-screen safe area
+   ───────────────────────────────────────────────── */
+@media (max-width: 639px) {
+    /* Ensure chat input clears iPhone home indicator */
+    section[x-show="isOpen"] form {
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    }
 }

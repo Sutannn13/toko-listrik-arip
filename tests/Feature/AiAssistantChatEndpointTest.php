@@ -55,6 +55,28 @@ class AiAssistantChatEndpointTest extends TestCase
         $this->assertStringContainsString('Ongkir', (string) $response->json('reply'));
     }
 
+    public function test_ai_chat_routes_shipping_questions_to_website_help_faq(): void
+    {
+        $messages = [
+            'Ongkir berapa?',
+            'Berapa biaya kirim?',
+            'Estimasi pengiriman berapa lama?',
+        ];
+
+        foreach ($messages as $index => $message) {
+            $response = $this->postJson(route('api.ai.chat'), [
+                'session_id' => 'sess-shipping-regression-' . $index,
+                'message' => $message,
+            ]);
+
+            $response->assertOk();
+            $response->assertJsonPath('intent', 'website_help');
+            $response->assertJsonPath('used_tools.0', 'FaqAnswerTool');
+
+            $this->assertStringContainsString('Ongkir', (string) $response->json('reply'));
+        }
+    }
+
     public function test_ai_chat_includes_page_context_and_history_in_response_data(): void
     {
         $response = $this->postJson(route('api.ai.chat'), [
@@ -333,6 +355,31 @@ class AiAssistantChatEndpointTest extends TestCase
         }
     }
 
+    public function test_ai_chat_keeps_product_recommendation_for_price_and_budget_queries(): void
+    {
+        $this->createProductFixtures();
+
+        $messages = [
+            'Berapa harga kabel NYA?',
+            'Minta rekomendasi kabel budget 50000',
+        ];
+
+        foreach ($messages as $index => $message) {
+            $response = $this->postJson(route('api.ai.chat'), [
+                'session_id' => 'sess-product-regression-' . $index,
+                'message' => $message,
+            ]);
+
+            $response->assertOk();
+            $response->assertJsonPath('intent', 'product_recommendation');
+            $response->assertJsonPath('used_tools.0', 'ProductRecommendationTool');
+
+            $products = $response->json('data.products');
+            $this->assertIsArray($products);
+            $this->assertNotEmpty($products);
+        }
+    }
+
     public function test_ai_chat_understands_natural_budget_phrase_for_lampu_kamar_tidur(): void
     {
         $this->createProductFixtures();
@@ -519,7 +566,7 @@ class AiAssistantChatEndpointTest extends TestCase
         ]);
 
         $response->assertOk();
-        $response->assertJsonPath('intent', 'faq');
+        $response->assertJsonPath('intent', 'website_help');
         $this->assertStringContainsString('Ongkir', (string) $response->json('reply'));
         $response->assertJsonPath('data.llm.provider', 'deepseek');
         $response->assertJsonPath('data.llm.status', 'fallback_failed');

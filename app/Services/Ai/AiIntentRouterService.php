@@ -198,6 +198,10 @@ class AiIntentRouterService
      */
     private function containsWebsiteHelpHint(string $message): bool
     {
+        if ($this->containsShippingHelpHint($message)) {
+            return true;
+        }
+
         // ── High-priority multi-word phrases (check first) ──
         $preciseKeywords = [
             // Address management (NOT store address)
@@ -390,7 +394,6 @@ class AiIntentRouterService
             'hemat',
             'irit',
             'harga',
-            'berapa',
         ];
 
         foreach ($recommendationKeywords as $keyword) {
@@ -408,13 +411,55 @@ class AiIntentRouterService
      */
     private function isSpecificPriceInquiry(string $message): bool
     {
+        $productTerms = '(?:kabel|lampu|saklar|mcb|fitting|stop\s*kontak|antena|steker|downlight|bohlam|led|terminal|colokan|eterna|ligera|philips|panasonic|broco)';
         $pricePatterns = [
-            '/\b(?:berapa|brp)\s+(?:harga|biaya|ongkos)/',
-            '/\bharga\s+(?:kabel|lampu|saklar|mcb|fitting|stop\s*kontak|antena|steker|downlight)/',
-            '/\b(?:kabel|lampu|saklar|mcb|fitting|stop\s*kontak|antena|steker|downlight)\s+(?:berapa|brp)/',
+            '/\b(?:berapa|brp)\s+harga\b.*\b' . $productTerms . '\b/',
+            '/\bharga\b.*\b' . $productTerms . '\b/',
+            '/\b' . $productTerms . '\b.*\b(?:berapa|brp)\b/',
         ];
 
         foreach ($pricePatterns as $pattern) {
+            if (preg_match($pattern, $message) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect shipping questions before broader product recommendation checks.
+     */
+    private function containsShippingHelpHint(string $message): bool
+    {
+        $shippingKeywords = [
+            'ongkir',
+            'ongkos kirim',
+            'biaya kirim',
+            'biaya pengiriman',
+            'pengiriman',
+            'estimasi kirim',
+            'estimasi pengiriman',
+            'kirim ke',
+            'dikirim ke',
+            'sampai kapan',
+            'berapa lama sampai',
+        ];
+
+        foreach ($shippingKeywords as $keyword) {
+            if (str_contains($message, $keyword)) {
+                return true;
+            }
+        }
+
+        $shippingPatterns = [
+            '/\b(?:berapa|brp)\s+(?:biaya|ongkos)\s+kirim\b/',
+            '/\bestimasi\s+(?:kirim|pengiriman|sampai|datang)\b/',
+            '/\b(?:berapa|brp)\s+lama\s+(?:sampai|pengiriman|kirim|dikirim)\b/',
+            '/\b(?:kapan|berapa\s+lama)\s+(?:sampai|dikirim|pengiriman)\b/',
+        ];
+
+        foreach ($shippingPatterns as $pattern) {
             if (preg_match($pattern, $message) === 1) {
                 return true;
             }

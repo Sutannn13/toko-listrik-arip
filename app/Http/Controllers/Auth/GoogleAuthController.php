@@ -87,6 +87,13 @@ class GoogleAuthController extends Controller
         $user = $this->findOrCreateUser($googleUser);
 
         if ($user === null) {
+            // Check if this was an email conflict (email already registered locally)
+            if (session('google_email_conflict')) {
+                return redirect()
+                    ->route('login')
+                    ->withErrors(['email' => 'Email ini sudah terdaftar dengan akun lokal. Silakan login menggunakan email dan password Anda terlebih dahulu.']);
+            }
+
             return redirect()
                 ->route('login')
                 ->withErrors(['email' => 'Terjadi kesalahan saat memproses akun. Silakan coba lagi.']);
@@ -116,12 +123,9 @@ class GoogleAuthController extends Controller
             'ip'       => $request->ip(),
         ]);
 
-        // Redirect based on role (same logic as AuthenticatedSessionController)
-        if ($user->hasAnyRole(['super-admin', 'admin'])) {
-            return redirect()->route('admin.dashboard');
-        }
-
-        return redirect()->route('home');
+        // Redirect to /dashboard — that route already handles role-based redirect
+        // (admin → admin.dashboard, user → home)
+        return redirect()->route('dashboard');
     }
 
     /**
@@ -129,11 +133,12 @@ class GoogleAuthController extends Controller
      *
      * Account linking strategy:
      * 1. google_id match → return existing user (returning Google user)
-     * 2. Email match, no google_id → link Google to existing local account
+     * 2. Email match, no google_id → REJECT, user must login manually first
      * 3. No match → create new user with Google data
      *
      * SECURITY: We never auto-assign admin roles to Google users.
      *           We never overwrite existing passwords or names.
+     *           We never auto-link Google to existing local accounts.
      */
     private function findOrCreateUser(
         \Laravel\Socialite\Contracts\User $googleUser
@@ -155,26 +160,21 @@ class GoogleAuthController extends Controller
             return $user;
         }
 
-        // Strategy 2: Find by email (link existing local account)
-        $user = User::where('email', $email)->first();
+        // Strategy 2: Email already exists but no google_id linked
+        // Do NOT auto-link — user must login manually first to prove ownership
+        $existingUser = User::where('email', $email)->first();
 
-        if ($user !== null) {
-            // Link Google ID to existing local account
-            // We do NOT overwrite the user's name or password
-            $user->update([
-                'google_id'         => $googleId,
-                'avatar'            => $avatar ?? $user->avatar,
-                'provider'          => $user->provider === 'local' ? 'local' : $user->provider,
-                'email_verified_at' => $user->email_verified_at ?? now(),
+        if ($existingUser !== null) {
+            Log::info('Google OAuth: email already registered locally, rejected auto-link', [
+                'user_id' => $existingUser->id,
+                'email'   => $email,
             ]);
 
-            Log::info('Google OAuth: linked Google to existing local account', [
-                'user_id'   => $user->id,
-                'email'     => $email,
-                'google_id' => $googleId,
-            ]);
+            // Return null — caller will show a specific error
+            // We set a session flash so the caller can show the right message
+            session()->flash('google_email_conflict', true);
 
-            return $user;
+            return null;
         }
 
         // Strategy 3: Create new user

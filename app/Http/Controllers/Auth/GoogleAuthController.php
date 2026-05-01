@@ -7,8 +7,10 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Facades\Socialite;
 use Spatie\Permission\Models\Role;
 
@@ -60,9 +62,13 @@ class GoogleAuthController extends Controller
              */
             $googleUser = Socialite::driver('google')->user();
         } catch (\Exception $e) {
-            Log::warning('Google OAuth callback failed', [
-                'error' => $e->getMessage(),
-                'ip'    => $request->ip(),
+            Log::error('Google OAuth callback failed', [
+                'exception'      => $e::class,
+                'message'        => $e->getMessage(),
+                'code'           => $e->getCode(),
+                'has_oauth_code' => $request->filled('code'),
+                'has_state'      => $request->filled('state'),
+                'ip'             => $request->ip(),
             ]);
 
             return redirect()
@@ -70,8 +76,11 @@ class GoogleAuthController extends Controller
                 ->withErrors(['email' => 'Gagal login dengan Google. Silakan coba lagi.']);
         }
 
-        // Validate that Google has verified this email address
-        $emailVerified = $googleUser->getRaw()['email_verified'] ?? false;
+        // Only trust Google login when Google confirms ownership of the email.
+        $emailVerified = filter_var(
+            $googleUser->getRaw()['email_verified'] ?? false,
+            FILTER_VALIDATE_BOOLEAN,
+        );
 
         if (!$emailVerified) {
             Log::warning('Google OAuth: unverified email attempt', [
@@ -87,13 +96,6 @@ class GoogleAuthController extends Controller
         $user = $this->findOrCreateUser($googleUser);
 
         if ($user === null) {
-            // Check if this was an email conflict (email already registered locally)
-            if (session('google_email_conflict')) {
-                return redirect()
-                    ->route('login')
-                    ->withErrors(['email' => 'Email ini sudah terdaftar dengan akun lokal. Silakan login menggunakan email dan password Anda terlebih dahulu.']);
-            }
-
             return redirect()
                 ->route('login')
                 ->withErrors(['email' => 'Terjadi kesalahan saat memproses akun. Silakan coba lagi.']);
@@ -123,26 +125,37 @@ class GoogleAuthController extends Controller
             'ip'       => $request->ip(),
         ]);
 
-        // Redirect to /dashboard — that route already handles role-based redirect
-        // (admin → admin.dashboard, user → home)
-        return redirect()->route('dashboard');
+        // Redirect directly so flash notices survive the post-login response.
+        $redirect = $user->hasAnyRole(['super-admin', 'admin'])
+            ? redirect()->route('admin.dashboard')
+            : redirect()->route('home');
+
+        if (! $user->hasLocalPassword()) {
+            $redirect->with(
+                'success',
+                'Akun Google Anda sudah terverifikasi. Untuk keamanan tambahan, silakan pasang password cadangan di halaman profil.',
+            );
+        } elseif (session('google_account_linked')) {
+            $redirect->with('success', 'Akun Google berhasil ditautkan ke akun Anda.');
+        }
+
+        return $redirect;
     }
 
     /**
      * Find an existing user or create a new one from Google profile data.
      *
      * Account linking strategy:
-     * 1. google_id match → return existing user (returning Google user)
-     * 2. Email match, no google_id → REJECT, user must login manually first
-     * 3. No match → create new user with Google data
+     * 1. google_id match -> return existing user (returning Google user)
+     * 2. Email match, no google_id -> link only after Google verifies the email
+     * 3. No match -> create new verified user with Google data
      *
      * SECURITY: We never auto-assign admin roles to Google users.
      *           We never overwrite existing passwords or names.
-     *           We never auto-link Google to existing local accounts.
+     *           We never overwrite existing local passwords or roles.
      */
-    private function findOrCreateUser(
-        \Laravel\Socialite\Contracts\User $googleUser
-    ): ?User {
+    private function findOrCreateUser(SocialiteUser $googleUser): ?User
+    {
         $googleId = $googleUser->getId();
         $email    = Str::lower($googleUser->getEmail());
         $name     = $googleUser->getName();
@@ -160,38 +173,48 @@ class GoogleAuthController extends Controller
             return $user;
         }
 
-        // Strategy 2: Email already exists but no google_id linked
-        // Do NOT auto-link — user must login manually first to prove ownership
+        // Strategy 2: Link an existing local account after verified Google email proof
+        // Google email_verified is required before this method is called.
         $existingUser = User::where('email', $email)->first();
 
         if ($existingUser !== null) {
-            Log::info('Google OAuth: email already registered locally, rejected auto-link', [
-                'user_id' => $existingUser->id,
-                'email'   => $email,
+            $existingUser->forceFill([
+                'google_id'         => $googleId,
+                'avatar'            => $avatar ?: $existingUser->avatar,
+                'email_verified_at' => $existingUser->email_verified_at ?? now(),
+            ])->save();
+
+            Log::info('Google OAuth: linked verified Google account to existing user', [
+                'user_id'   => $existingUser->id,
+                'email'     => $email,
+                'google_id' => $googleId,
             ]);
 
-            // Return null — caller will show a specific error
-            // We set a session flash so the caller can show the right message
-            session()->flash('google_email_conflict', true);
+            // Mark this request so the callback can show a friendly linked-account notice.
+            session()->flash('google_account_linked', true);
 
-            return null;
+            return $existingUser;
         }
 
         // Strategy 3: Create new user
         try {
-            $user = User::create([
-                'name'              => $name,
-                'email'             => $email,
-                'google_id'         => $googleId,
-                'avatar'            => $avatar,
-                'provider'          => 'google',
-                'password'          => null,
-                'email_verified_at' => now(),
-            ]);
+            $user = DB::transaction(function () use ($name, $email, $googleId, $avatar): User {
+                $user = User::create([
+                    'name'              => $name,
+                    'email'             => $email,
+                    'google_id'         => $googleId,
+                    'avatar'            => $avatar,
+                    'provider'          => 'google',
+                    'password'          => null,
+                    'email_verified_at' => now(),
+                ]);
 
-            // Assign default role — NEVER admin
-            Role::findOrCreate('user', 'web');
-            $user->assignRole('user');
+                // Assign default customer role only. Never assign admin here.
+                Role::findOrCreate('user', 'web');
+                $user->assignRole('user');
+
+                return $user;
+            });
 
             Log::info('Google OAuth: created new user', [
                 'user_id'   => $user->id,

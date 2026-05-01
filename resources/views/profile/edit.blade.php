@@ -27,6 +27,7 @@
         $profileInitial = strtoupper(substr($user->name ?? 'U', 0, 1));
         $addresses = $addresses ?? collect();
         $defaultAddress = $defaultAddress ?? null;
+        $requiresCurrentPassword = $user->hasLocalPassword();
 
         if ($status === 'profile-updated') {
             $successMessage = 'Profil berhasil diperbarui.';
@@ -41,6 +42,22 @@
         'successMessage' => $successMessage,
         'showValidationErrors' => true,
     ])
+
+    @if (! $requiresCurrentPassword && $user->isGoogleUser())
+        <div class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p class="font-bold">Tambahkan password cadangan</p>
+                    <p class="mt-1 text-xs leading-relaxed text-amber-800">
+                        Akun Anda sudah aman dengan Google. Password cadangan membantu Anda tetap bisa masuk jika akses Google sedang bermasalah.
+                    </p>
+                </div>
+                <a href="#security-password" class="inline-flex shrink-0 items-center justify-center rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-white transition hover:bg-amber-600">
+                    Pasang Password
+                </a>
+            </div>
+        </div>
+    @endif
 
     <form id="send-verification" method="POST" action="{{ route('verification.send') }}" class="hidden">
         @csrf
@@ -238,7 +255,7 @@
                 </form>
 
                 {{-- ── Keamanan Password (sub-section inside identity) ── --}}
-                <div x-data="{ passwordOpen: false }" class="mt-5 rounded-xl border border-gray-100 bg-gray-50/50">
+                <div id="security-password" x-data="{ passwordOpen: @js(! $requiresCurrentPassword || $errors->updatePassword->any()) }" class="mt-5 rounded-xl border border-gray-100 bg-gray-50/50">
                     <button type="button" @click="passwordOpen = !passwordOpen"
                         class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-gray-100/60 rounded-xl">
                         <div class="flex items-center gap-2.5">
@@ -249,7 +266,9 @@
                             </span>
                             <div>
                                 <h3 class="text-xs font-bold text-gray-800">Keamanan Password</h3>
-                                <p class="text-[10px] text-gray-500">Ganti password secara berkala</p>
+                                <p class="text-[10px] text-gray-500">
+                                    {{ $requiresCurrentPassword ? 'Ganti password secara berkala' : 'Pasang password pertama untuk akses cadangan' }}
+                                </p>
                             </div>
                         </div>
                         <svg class="h-4 w-4 text-gray-400 transition" :class="passwordOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -262,6 +281,7 @@
                             @csrf
                             @method('PUT')
 
+                            @if ($requiresCurrentPassword)
                             <div>
                                 <label for="current_password" class="mb-1.5 block text-xs font-semibold text-gray-600">Password Saat Ini</label>
                                 <input id="current_password" name="current_password" type="password"
@@ -273,6 +293,11 @@
                                     </p>
                                 @endif
                             </div>
+                            @else
+                                <div class="rounded-xl border border-amber-200 bg-white px-4 py-3 text-xs leading-relaxed text-amber-800">
+                                    Akun ini login lewat Google dan belum punya password lokal. Isi password baru di bawah untuk menambahkan opsi masuk cadangan.
+                                </div>
+                            @endif
 
                             <div class="grid gap-3 sm:grid-cols-2">
                                 <div>

@@ -1,14 +1,280 @@
 {
-  "timestamp": "2026-04-22T18:03:38.833Z",
+  "timestamp": "2026-05-01T09:31:32.128Z",
   "files": {
+    ".instructions.md": {
+      "action": "restore",
+      "hash": "060b739f87a77375f261a13c3b2b295993ba67b4172420c4223ba1332d47b0a3",
+      "mtimeMs": 1776880776723.4568
+    },
     ".cursorrules": {
-      "action": "delete"
+      "action": "restore",
+      "hash": "f852ff12ef5bf760eeb9f65d7cef31dcb0d23a52d80c25e3de9458efefad0cd8",
+      "mtimeMs": 1776881018961.975
     },
     ".windsurfrules": {
+      "action": "restore",
+      "hash": "f852ff12ef5bf760eeb9f65d7cef31dcb0d23a52d80c25e3de9458efefad0cd8",
+      "mtimeMs": 1776881018961.975
+    },
+    "AGENTS.md": {
+      "action": "restore",
+      "hash": "247cb9a7a69180847edc5796c32bb3d9952adcd4153b75f09707b8ee268937b5",
+      "mtimeMs": 1776880776724.4539
+    },
+    "CLAUDE.md": {
       "action": "delete"
     },
-    ".agent-context": {
+    "GEMINI.md": {
       "action": "delete"
+    },
+    ".cursor\\rules\\agentic-senior-core.mdc": {
+      "action": "delete"
+    },
+    ".github\\copilot-instructions.md": {
+      "action": "restore",
+      "hash": "f852ff12ef5bf760eeb9f65d7cef31dcb0d23a52d80c25e3de9458efefad0cd8",
+      "mtimeMs": 1776881018963.9685
+    },
+    ".github\\instructions\\agentic-senior-core.instructions.md": {
+      "action": "delete"
+    },
+    ".windsurf\\rules\\agentic-senior-core.md": {
+      "action": "delete"
+    },
+    ".agent-override.md": {
+      "action": "restore",
+      "hash": "403d53316a6420a574bcd682dd0c7b82a409c2b61873873bece32616ed1fde39",
+      "mtimeMs": 1776435332688.7544
+    },
+    ".agent-context\\marketplace\\trust-tiers.json": {
+      "action": "restore",
+      "hash": "2c8401a9545f4ad48e29eeaf70c0ee3293f0fbdccbc519777dfe398404d0c9dd",
+      "mtimeMs": 1776880776718.4692
+    },
+    ".agent-context\\policies\\llm-judge-threshold.json": {
+      "action": "restore",
+      "hash": "73b025e154b1a021ea64e4aca88b27be42ea0ce2be074e778a554f69e1f499db",
+      "mtimeMs": 1776881018964.9653
+    },
+    ".agent-context\\prompts\\bootstrap-design.md": {
+      "action": "restore",
+      "hash": "70870762c84d1ff95b45c439b4914326b4bb74a346e959ab217fd77c2c7d2267",
+      "mtimeMs": 1776880776735.4226
+    },
+    ".agent-context\\prompts\\init-project.md": {
+      "action": "restore",
+      "hash": "95a4f0135085c3f887a16660d0157d426cbf3cbfbe4d8036ea1698bc664c7c7c",
+      "mtimeMs": 1776880776759.2822
+    },
+    ".agent-context\\prompts\\refactor.md": {
+      "action": "restore",
+      "hash": "90c67f52891f09514835fd0642196a680461c9d42680e08ec78aa49c9026d356",
+      "mtimeMs": 1776880776777.2937
+    },
+    ".agent-context\\prompts\\review-code.md": {
+      "action": "restore",
+      "hash": "e5a78cb4dc954db54d0c73bc32fd7cbf15686e1abb2153c541f2afbd9354d63e",
+      "mtimeMs": 1776880776781.2249
+    },
+    ".agent-context\\review-checklists\\architecture-review.md": {
+      "action": "restore",
+      "hash": "ca58fe0b3769fbf20895536f086875f29810c784dc24df74460be4d80e7d03b4",
+      "mtimeMs": 1776880776731.561
+    },
+    ".agent-context\\review-checklists\\pr-checklist.md": {
+      "action": "restore",
+      "hash": "ac231b2b554c5e16126e67e07e5fae1646176c9d20306d0291097d28ff5112bb",
+      "mtimeMs": 1776880776770.2537
+    },
+    ".agent-context\\rules\\api-docs.md": {
+      "action": "restore",
+      "hash": "9807817a5671e86c1cbb2964f569dee3c2424c30692c1acec6638f54ae299d76",
+      "mtimeMs": 1776880776727.444
+    },
+    ".agent-context\\rules\\architecture.md": {
+      "action": "restore",
+      "hash": "c9644b36650c80e9ea106cd1d74491bd9e0e77b7a90f2430f436f6b20d495f42",
+      "mtimeMs": 1776880776734.4265
+    },
+    ".agent-context\\rules\\database-design.md": {
+      "action": "restore",
+      "hash": "4cf60db34de605b99940e48ca03c3b678cf707049a8d904427007ee0b889e48a",
+      "mtimeMs": 1776880776740.333
+    },
+    ".agent-context\\rules\\docker-runtime.md": {
+      "action": "restore",
+      "hash": "812575e1836bad47a07ef37c8f519dcb37806677c7831789546df1d8ef19f8ba",
+      "mtimeMs": 1776880776743.325
+    },
+    ".agent-context\\rules\\efficiency-vs-hype.md": {
+      "action": "restore",
+      "hash": "816f9ebd31021fa1f112f51e769f28e6e62f8c44e8a69673b01b12902aa7f62a",
+      "mtimeMs": 1776880776747.3142
+    },
+    ".agent-context\\rules\\error-handling.md": {
+      "action": "restore",
+      "hash": "7468ec0fb42322c8f6c5d0174e9b8b4c5e6a873105d37ceb52b6af141b861e80",
+      "mtimeMs": 1776880776751.3047
+    },
+    ".agent-context\\rules\\event-driven.md": {
+      "action": "restore",
+      "hash": "348253631d9333f08173b635caec83d0b42331567bd6ca3faa1e894a1ac4aa2e",
+      "mtimeMs": 1776880776753.2986
+    },
+    ".agent-context\\rules\\frontend-architecture.md": {
+      "action": "restore",
+      "hash": "6e156d877d017a014f761659ae7be3ac98c73fff37953eb5a21f47aa4ca77d09",
+      "mtimeMs": 1776880776755.2932
+    },
+    ".agent-context\\rules\\git-workflow.md": {
+      "action": "restore",
+      "hash": "d073b162a74cb8d26b737d43dfaad3796d73a1b28d0d78adad3ace5d5bfba33b",
+      "mtimeMs": 1776880776757.2883
+    },
+    ".agent-context\\rules\\microservices.md": {
+      "action": "restore",
+      "hash": "26599305b7a32d68242b7e85c3f1db7f4c6110af49673c9c51b04428eb826e6b",
+      "mtimeMs": 1776880776763.2715
+    },
+    ".agent-context\\rules\\naming-conv.md": {
+      "action": "restore",
+      "hash": "6a73481d38d3762634069406619b697de292f857e061025f320636bc866476ad",
+      "mtimeMs": 1776880776765.2756
+    },
+    ".agent-context\\rules\\performance.md": {
+      "action": "restore",
+      "hash": "3dabe3597f01dc40b856d9be67468e9ed59d5cfa887767213809d1fd7f3642c3",
+      "mtimeMs": 1776880776768.2612
+    },
+    ".agent-context\\rules\\realtime.md": {
+      "action": "restore",
+      "hash": "86cf40b89de5a1e56bc5d959d96926d610762c0adb3ce306203338190116dfe2",
+      "mtimeMs": 1776880776773.245
+    },
+    ".agent-context\\rules\\security.md": {
+      "action": "restore",
+      "hash": "dc7dbd696868f66ac3635c416c8d000996099be4bcc3240f69f13d5fe5f8fb83",
+      "mtimeMs": 1776880776789.2024
+    },
+    ".agent-context\\rules\\testing.md": {
+      "action": "restore",
+      "hash": "2e594fc0e4c012e38af1ea6d10d37df84c9a78fe657ffdca60e266e63a33c05b",
+      "mtimeMs": 1776880776791.199
+    },
+    ".agent-context\\state\\architecture-map.md": {
+      "action": "restore",
+      "hash": "7fd40b5cd2d4be314d3cdbcea79f49324460b704eed8bc0fe1ea0cb0a013126e",
+      "mtimeMs": 1776880776729.4397
+    },
+    ".agent-context\\state\\benchmark-analysis.json": {
+      "action": "restore",
+      "hash": "7d0fbc1689cf3d1bf32534098f5c285b57649079b4651c73ecade2814cfc671c",
+      "mtimeMs": 1776880776676.5413
+    },
+    ".agent-context\\state\\benchmark-comparison-schema.json": {
+      "action": "restore",
+      "hash": "ac1fe32eae3513be9413ce2d13ffe6b818c3a0d12a695aa2c6043ecde58847bc",
+      "mtimeMs": 1776880776679.4744
+    },
+    ".agent-context\\state\\benchmark-evidence-bundle.json": {
+      "action": "restore",
+      "hash": "1906723474d009f4e28f35c39cf329c05b1479cc7aef7c8da3f62c561dbdc51c",
+      "mtimeMs": 1776880776682.4587
+    },
+    ".agent-context\\state\\benchmark-history.json": {
+      "action": "restore",
+      "hash": "84e0cff9489038633992a2cd4ed3eea1ed76863ebe831130c4e64e46e5036a7c",
+      "mtimeMs": 1776880776685.4504
+    },
+    ".agent-context\\state\\benchmark-reproducibility.json": {
+      "action": "restore",
+      "hash": "4e5e08cd48697583698a2116f4316196ba7247244bc48a398e93c54a393482b5",
+      "mtimeMs": 1776880776688.4434
+    },
+    ".agent-context\\state\\benchmark-thresholds.json": {
+      "action": "restore",
+      "hash": "bf4c3342cc1b109535e921e8a330606aa7cd1817e9109a59a8bbfa4ab66a1db3",
+      "mtimeMs": 1776880776689.4524
+    },
+    ".agent-context\\state\\benchmark-trend-report.csv": {
+      "action": "restore",
+      "hash": "b26fff9e74ef4c3c5993ea3c2ef5f623f74ad29e6e20d6bc80348c9c09e4833e",
+      "mtimeMs": 1776880776671.5234
+    },
+    ".agent-context\\state\\benchmark-trend-report.json": {
+      "action": "restore",
+      "hash": "6c04c39cdbab1d46029730c35db143e986777c655ba83c46379963656c89ca6c",
+      "mtimeMs": 1776880776691.4353
+    },
+    ".agent-context\\state\\benchmark-watchlist.json": {
+      "action": "restore",
+      "hash": "45db4e4cd276f1129dbe769372803bdf99eba2ecf3e48d0ed162fd0adead601f",
+      "mtimeMs": 1776880776693.4292
+    },
+    ".agent-context\\state\\benchmark-writer-judge-config.json": {
+      "action": "restore",
+      "hash": "75b6eb12f924c722144e1d503a3cda1aa581217ff523eb55989f86276274ce20",
+      "mtimeMs": 1776880776695.4238
+    },
+    ".agent-context\\state\\benchmark-writer-judge-matrix.json": {
+      "action": "restore",
+      "hash": "8db446ed9ecc59b7556b48d7c88c43740de099d188d7b9a9249492edb3f7273d",
+      "mtimeMs": 1776880776697.4912
+    },
+    ".agent-context\\state\\dependency-map.md": {
+      "action": "restore",
+      "hash": "e64eb2add1c46619805aab412ad151b6f315dc4ac74473f9ceafbac30f27deb0",
+      "mtimeMs": 1776880776741.3352
+    },
+    ".agent-context\\state\\memory-adapter-contract.json": {
+      "action": "restore",
+      "hash": "a679d37c7b63c0234a64d7b2e4ac54560b7e0ace594949d7690bb043498ca429",
+      "mtimeMs": 1776880776703.796
+    },
+    ".agent-context\\state\\memory-continuity-benchmark.json": {
+      "action": "restore",
+      "hash": "503b90cab7ae2287c1a1186a56033c1c664f86c3c018997bf77d428772739a0f",
+      "mtimeMs": 1776880776705.504
+    },
+    ".agent-context\\state\\memory-continuity.json": {
+      "action": "restore",
+      "hash": "bf5229d2a5f018e7651c4890a0601d6045cab5e0a81df37cb0925c30a770f05c",
+      "mtimeMs": 1776881018929.1216
+    },
+    ".agent-context\\state\\memory-schema-v1.json": {
+      "action": "restore",
+      "hash": "5fc94586255d52514c442c99dc5202b3c5a8cb731aa72f3d529c7c89a7435703",
+      "mtimeMs": 1776880776707.4995
+    },
+    ".agent-context\\state\\onboarding-report.json": {
+      "action": "restore",
+      "hash": "584a6d7a6e8ecf1543376cf2c96f18a15c85ca3fd68fd39292be0337d4e5a63c",
+      "mtimeMs": 1776881018966.0095
+    },
+    ".agent-context\\state\\quality-trend-report.json": {
+      "action": "restore",
+      "hash": "502bd785262de966f6ed5d07e9324128ebb2f1e8b2fb4704c1dae50c8e9b9156",
+      "mtimeMs": 1776880776712.4841
+    },
+    ".agent-context\\state\\stack-research-snapshot.json": {
+      "action": "restore",
+      "hash": "ee4f2d31ddf88a64de95fa72b334112577e26ae5c371041a17bebdb7940e5a62",
+      "mtimeMs": 1776880776713.4812
+    },
+    ".agent-context\\state\\token-optimization-benchmark.json": {
+      "action": "restore",
+      "hash": "6cea32a18b74d4dbd808bb316b93cf7071f7e5835e95377a2ec6a2a08d85aae3",
+      "mtimeMs": 1776880776715.6328
+    },
+    ".agent-context\\state\\token-optimization.json": {
+      "action": "restore",
+      "hash": "15c54b5504461139da4007550714cb5e1d60008eb1585c8c686cbe73a122b32d",
+      "mtimeMs": 1776881018934.109
+    },
+    ".agent-context\\state\\weekly-governance-report.json": {
+      "action": "restore",
+      "hash": "2df5cf80bf58d6cf6fe6f2f8b3e48a1bc76ab26156077e214a28ff9a58ec4302",
+      "mtimeMs": 1776880776721.4702
     }
   }
 }

@@ -1,93 +1,100 @@
-# Frontend Architecture & Composition Patterns
+# Frontend Design and Interaction Boundaries
 
-> A complex UI is built from simple, mathematically robust functions. State is dangerous; isolate it.
+Load this rule for UI-facing work. Keep the loaded surface small.
 
-## 0. Frontend Designer Mode (Auto Activation)
-When the user request is UI-facing, frontend design governance activates automatically. No manual mode toggle is required.
+## Activation
 
-UI scope trigger signals (any one is enough):
-- keywords such as: ui, ux, page, screen, component, layout, landing, dashboard, form, onboarding, animation, interaction
-- explicit requests to improve visual quality, conversion clarity, or interaction behavior
-- feature requests that include frontend deliverables even when backend changes are also included
+Use this rule for:
+- UI, UX, page, screen, component, layout, landing, dashboard, form, onboarding, animation, interaction
+- redesign, reskin, visual refresh, responsive fix, hierarchy fix
+- frontend deliverables inside fullstack or backend work
 
-Mandatory behavior when triggered:
-- apply consolidated review checks from `.agent-context/review-checklists/pr-checklist.md`
-- apply structural checks from `.agent-context/review-checklists/architecture-review.md`
-- score and review generated UI work against visual intent, interaction quality, and conversion clarity
-- reject template-only repetitive outputs and force a distinct layout direction
-- treat prior website memory or old-project visual carryover as invalid evidence unless the user explicitly requests continuity with that exact system
-- do not flatten ambitious visual or motion ideas by default; keep them when they are optimized, intentional, and accessible
+## Authority
 
-## UI Consistency Guardrails (Mandatory)
+- Use current repo evidence, the active brief, and current project docs as valid style context.
+- Treat `.agent-context/` as design governance authority.
+- Treat `README.md` as overview/install/user context only when design or architecture rules conflict.
+- Do not choose final style, framework, palette, typography, layout paradigm, or animation library offline.
+- Research current official docs before adding a new UI, animation, scroll, 3D, canvas, charting, icon, styling, or primitive library.
+- Keep design continuity opt-in. Repo evidence outranks memory residue.
 
-- Content language must stay consistent per screen and flow unless user requests multilingual output.
-- Text color must remain contrast-safe against its background; no color collisions.
-- Layout must avoid overlap, clipped text, and misaligned key actions across breakpoints.
-- Responsive quality requires layout mutation and task reprioritization across breakpoints. Shrinking the desktop layout is not enough.
-- Keep spacing and positioning token-driven so repeated outputs stay stable.
-- Distinctive visual direction is allowed. Originality is a quality signal when hierarchy, task clarity, and accessibility still hold.
-- Motion is allowed to be expressive. Judge it by clarity, reduced-motion safety, and rendering cost, not by how restrained it looks.
-- Prefer transform and opacity for rich motion. Treat layout-thrashing animation, uncontrolled autoplay, and heavy continuous effects as optimization problems to solve, not reasons to remove personality from the UI entirely.
+## Required Design Contract
 
-## 1. File Structure (Feature-Driven Design)
-Organize your application by feature domain, not by file type.
-- **BANNED:** Monolithic directories like `/components` (with 500 files), `/hooks`, `/api`.
-- **REQUIRED (Feature Sliced):**
-  ```
-  src/
-    features/
-      authentication/
-        api/          #(login, logout fetchers)
-        components/   #(LoginForm, ProfileView)
-        hooks/        #(useAuth, useSession)
-        store.ts      #(Zustand slice)
-        types.ts      #(Zod schemas)
-    components/       #(Global shared UI like Button, Modal)
-    lib/              #(Axios instance, utility wrappers)
-  ```
+Before UI code, create or refine:
+- `docs/DESIGN.md`
+- `docs/design-intent.json`
 
-## 2. Separation of State and UI (Smart vs. Dumb)
-- **Dumb Components (Presentational):** Receive data via `props`, emit events via callbacks (`onAction`). They do not know about the network, global context, or databases.
-- **Smart Components (Containers):** Connect to global state (Redux/Zustand), fetch data (React Query), and pass it down.
-- **Rule:** An intricate UI layout component should NEVER contain a `fetch` or `useQuery` call.
+The contract must record:
+- `motionPaletteDecision`
+- `conceptualAnchor`
+- `derivedTokenLogic`
+- `aiSafeUiAudit`
+- `designExecutionPolicy`
+- `designExecutionHandoff`
+- `reviewRubric`
+- `contextHygiene`
+- `libraryResearchStatus` and `libraryDecisions[]`
 
-## 3. Server State vs. Client State
-Modern frontend frameworks differentiate between remote and local data.
-- **Server State (Async, Cached):** Data belonging to the database. MUST be managed by tools like `TanStack Query` (React Query) or `SWR`.
-- **Client State (Sync, Ephemeral):** UI toggles, modal states, form drafts. Manage via `useState`, `useContext`, or `Zustand`.
-- **BANNED:** Storing API responses in a global Redux/Zustand store (e.g., `dispatch(setUsers(data))`). Use React Query instead.
+## Anti-Generic UI Gate
 
-## 4. The Composition Pattern (Avoiding Prop Drilling)
-If a component takes more than 5 props, or if props are passed down through 3+ intermediate components, the architecture is broken.
-- **BANNED:** `<Layout user={user} theme={theme} onLogout={handleLogout} />`
-- **REQUIRED:** Use React's `children` prop and composition.
-  ```tsx
-  // ✅ Clean composition
-  <Layout>
-    <Sidebar user={user} />
-    <Content onLogout={handleLogout} />
-  </Layout>
-  ```
+Do not ship interchangeable dashboard chrome, balanced card grids, centered marketing shells, generic component-kit surfaces, generic abstract logos, or nonfunctional background decoration unless the product earns them.
 
-## 5. Explicit Component Contracts (Typing)
-Every component **MUST** have an explicit, exported interface for its props.
-- **BANNED:** `const Button = (props: any) => ...`
-- **REQUIRED:** Prefix handlers with `on` and booleans with `is/has`.
-  ```typescript
-  export interface ButtonProps {
-    variant: 'primary' | 'secondary';
-    isLoading?: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-  }
-  ```
+For new screens or broad redesigns, make at least three at-a-glance product-specific signals visible. Signals may be data treatment, iconography, state language, motion behavior, spatial structure, typography, material logic, or color behavior.
 
-## 6. Form Handling & Validation
-Never write manual state bindings for complex forms.
-- **Rule:** All forms MUST use a robust library (`react-hook-form` is the standard) combined with a schema validator (`Zod`).
-- **BANNED:** Creating 5 `useState` variables for 5 input fields.
+Use the rename test: if the UI can be renamed to another product category without changing composition, palette, iconography, and motion language, revise before implementation is considered complete.
 
-## 7. Performance & Re-renders
-React is fast until you break it.
-- **Rule:** Do not pass newly instantiated objects or arrow functions directly into dependency arrays (`useEffect`) or memoized components (`React.memo`) unless wrapped in `useMemo`/`useCallback`.
-- **Rule:** Never execute expensive mapping/filtering inside the render path blindly without memoization.
+Background lines, grids, scanlines, noise, glows, blobs, abstract logos, and decorative geometry are invalid as wallpaper. Do not use grid or line backgrounds as first-output filler. Use them only for a named product function such as alignment, crop guidance, map/route orientation, timeline reading, measurement, status, or motion continuity.
+
+## Dynamic Anchor Gate
+
+If the user gives no current-task visual research or reference:
+- Do not count old UI, existing design docs, or scaffold seeds as research.
+- Choose one high-variance non-software conceptual anchor before UI code.
+- Internally reject the safest dashboard, portal, card-grid, admin-shell, or minimalist-web-app mental model.
+- Record one real-world anchor reference, one signature motion behavior, and one typographic decision with role contrast.
+- Derive typography, spacing, morphology, motion, and responsive recomposition from that anchor.
+- Reject anchors described only by generic quality words such as modern, clean, premium, expressive, minimal, or bold.
+
+## Motion, Palette, and 3D
+
+- Product categories are heuristics, not style presets.
+- Choose motion density from task, content density, brand intent, device budget, performance, and accessibility.
+- Map states before coding: default, hover, focus-visible, active, disabled, loading, empty, error, success, transition.
+- Prefer visually exploratory, product-derived palettes while preserving WCAG contrast and status clarity.
+- Do not default to dark slate, cream/beige/tan, purple-blue gradients, monochrome palettes, cyber-neon terminals, or uniform card surfaces without product evidence.
+- Treat motion, 3D, WebGL, canvas, scroll choreography, and animation libraries as first-class options.
+- Omit rich motion or spatial UI only after naming the product-fit reason and the replacement interaction quality.
+- Keep reduced-motion, keyboard, loading, performance, mobile, and non-3D fallbacks explicit.
+
+## Zero-Based Redesign
+
+If the user asks for a redesign from zero:
+- Treat existing UI as behavioral/content evidence only.
+- Discard prior palette, typography, hero composition, navigation placement, component morphology, motion signature, and image framing unless the user requests continuity.
+- Rewrite or materially update both design docs before coding.
+- Change primary composition, content hierarchy, interaction model, and responsive information architecture.
+- Reject palette swaps, dark-mode flips, and restyled heroes.
+
+## Responsive Mutation
+
+Responsive quality is not scale-only.
+
+- Mobile must prioritize the first decisive action.
+- Tablet must regroup surfaces instead of shrinking desktop.
+- Desktop may expose more context but must not become interchangeable admin chrome.
+- At least one major surface must change position, grouping, priority, or disclosure strategy between mobile and desktop.
+
+## Accessibility
+
+- WCAG 2.2 AA is the hard floor.
+- APCA is advisory perceptual tuning only.
+- Hard checks include focus visibility, focus appearance, target size, keyboard access, accessible authentication, color-only meaning, and dynamic status/state access.
+- Fix accessibility issues without flattening the UI into generic safe chrome unless no expressive safe option remains.
+
+## Implementation Boundaries
+
+- Follow the shipped project stack and current repo patterns.
+- Do not hardcode Zustand, React Query, smart/dumb component doctrine, or framework-specific architecture as universal design law.
+- Keep structure feature-oriented when it improves maintainability.
+- Keep component states recognizable across hover, focus, loading, success, empty, and error.
+- Do not let repeated surfaces share one visual treatment by habit; repetition needs a product reason.

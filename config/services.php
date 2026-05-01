@@ -48,6 +48,12 @@ return [
         'timeout' => (int) env('BAYARGG_TIMEOUT', 15),
     ],
 
+    'google' => [
+        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect'      => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+    ],
+
     'ai' => [
         'assistant_enabled' => filter_var(env('AI_ASSISTANT_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
         'provider' => env('AI_PROVIDER', 'rule_based'),

@@ -1,0 +1,244 @@
+{
+  "cliVersion": "3.0.16",
+  "generatedAt": "2026-04-22T18:03:38.965Z",
+  "operationMode": "init",
+  "selectedProfile": "balanced",
+  "selectedPreset": null,
+  "projectScope": {
+    "key": "both",
+    "label": "Both (frontend + backend)"
+  },
+  "projectTopology": null,
+  "selectedStack": "php.md",
+  "selectedAdditionalStacks": [
+    "typescript.md"
+  ],
+  "selectedBlueprint": "laravel-api.md",
+  "selectedAdditionalBlueprints": [
+    "api-nextjs.md"
+  ],
+  "ruleLoadingPolicy": {
+    "canonicalSource": ".instructions.md",
+    "stackLoadingMode": "lazy",
+    "loadedOnDemand": true,
+    "primaryStack": "php.md",
+    "additionalStacks": [
+      "typescript.md"
+    ]
+  },
+  "ciGuardrailsEnabled": true,
+  "setupDurationMs": 4563,
+  "runtimeEnvironment": {
+    "selected": "windows",
+    "selectedLabel": "Windows",
+    "detected": "windows",
+    "detectedLabel": "Windows",
+    "detectionSource": "process.platform"
+  },
+  "tokenOptimization": {
+    "enabled": true,
+    "selectedAgent": "copilot",
+    "preferredShellProxy": "native-fallback",
+    "stateFile": ".agent-context/state/token-optimization.json"
+  },
+  "memoryContinuity": {
+    "enabled": true,
+    "hydrationMode": "progressive-disclosure",
+    "adapters": [
+      "claude-code",
+      "gemini-cli",
+      "vscode-chat"
+    ],
+    "stateFile": ".agent-context/state/memory-continuity.json"
+  },
+  "architectRecommendation": null,
+  "autoDetection": {
+    "recommendedStack": "php.md",
+    "recommendedAdditionalStacks": [
+      "typescript.md"
+    ],
+    "recommendedBlueprint": "laravel-api.md",
+    "recommendedAdditionalBlueprints": [
+      "api-nextjs.md"
+    ],
+    "confidenceLabel": "high",
+    "confidenceScore": 0.95,
+    "confidenceGap": 0.05,
+    "detectionReasoning": "Top signal Php is close to Typescript (confidence gap 0.05).",
+    "rankedCandidates": [
+      {
+        "stackFileName": "php.md",
+        "confidenceScore": 0.95,
+        "evidence": [
+          "composer.json"
+        ]
+      },
+      {
+        "stackFileName": "typescript.md",
+        "confidenceScore": 0.9,
+        "evidence": [
+          "package.json",
+          "Vite config"
+        ]
+      }
+    ],
+    "evidence": [
+      "composer.json",
+      "multiple stack signals detected"
+    ],
+    "detectionTransparency": {
+      "declaredAt": "2026-04-22T18:03:34.418Z",
+      "declarationType": "existing-project",
+      "declarationShown": true,
+      "detectionSummary": "This folder looks like Php with high confidence based on composer.json, multiple stack signals detected. Confidence gap: 0.05. Secondary stack signals: Typescript.",
+      "activeRulesSummary": {
+        "canonicalSource": ".instructions.md",
+        "compiledEntrypoints": [
+          ".agent-instructions.md",
+          ".cursorrules",
+          ".windsurfrules",
+          ".clauderc",
+          ".gemini/instructions.md",
+          ".github/copilot-instructions.md"
+        ],
+        "stackLoadingMode": "lazy",
+        "selectedProfile": "balanced",
+        "selectedProfileDisplayName": "Balanced",
+        "blockingSeverities": [
+          "critical",
+          "high"
+        ],
+        "ciGuardrailsEnabled": true
+      },
+      "majorConstraints": [
+        "Preserve existing project markers and avoid forced stack migration.",
+        "Keep stack rule loading lazy and scoped to touched code.",
+        "Explicit stack or blueprint overrides always win over auto-detection."
+      ],
+      "quickConfirmation": {
+        "offered": true,
+        "response": "confirmed-detected",
+        "source": "existing-project-detection"
+      },
+      "decision": {
+        "mode": "confirmed-detected",
+        "selectedStackFileName": "php.md",
+        "selectedBlueprintFileName": "laravel-api.md",
+        "selectedAdditionalStackFileNames": [
+          "typescript.md"
+        ],
+        "selectedAdditionalBlueprintFileNames": [
+          "api-nextjs.md"
+        ],
+        "usedDetectedSetup": true,
+        "selectedProjectScopeKey": "both",
+        "selectedProjectScopeLabel": "Both (frontend + backend)"
+      }
+    },
+    "uiScope": {
+      "isUiScopeLikely": true,
+      "signalReasons": [
+        "ui markers: tailwind.config.js, vite.config.js, app, public",
+        "ui dependencies: tailwindcss",
+        "workspace storage: ui markers: app"
+      ],
+      "workspaceUiEntries": [
+        {
+          "relativePath": "storage",
+          "detectedUiMarkers": [
+            "app"
+          ],
+          "detectedUiDependencies": []
+        }
+      ],
+      "frontendEvidenceMetrics": {
+        "scannedFileCount": 0,
+        "hardcodedColorCount": 0,
+        "propDrillingCandidateCount": 0,
+        "mediaQueryCount": 0,
+        "tailwindBreakpointUsageCount": 0,
+        "arbitraryBreakpointCount": 0,
+        "uniqueMediaWidthCount": 0
+      },
+      "designEvidenceSummary": {
+        "summaryVersion": "v1",
+        "source": "lightweight-static-scan",
+        "scanRootRelativePaths": [
+          "app"
+        ],
+        "scannedFileCount": 0,
+        "cssVariables": {
+          "definitionCount": 0,
+          "referenceCount": 0,
+          "sampleNames": [],
+          "categoryCounts": {
+            "color": 0,
+            "spacing": 0,
+            "radius": 0,
+            "shadow": 0,
+            "typography": 0,
+            "motion": 0,
+            "other": 0
+          }
+        },
+        "colors": {
+          "hardcodedCount": 0,
+          "kindCounts": {
+            "hex": 0,
+            "rgb": 0,
+            "hsl": 0,
+            "oklch": 0,
+            "other": 0
+          },
+          "sampleValues": []
+        },
+        "spacing": {
+          "rawValueCount": 0,
+          "sampleValues": []
+        },
+        "radius": {
+          "rawValueCount": 0,
+          "sampleValues": []
+        },
+        "shadow": {
+          "rawValueCount": 0,
+          "sampleValues": []
+        },
+        "typography": {
+          "fontFamilyCount": 0,
+          "fontSizeCount": 0,
+          "lineHeightCount": 0,
+          "letterSpacingCount": 0,
+          "fontFamilySamples": [],
+          "fontSizeSamples": [],
+          "lineHeightSamples": [],
+          "letterSpacingSamples": []
+        },
+        "motion": {
+          "transitionCount": 0,
+          "animationCount": 0,
+          "durationCount": 0,
+          "durationSamples": []
+        },
+        "tailwind": {
+          "breakpointUsageCount": 0,
+          "arbitraryBreakpointCount": 0,
+          "utilityFamilyCounts": {},
+          "utilityFamilySamples": []
+        },
+        "componentInventory": {
+          "componentFileCount": 0,
+          "pageFileCount": 0,
+          "layoutFileCount": 0,
+          "surfaceFileSamples": []
+        },
+        "tokenBypassSignals": {
+          "hardcodedColorCount": 0,
+          "rawSpacingCount": 0,
+          "rawRadiusCount": 0,
+          "rawShadowCount": 0
+        }
+      }
+    }
+  }
+}

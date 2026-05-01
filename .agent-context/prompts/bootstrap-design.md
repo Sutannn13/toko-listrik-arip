@@ -1,85 +1,179 @@
-
 # Bootstrap Dynamic Design Contract
 
-When a user requests frontend design or redesign, the agent should automatically synthesize a dynamic design contract made of:
-- `docs/DESIGN.md` for human-readable design direction and implementation rationale
-- `docs/design-intent.json` for machine-readable intent, anti-generic constraints, and validation hints
+Use this prompt for UI, UX, frontend layout, screen, Tailwind, animation, 3D, canvas, or redesign work.
 
-This contract is a structure and reasoning system, not a fixed visual template. It must adapt to product context, user needs, platform constraints, and current design signals.
+Create or refine:
+- `docs/DESIGN.md` for human-readable design reasoning.
+- `docs/design-intent.json` for machine-readable design intent, guardrails, and review signals.
 
-UI Design Mode is context-isolated by default:
-- Load [AGENTS.md](../../AGENTS.md), [frontend-architecture.md](../rules/frontend-architecture.md), this prompt, UI-relevant state files, current UI code, and existing design docs first.
-- Do not eagerly load backend-only rules such as [database-design.md](../rules/database-design.md), [docker-runtime.md](../rules/docker-runtime.md), or [microservices.md](../rules/microservices.md) unless the task explicitly crosses those boundaries.
-- Treat UI consistency, accessibility, and cross-viewport adaptation as first-class constraints, not cosmetic afterthoughts.
-- Start the visual language from the current project context, not from prior website references or remembered layouts from earlier chats.
+This contract is a decision scaffold, not a style preset. We guide the agent; we do not pick the final style, stack, framework, palette, typography, layout paradigm, or animation library offline.
 
-The agent must:
-1. Read [AGENTS.md](../../AGENTS.md) for project context and team roles.
-2. Read [frontend-architecture.md](../rules/frontend-architecture.md) and apply its UI consistency guardrails.
-3. Use repository evidence from [.agent-context/state/onboarding-report.json](../state/onboarding-report.json), existing UI code, product copy, route names, component names, and any existing `docs/*` project docs to infer architecture and product background.
-4. If `repoEvidence.designEvidenceSummary` exists, treat it as the machine-readable snapshot of the current visual system, token bypasses, and UI surface inventory before proposing a new direction.
-5. When analyzing an existing UI codebase, inspect low-cost evidence such as hardcoded color density, prop-drilling candidates, breakpoint chaos, CSS variable patterns, and component surface inventory before declaring the current design direction healthy.
-6. If [docs/DESIGN.md](../../docs/DESIGN.md) or `docs/design-intent.json` already exists, check for drift and improve them instead of rewriting blindly.
-7. If context is incomplete, write explicit assumptions and reversible design bets instead of defaulting to generic SaaS output.
-8. Explore multiple plausible design directions internally, then commit to one cohesive direction with clear rationale tied to the product context and at least one memorable signature move.
-9. Treat any example structure or stylistic inspiration as non-normative. Use it only to judge depth and clarity, never to copy a visual language directly.
-10. All references to docs or rules must be clickable markdown links.
-11. Responsive work must adapt layout, navigation, density, and task order across viewports. Shrinking desktop layouts is not enough.
-12. Motion can be bold, cinematic, or highly expressive when it improves memorability, hierarchy, feedback, or perceived product quality. Do not flatten everything into static screens. Optimize motion first, and only reject it when it harms clarity, accessibility, or runtime performance.
-13. Define how core components morph across interaction states and viewports. Component quality is not only visual styling; it includes behavior under hover, focus, active, loading, error, and constrained layouts.
-14. Do not reuse a color palette, component skin, or motion signature from prior chats, memories, or unrelated projects unless current repo evidence or the active brand brief explicitly asks for that continuity.
-15. Treat prior website memory, old portfolio styles, and remembered screenshots as tainted context unless the user explicitly asks to continue or evolve that specific visual system.
-16. Do not default to balanced card grids, soft startup gradients, safe centered heroes, or neutral dashboard chrome unless the product context explicitly justifies them.
+## Authority
 
-Required `docs/DESIGN.md` sections:
+- Treat `.agent-context/` and current project docs as technical authority.
+- Treat `README.md` as overview, install, and user-facing context only. Do not use it as coding, architecture, or design authority when `.agent-context/` gives a stricter rule.
+- Use current repo evidence, product copy, route names, component names, user goals, and existing constraints as the source of truth.
+- Treat prior-chat visuals, unrelated project memory, benchmark screenshots, and famous-product aesthetics as tainted context unless the user explicitly approves continuity.
+- Keep external references non-copying; extract constraints only.
+- Before choosing a new UI, animation, scroll, 3D, canvas, chart, icon, styling, or component library, research current official docs.
+
+## Required Order
+
+1. Read `AGENTS.md`, this prompt, `../rules/frontend-architecture.md`, current UI code, current project docs, and existing design docs.
+2. Refine existing `docs/DESIGN.md` and `docs/design-intent.json`; do not replace them blindly.
+3. If either design doc is missing, create it before UI implementation.
+4. Record `motionPaletteDecision` before UI code; product categories are heuristics, not style presets.
+5. Encode `repoEvidence.designEvidenceSummary` when onboarding or detector evidence exists.
+6. Keep both design docs synchronized after implementation.
+
+## Creative Commitment Gate
+
+Before broad compliance review or UI implementation, record an agent-chosen visual direction in both design docs:
+- one concrete real-world anchor reference
+- one signature motion behavior more specific than "smooth"
+- one typographic decision with meaningful role contrast
+- one authored visual bet visible in the first viewport
+
+Reject generic anchors. Do not accept "modern", "clean", "premium", "expressive", "minimal", or "bold" as the anchor. Name a material, instrument, artifact class, architectural system, editorial genre, cinematic behavior, exhibition system, scientific apparatus, or industrial mechanism.
+
+## Dynamic Avant-Garde Anchor Engine
+
+If no current-task research or visual reference exists, activate the Dynamic Avant-Garde Anchor Engine before coding.
+
+Rules:
+- Treat old design docs, prior UI, and scaffold seeds as evidence, not research.
+- Internally consider at least three high-variance anchors.
+- Discard the two safest or most predictable options.
+- Output only the chosen anchor, specific reference point, and rationale.
+- Forbid final anchors named dashboard, portal, cards, admin panel, SaaS shell, web app shell, or minimalist interface.
+- Derive typography, spacing, density, color behavior, morphology, motion, and responsive composition from the chosen anchor.
+- Use reduced-motion fallbacks instead of suppressing motion.
+
+## Creative Ambition Floor
+
+Before UI code, record:
+- one product-derived palette move
+- one signature motion, spatial, or interaction behavior
+- one morphology or composition choice that avoids interchangeable card stacks when the product allows it
+- at least three at-a-glance product-specific signals for new screens or broad redesigns
+
+Do not ship AI-safe UI. Record exact drift signals in `reviewRubric`; at minimum reject decorative grid wallpaper, default line backgrounds, soft glow backgrounds, generic abstract marks, and first-output composition with only local copy swapped in when they have no product function.
+
+## AI Color and Template Residue Audit
+
+AI color drift happens when a palette uses safe defaults before product meaning.
+
+Complete the AI color audit before coding:
+- Explain what product evidence or anchorReference makes the palette fit.
+- Name the color roles that carry task, status, data, or navigation meaning.
+- Name one color behavior that would not transfer cleanly to another product category.
+- Use visually exploratory, product-derived palettes while preserving WCAG contrast and status clarity.
+
+Cream, slate, monochrome, purple-blue gradients, cyber-neon terminals, pale editorial surfaces, soft glow atmospheres, and dark control rooms are autopilot risks, not banned palettes.
+
+## Motion and 3D Courage Rule
+
+Motion, 3D, canvas, WebGL, scroll choreography, and modern animation libraries are first-class UI options when they improve understanding, exploration, feedback, hierarchy, memorability, or confidence.
+
+Use modern, expressive interaction when it improves hierarchy, feedback, confidence, or memorability.
+
+If rich motion or spatial UI is omitted, record the product, content-density, performance, accessibility, or device reason and the replacement interaction quality. "Not necessary" is not enough.
+
+If 3D or canvas is used, record product role, interaction model, fallback path, runtime/library choice, loading state, keyboard path, and reduced-motion behavior.
+
+## Token Derivation Audit
+
+Before implementation, `docs/design-intent.json` must include top-level `derivedTokenLogic`:
+- `anchorReference`
+- `colorDerivationSource`
+- `spacingDerivationSource`
+- `typographyDerivationSource`
+- `motionDerivationSource`
+- `validationRule`
+
+Every token must trace to `anchorReference`. If the rationale is "looks good", "common practice", "modern default", or "framework default", revise the token before code.
+
+## Library Research Protocol
+
+If web search is available:
+- Verify each new UI-related library against current official docs.
+- Record source URL, fetched date, stable compatible version, purpose, risk, and fallback in `libraryDecisions[]`.
+- Set `libraryResearchStatus` to `verified` only when every external library decision has evidence.
+
+If web search is unavailable:
+- Do not hallucinate package names, APIs, versions, or imports.
+- Use native CSS, browser APIs, or already-present dependencies.
+- Set `libraryResearchStatus` to `pending-verification`.
+
+Treat unresearched dependency choices as review findings.
+
+## Zero-Based Redesign Protocol
+
+When the user says "redesign from zero", "redesain dari 0", "ulang dari 0", or "research ulang":
+- Treat existing UI as content, behavior, accessibility, and asset evidence only.
+- Rewrite or materially update both design docs before UI code.
+- Add `visualResetStrategy`.
+- Reset composition, hierarchy, palette/typography, motion or interaction, and responsive information architecture.
+- Do not ship a palette swap, dark-mode flip, or same hero with new colors.
+
+## Responsive Recomposition Plan
+
+Responsive design means recomposition, not resizing.
+
+Define viewport mutation rules:
+- Mobile: prioritize the first decisive action and touch flow.
+- Tablet: regroup surfaces without becoming a shrunken desktop.
+- Desktop: expose more context without defaulting to admin chrome.
+- For each viewport, name what is reordered, merged, hidden, disclosed, promoted, and forbidden.
+
+## Required `docs/DESIGN.md` Sections
+
 1. Design Intent and Product Personality
 2. Audience and Use-Context Signals
 3. Visual Direction and Distinctive Moves
-4. Color Science and Semantic Roles
-5. Typographic Engineering and Hierarchy
-6. Spacing, Layout Rhythm, and Density Strategy
-7. Token Architecture and Alias Strategy
-8. Responsive Strategy and Cross-Viewport Adaptation Matrix
-9. Interaction, Motion, and Feedback Rules
-10. Component Language, Morphology, and Shared Patterns
-11. Accessibility Non-Negotiables
-12. Anti-Patterns to Avoid
-13. Implementation Notes for Future UI Tasks
+4. Color, Typography, Spacing, and Density Decisions
+5. Token Architecture and Alias Strategy
+6. Responsive Recomposition Plan
+7. Motion, Interaction, and Feedback Rules
+8. Component Language, States, and Morphology
+9. Source Boundaries and Context Hygiene
+10. Accessibility Non-Negotiables
+11. Anti-Patterns to Avoid
+12. Implementation Notes for Future UI Tasks
 
-Required `docs/design-intent.json` fields:
-- `mode`
-- `status`
-- `project`
-- `designPhilosophy`
-- `brandAdjectives`
-- `antiAdjectives`
-- `visualDirection`
-- `mathSystems`
-- `tokenSystem`
-- `colorTruth`
-- `crossViewportAdaptation`
-- `motionSystem`
-- `componentMorphology`
-- `experiencePrinciples`
+## Required `docs/design-intent.json` Behavior
+
+The JSON is the source of truth for machine review. It must stay project-specific and include:
+- confirmed project context and assumptions
+- agent-chosen visual direction
+- `motionPaletteDecision`
+- `conceptualAnchor`
+- `derivedTokenLogic`
+- `aiSafeUiAudit`
+- `tokenSystem`, `colorTruth`, `crossViewportAdaptation`, `motionSystem`, and `componentMorphology`
+- `accessibilityPolicy`
+- `designExecutionPolicy`
+- `designExecutionHandoff`
+- `reviewRubric`
+- `contextHygiene`
+- `libraryResearchStatus` and `libraryDecisions[]`
 - `forbiddenPatterns`
-- `validationHints`
-- `requiredDesignSections`
-- `implementation`
-- `repoEvidence` when onboarding or detector evidence exists
+- `repoEvidence.designEvidenceSummary` when available
 
-Output:
-- Create or update both `docs/DESIGN.md` and `docs/design-intent.json`.
-- Keep both files synchronized: the markdown explains the why, the JSON captures the contract in machine-readable form.
-- `docs/design-intent.json` must define a real token system, not just loose style notes. Include primitive, semantic, and component layers plus aliasing rules and naming constraints.
-- `docs/design-intent.json` must include deterministic fields for `colorTruth.format`, `colorTruth.allowHexDerivatives`, and `crossViewportAdaptation.mutationRules.mobile/tablet/desktop`.
-- `docs/design-intent.json` must also include `motionSystem` and `componentMorphology` so future UI work preserves state behavior and purposeful motion without collapsing into generic static output.
-- If onboarding or detector evidence exists, preserve it under `repoEvidence.designEvidenceSummary` instead of throwing away the machine-readable snapshot of the current UI system.
-- Token intent must stay structure-first: primitive tokens hold raw values, semantic tokens carry purpose, and component tokens consume semantic tokens instead of bypassing them with raw values.
-- Color intent must be defined in a perceptual or relational color model first. Hex values may appear only as implementation derivatives.
-- The contract must encode viewport mutation rules, not just breakpoint names.
-- Motion guidance must preserve creativity: allow meaningful animation, define reduced-motion behavior, and optimize choreography instead of suppressing it by default.
-- Color direction must come from the current project context. Similarity to prior unrelated projects is drift unless the brief or repo evidence explicitly supports it.
-- If no approved reference system exists, synthesize the design from zero using current product context, constraints, and content only.
-- The resulting system should feel authored and recognizable in screenshots, not politely interchangeable with common template kits.
-- Use practical, modern, accessible language grounded in the project, not generic SaaS defaults or copycat brand systems.
-- Wait for user approval before generating Figma or code assets.
+## Accessibility and Review
+
+WCAG 2.2 AA is the hard floor. APCA may be used only as advisory perceptual tuning.
+
+Define a review rubric that names drift signals and separates taste from failure.
+
+Block or flag:
+- inaccessible contrast, focus, target size, keyboard, auth, or dynamic-status behavior
+- scale-only responsive behavior
+- default component-kit styling without product rationale
+- nonfunctional background effects, including decorative grid wallpaper
+- grid or line backgrounds used as filler instead of product function
+- palette choices that use readability as an excuse for safe defaults
+- visual direction copied from unrelated memory or external references
+- genericity findings that cannot name the exact drift signal
+
+Wait for user approval before generating Figma or code assets when the user only asked for planning or design direction.

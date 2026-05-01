@@ -1,33 +1,41 @@
 {
-  "cliVersion": "3.0.16",
-  "generatedAt": "2026-04-22T18:03:38.965Z",
-  "operationMode": "init",
+  "cliVersion": "3.0.40",
+  "generatedAt": "2026-05-01T09:31:32.251Z",
+  "operationMode": "upgrade",
   "selectedProfile": "balanced",
-  "selectedPreset": null,
   "projectScope": {
     "key": "both",
     "label": "Both (frontend + backend)"
   },
   "projectTopology": null,
-  "selectedStack": "php.md",
-  "selectedAdditionalStacks": [
-    "typescript.md"
-  ],
-  "selectedBlueprint": "laravel-api.md",
-  "selectedAdditionalBlueprints": [
-    "api-nextjs.md"
-  ],
-  "ruleLoadingPolicy": {
-    "canonicalSource": ".instructions.md",
-    "stackLoadingMode": "lazy",
-    "loadedOnDemand": true,
-    "primaryStack": "php.md",
-    "additionalStacks": [
+  "runtimeDecision": {
+    "mode": "agent-decision-required",
+    "explicitStack": null,
+    "detectedStackEvidence": "php.md",
+    "detectedAdditionalStackEvidence": [
       "typescript.md"
     ]
   },
+  "architectureDecision": {
+    "mode": "agent-decision-required",
+    "explicitBlueprint": null,
+    "detectedBlueprintEvidence": null
+  },
+  "selectedStack": null,
+  "selectedAdditionalStacks": [],
+  "selectedBlueprint": null,
+  "selectedAdditionalBlueprints": [],
+  "ruleLoadingPolicy": {
+    "canonicalSource": ".instructions.md",
+    "stackLoadingMode": "lazy",
+    "domainRuleLoadingMode": "lazy",
+    "loadedOnDemand": true,
+    "primaryStack": null,
+    "additionalStacks": [],
+    "agentDecisionRequired": true
+  },
   "ciGuardrailsEnabled": true,
-  "setupDurationMs": 4563,
+  "setupDurationMs": 177,
   "runtimeEnvironment": {
     "selected": "windows",
     "selectedLabel": "Windows",
@@ -36,12 +44,86 @@
     "detectionSource": "process.platform"
   },
   "tokenOptimization": {
+    "schemaVersion": "token-optimization-v1",
     "enabled": true,
     "selectedAgent": "copilot",
     "preferredShellProxy": "native-fallback",
-    "stateFile": ".agent-context/state/token-optimization.json"
+    "externalProxy": {
+      "detected": false,
+      "version": null,
+      "detectionError": "Unknown external proxy detection error"
+    },
+    "commandRewriteMappings": [
+      {
+        "rawCommand": "ls -la",
+        "optimizedCommand": "rtk ls .",
+        "reason": "Directory listings are grouped and compacted before entering the model context."
+      },
+      {
+        "rawCommand": "tree",
+        "optimizedCommand": "rtk ls .",
+        "reason": "Large trees are summarized without losing high-signal structure."
+      },
+      {
+        "rawCommand": "cat file.ext",
+        "optimizedCommand": "rtk read file.ext",
+        "reason": "File reads keep signatures and relevant lines while trimming boilerplate."
+      },
+      {
+        "rawCommand": "rg pattern .",
+        "optimizedCommand": "rtk grep \"pattern\" .",
+        "reason": "Search hits are grouped and deduplicated for faster reasoning."
+      },
+      {
+        "rawCommand": "git status",
+        "optimizedCommand": "rtk git status",
+        "reason": "Status output is condensed to actionable file changes."
+      },
+      {
+        "rawCommand": "git diff",
+        "optimizedCommand": "rtk git diff",
+        "reason": "Diff noise is trimmed while preserving code-review context."
+      },
+      {
+        "rawCommand": "git log -n 10",
+        "optimizedCommand": "rtk git log -n 10",
+        "reason": "History is converted to compact one-line summaries."
+      },
+      {
+        "rawCommand": "npm test",
+        "optimizedCommand": "rtk test npm test",
+        "reason": "Test results emphasize failures and suppress repetitive pass logs."
+      },
+      {
+        "rawCommand": "npm run build",
+        "optimizedCommand": "rtk err npm run build",
+        "reason": "Build runs return errors and warnings only for quicker remediation."
+      },
+      {
+        "rawCommand": "tsc --noEmit",
+        "optimizedCommand": "rtk tsc",
+        "reason": "TypeScript diagnostics are grouped by file with less repetition."
+      },
+      {
+        "rawCommand": "eslint .",
+        "optimizedCommand": "rtk lint",
+        "reason": "Lint output is grouped by rule and location to reduce token churn."
+      },
+      {
+        "rawCommand": "docker ps",
+        "optimizedCommand": "rtk docker ps",
+        "reason": "Container state is summarized into compact rows."
+      },
+      {
+        "rawCommand": "kubectl get pods",
+        "optimizedCommand": "rtk kubectl pods",
+        "reason": "Kubernetes output is condensed and stable for agent consumption."
+      }
+    ],
+    "generatedAt": "2026-04-22T18:03:38.932Z"
   },
   "memoryContinuity": {
+    "schemaVersion": "memory-continuity-v1",
     "enabled": true,
     "hydrationMode": "progressive-disclosure",
     "adapters": [
@@ -49,18 +131,23 @@
       "gemini-cli",
       "vscode-chat"
     ],
-    "stateFile": ".agent-context/state/memory-continuity.json"
+    "retrieval": {
+      "sessionStartIndexLimit": 8,
+      "fullHydrationLimit": 2
+    },
+    "privacy": {
+      "redactPrivateTags": true,
+      "redactInlineSensitivePatterns": true
+    },
+    "generatedAt": "2026-04-22T18:03:38.928Z"
   },
-  "architectRecommendation": null,
   "autoDetection": {
-    "recommendedStack": "php.md",
-    "recommendedAdditionalStacks": [
+    "detectedStack": "php.md",
+    "detectedAdditionalStacks": [
       "typescript.md"
     ],
-    "recommendedBlueprint": "laravel-api.md",
-    "recommendedAdditionalBlueprints": [
-      "api-nextjs.md"
-    ],
+    "detectedBlueprint": null,
+    "detectedAdditionalBlueprints": [],
     "confidenceLabel": "high",
     "confidenceScore": 0.95,
     "confidenceGap": 0.05,
@@ -87,21 +174,30 @@
       "multiple stack signals detected"
     ],
     "detectionTransparency": {
-      "declaredAt": "2026-04-22T18:03:34.418Z",
+      "declaredAt": "2026-05-01T09:31:32.116Z",
       "declarationType": "existing-project",
       "declarationShown": true,
       "detectionSummary": "This folder looks like Php with high confidence based on composer.json, multiple stack signals detected. Confidence gap: 0.05. Secondary stack signals: Typescript.",
       "activeRulesSummary": {
         "canonicalSource": ".instructions.md",
-        "compiledEntrypoints": [
-          ".agent-instructions.md",
+        "compiledRulebook": ".agent-instructions.md",
+        "legacyThinAdapters": [
           ".cursorrules",
           ".windsurfrules",
-          ".clauderc",
-          ".gemini/instructions.md",
-          ".github/copilot-instructions.md"
+          ".clauderc"
+        ],
+        "generatedBridgeAdapters": [
+          "AGENTS.md",
+          "CLAUDE.md",
+          "GEMINI.md",
+          ".cursor/rules/agentic-senior-core.mdc",
+          ".windsurf/rules/agentic-senior-core.md",
+          ".github/copilot-instructions.md",
+          ".github/instructions/agentic-senior-core.instructions.md",
+          ".gemini/instructions.md"
         ],
         "stackLoadingMode": "lazy",
+        "domainRuleLoadingMode": "lazy",
         "selectedProfile": "balanced",
         "selectedProfileDisplayName": "Balanced",
         "blockingSeverities": [
@@ -112,32 +208,24 @@
       },
       "majorConstraints": [
         "Preserve existing project markers and avoid forced stack migration.",
-        "Keep stack rule loading lazy and scoped to touched code.",
-        "Explicit stack or blueprint overrides always win over auto-detection."
+        "Use runtime markers as evidence only unless the user already recorded an explicit runtime constraint.",
+        "Upgrade keeps prior explicit onboarding constraints but does not create new stack or blueprint decisions."
       ],
       "quickConfirmation": {
-        "offered": true,
-        "response": "confirmed-detected",
-        "source": "existing-project-detection"
+        "offered": false,
+        "response": "upgrade-auto",
+        "source": "upgrade-assistant"
       },
       "decision": {
-        "mode": "confirmed-detected",
-        "selectedStackFileName": "php.md",
-        "selectedBlueprintFileName": "laravel-api.md",
-        "selectedAdditionalStackFileNames": [
-          "typescript.md"
-        ],
-        "selectedAdditionalBlueprintFileNames": [
-          "api-nextjs.md"
-        ],
-        "usedDetectedSetup": true,
-        "selectedProjectScopeKey": "both",
-        "selectedProjectScopeLabel": "Both (frontend + backend)"
+        "mode": "upgrade-auto",
+        "selectedStackFileName": "agent-decision-runtime.md",
+        "selectedBlueprintFileName": "agent-decision-architecture.md"
       }
     },
     "uiScope": {
       "isUiScopeLikely": true,
       "signalReasons": [
+        "onboarding project scope: both",
         "ui markers: tailwind.config.js, vite.config.js, app, public",
         "ui dependencies: tailwindcss",
         "workspace storage: ui markers: app"
@@ -158,7 +246,12 @@
         "mediaQueryCount": 0,
         "tailwindBreakpointUsageCount": 0,
         "arbitraryBreakpointCount": 0,
-        "uniqueMediaWidthCount": 0
+        "uniqueMediaWidthCount": 0,
+        "structuredClassAttributeCount": 0,
+        "boundClassExpressionCount": 0,
+        "inlineStyleObjectCount": 0,
+        "inlineStyleBindingCount": 0,
+        "inlineStyleTokenBypassCount": 0
       },
       "designEvidenceSummary": {
         "summaryVersion": "v1",
@@ -232,11 +325,34 @@
           "layoutFileCount": 0,
           "surfaceFileSamples": []
         },
+        "structuredInspection": {
+          "mode": "attribute-aware-static-scan",
+          "classAttributeCount": 0,
+          "boundClassExpressionCount": 0,
+          "inlineStyleObjectCount": 0,
+          "inlineStyleBindingCount": 0,
+          "classAttributeSamples": [],
+          "inlineStyleSamples": [],
+          "utilityFamilyCounts": {},
+          "utilityFamilySamples": [],
+          "inlineTokenBypassSignals": {
+            "hardcodedColorCount": 0,
+            "rawSpacingCount": 0,
+            "rawRadiusCount": 0,
+            "rawShadowCount": 0,
+            "cssVariableReferenceCount": 0
+          }
+        },
         "tokenBypassSignals": {
           "hardcodedColorCount": 0,
           "rawSpacingCount": 0,
           "rawRadiusCount": 0,
-          "rawShadowCount": 0
+          "rawShadowCount": 0,
+          "inlineHardcodedColorCount": 0,
+          "inlineRawSpacingCount": 0,
+          "inlineRawRadiusCount": 0,
+          "inlineRawShadowCount": 0,
+          "inlineCssVariableReferenceCount": 0
         }
       }
     }

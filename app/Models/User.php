@@ -20,7 +20,11 @@ class User extends Authenticatable
         'name',
         'email',
         'profile_photo_path',
+        'google_id',
+        'avatar',
+        'provider',
         'password',
+        'email_verified_at',
         'is_suspended',
         'suspended_at',
         'suspended_reason',
@@ -44,6 +48,22 @@ class User extends Authenticatable
     public function isSuspended(): bool
     {
         return (bool) $this->is_suspended;
+    }
+
+    /**
+     * Check if the user registered via Google OAuth.
+     */
+    public function isGoogleUser(): bool
+    {
+        return $this->google_id !== null;
+    }
+
+    /**
+     * Check if the user has a local (password-based) account.
+     */
+    public function hasLocalPassword(): bool
+    {
+        return $this->password !== null;
     }
 
     public function primaryRole(): string

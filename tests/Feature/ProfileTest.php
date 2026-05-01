@@ -24,6 +24,24 @@ class ProfileTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_google_only_user_sees_backup_password_notice(): void
+    {
+        $user = User::factory()->create([
+            'google_id' => 'google-123',
+            'provider' => 'google',
+            'password' => null,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->get('/profile');
+
+        $response
+            ->assertOk()
+            ->assertSee('Tambahkan password cadangan')
+            ->assertSee('Pasang Password');
+    }
+
     public function test_profile_information_can_be_updated(): void
     {
         $user = User::factory()->create();

@@ -28,6 +28,11 @@ class AiIntentRouterService
             return 'troubleshooting';
         }
 
+        // ── Electrical troubleshooting: lamp, MCB, cable, switch, socket issues ──
+        if ($this->containsElectricalTroubleshootHint($normalizedMessage)) {
+            return 'troubleshooting';
+        }
+
         // ── Explicit problem statements should win over tutorial/store intent ──
         if ($this->containsTroubleshootingHint($normalizedMessage)) {
             return 'troubleshooting';
@@ -831,6 +836,83 @@ class AiIntentRouterService
         ];
 
         foreach ($troubleshootingKeywords as $keyword) {
+            if (str_contains($message, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect electrical troubleshooting issues — lamp, MCB, cable, switch, socket problems.
+     * These are checked BEFORE the general troubleshooting hint so specific electrical
+     * issues get routed to the specialized FAQ knowledgebase.
+     */
+    private function containsElectricalTroubleshootHint(string $message): bool
+    {
+        $electricalKeywords = [
+            // Lamp / light issues
+            'lampu tidak menyala',
+            'lampu mati',
+            'bohlam mati',
+            'bohlam tidak menyala',
+            'lampu tidak nyala',
+            'lampu ga nyala',
+            'lampu gak nyala',
+
+            // Stop kontak / colokan issues
+            'stop kontak tidak berfungsi',
+            'stop kontak mati',
+            'stopkontak mati',
+            'colokan tidak berfungsi',
+            'colokan mati',
+            'stop kontak error',
+            'stopkontak error',
+
+            // MCB issues
+            'mcb turun',
+            'mcb jeglek',
+            'mcb off',
+            'mcb sering turun',
+            'mcb sering jeglek',
+            'mcb sering off',
+            'listrik mati sebagian',
+            'listrik turun',
+
+            // Cable issues
+            'kabel panas',
+            'kabel hangat',
+            'kabel meleleh',
+            'kabel bau gosong',
+
+            // Dangerous electrical signals — these take priority
+            'bau gosong',
+            'percikan api',
+            'bautang',
+            'keluar percikan',
+            'kabel meleleh',
+            'arus listrik kurang',
+            'listrik kurang',
+
+            // Switch / saklar issues
+            'saklar rusak',
+            'saklar macet',
+            'saklar tidak berfungsi',
+            'saklar tidak nyala',
+            'saklar ga berfungsi',
+            'saklar tidak bisa',
+            'tombol saklar rusak',
+
+            // Fitting issues
+            'fitting lampu rusak',
+            'fitting longgar',
+            'fitting tidak nyala',
+            'fitting mati',
+            'fitting rusak',
+        ];
+
+        foreach ($electricalKeywords as $keyword) {
             if (str_contains($message, $keyword)) {
                 return true;
             }

@@ -154,6 +154,19 @@
                     </button>
                 </form>
 
+                {{-- Divider --}}
+                <div class="relative my-6">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-200"></div>
+                    </div>
+                    <div class="relative flex justify-center text-xs uppercase">
+                        <span class="bg-white px-3 font-medium text-gray-400">atau</span>
+                    </div>
+                </div>
+
+                {{-- Google Register --}}
+                @include('auth.partials.google-login-button', ['label' => 'Daftar dengan Google'])
+
                 {{-- Login Link --}}
                 <div class="mt-6 border-t border-gray-100 pt-5 text-center text-sm text-gray-500">
                     Sudah punya akun?

@@ -45,6 +45,15 @@ class LoginRequest extends FormRequest
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
+            // Provide helpful message for Google-only users attempting password login
+            $user = \App\Models\User::where('email', $this->string('email'))->first();
+
+            if ($user !== null && !$user->hasLocalPassword() && $user->isGoogleUser()) {
+                throw ValidationException::withMessages([
+                    'email' => 'Akun ini terdaftar melalui Google. Silakan gunakan tombol "Masuk dengan Google" di bawah.',
+                ]);
+            }
+
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
             ]);

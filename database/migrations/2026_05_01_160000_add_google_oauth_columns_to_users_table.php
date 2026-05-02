@@ -2,7 +2,10 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -30,13 +33,17 @@ return new class extends Migration
 
     public function down(): void
     {
+        DB::table('users')
+            ->whereNull('password')
+            ->update(['password' => Hash::make(Str::random(32))]);
+
         Schema::table('users', function (Blueprint $table) {
             $table->dropIndex(['provider']);
             $table->dropUnique(['google_id']);
             $table->dropColumn(['google_id', 'avatar', 'provider']);
 
-            // Restore password to NOT NULL (set any NULL passwords to empty string first)
-            $table->string('password')->nullable(false)->default('')->change();
+            // Restore password to NOT NULL after replacing NULL passwords.
+            $table->string('password')->nullable(false)->change();
         });
     }
 };

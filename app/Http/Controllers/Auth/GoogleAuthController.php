@@ -157,9 +157,38 @@ class GoogleAuthController extends Controller
     private function findOrCreateUser(SocialiteUser $googleUser): ?User
     {
         $googleId = $googleUser->getId();
-        $email    = Str::lower($googleUser->getEmail());
-        $name     = $googleUser->getName();
+        $rawEmail = $googleUser->getEmail();
+        $rawName  = $googleUser->getName();
         $avatar   = $googleUser->getAvatar();
+
+        $googleId = is_string($googleId) ? trim($googleId) : '';
+        $rawEmail = is_string($rawEmail) ? trim($rawEmail) : '';
+        $rawName  = is_string($rawName) ? trim($rawName) : '';
+
+        if ($googleId === '' || $rawEmail === '') {
+            Log::warning('Google OAuth: missing required profile data', [
+                'has_google_id' => $googleId !== '',
+                'has_email'     => $rawEmail !== '',
+            ]);
+
+            return null;
+        }
+
+        $email = Str::lower($rawEmail);
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Log::warning('Google OAuth: invalid email format from provider', [
+                'email' => $rawEmail,
+            ]);
+
+            return null;
+        }
+
+        $name = $rawName !== '' ? $rawName : Str::before($email, '@');
+
+        if ($name === '') {
+            $name = 'Pengguna Google';
+        }
 
         // Strategy 1: Find by google_id (returning user)
         $user = User::where('google_id', $googleId)->first();

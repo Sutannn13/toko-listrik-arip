@@ -564,14 +564,16 @@ class AiProviderResponderService
             $sections[] = '# PANDUAN REKOMENDASI PRODUK (WAJIB DIPATUHI — PENALTI JIKA MELANGGAR)';
             $sections[] = '## ATURAN UTAMA:';
             $sections[] = '- BACA SELURUH [INTERNAL KNOWLEDGE] dengan sangat teliti. Semua data produk (nama, harga, stok, deskripsi) ada di sana.';
+            $sections[] = '- Jika data products kosong, match_strategy bernilai none, atau catalog_guard muncul, jawab bahwa produk belum ditemukan di katalog/database toko.';
+            $sections[] = '- Untuk produk yang belum ditemukan, JANGAN mengarang nama produk, harga, stok, spesifikasi, atau garansi. Arahkan pelanggan hubungi admin toko untuk konfirmasi.';
             $sections[] = '- JANGAN PERNAH memotong deskripsi produk atau menampilkan "..." di akhir. Berikan informasi SELENGKAP-LENGKAPNYA.';
-            $sections[] = '- WAJIB menyebut: nama produk, harga, spesifikasi teknis (watt, lumen, tipe, dll), dan kelebihan/kegunaannya.';
+            $sections[] = '- Jika produk ditemukan di katalog, WAJIB menyebut: nama produk, harga, spesifikasi teknis (watt, lumen, tipe, dll), dan kelebihan/kegunaannya.';
             $sections[] = '';
             $sections[] = '## GARANSI — WAJIB DISEBUTKAN:';
-            $sections[] = '- Semua produk ELEKTRONIK (lampu, MCB, dll) di toko ini MEMILIKI GARANSI hingga 365 hari setelah pesanan selesai.';
+            $sections[] = '- Produk ELEKTRONIK (lampu, MCB, dll) di toko ini dapat memiliki garansi hingga 365 hari setelah pesanan selesai sesuai data/kebijakan toko.';
             $sections[] = '- Garansi aktif otomatis setelah admin menyelesaikan pesanan. Klaim via menu "Garansi" di website.';
-            $sections[] = '- Jika user bertanya tentang produk bergaransi: TEGASKAN bahwa semua lampu/produk elektronik kami bergaransi.';
-            $sections[] = '- JANGAN hanya menyebut produk tanpa menyebut garansinya. Ini adalah nilai jual utama toko!';
+            $sections[] = '- Jika user bertanya tentang produk bergaransi dan produknya ditemukan: jelaskan garansi sesuai data toko.';
+            $sections[] = '- Jika produk tidak ditemukan, JANGAN klaim garansi. Minta user konfirmasi ke admin toko.';
             $sections[] = '';
             $sections[] = '## ALUR REKOMENDASI YANG SEMPURNA:';
             $sections[] = '1. Identifikasi kebutuhan user (ruangan, anggaran, preferensi cahaya: warm/cool/daylight)';
@@ -650,6 +652,8 @@ class AiProviderResponderService
             $sections[] = '# PANDUAN TROUBLESHOOTING & PROBLEM SOLVING (LEVEL AHLI)';
             $sections[] = '- User SEDANG PUNYA MASALAH. Ini BUKAN FAQ biasa. Mereka frustrasi dan butuh SOLUSI KONKRET.';
             $sections[] = '- JANGAN langsung bilang "hubungi WhatsApp". Itu MALAS dan membuat user merasa tidak dibantu.';
+            $sections[] = '- Untuk tanda bahaya listrik seperti bau gosong, percikan api, kabel meleleh, MCB sering turun, atau kabel panas berlebihan: WAJIB minta user mematikan MCB/listrik, menghentikan pemakaian, tidak membuka panel/stop kontak/saklar/fitting/sambungan sendiri, dan menghubungi teknisi listrik atau admin toko.';
+            $sections[] = '- Jangan memberi instruksi perbaikan instalasi listrik internal. Untuk kasus berbahaya, nada harus tegas, aman, dan eskalatif.';
             $sections[] = '';
             $sections[] = '## ALUR DIAGNOSTIK WAJIB (IKUTI URUTAN INI)';
             $sections[] = '1. EMPATI — Validasi perasaan user: "Waduh, pasti nggak enak ya kak..."';
@@ -810,6 +814,7 @@ class AiProviderResponderService
             'Jika riwayat percakapan tersedia, pahami referensi seperti "yang tadi" atau "itu" berdasarkan konteks sebelumnya, jangan jawab seolah percakapan baru.',
             'Kamu WAJIB membaca [INTERNAL KNOWLEDGE] (terutama data produk) dengan teliti. Ekstrak nama produk, harga, dan speknya, lalu jelaskan dengan bahasamu sendiri (jangan sebut kata "knowledge" atau "json").',
             'Jika ada data web_search di INTERNAL KNOWLEDGE, gunakan sebagai referensi tambahan dan sebutkan sumber URL agar pelanggan bisa cek mandiri.',
+            'Jika INTERNAL KNOWLEDGE menunjukkan products kosong, match_strategy none, atau catalog_guard, jawab bahwa produk belum ditemukan di katalog/database toko; jangan mengarang harga, stok, garansi, atau nama produk.',
             '',
             '[Format Output]',
             'Berikan jawaban yang LENGKAP, DETAIL, dan TUNTAS. JANGAN batasi panjang jawabanmu jika memang informasi yang diberikan sangat penting untuk pelanggan. Pastikan tidak ada informasi yang terpotong.',

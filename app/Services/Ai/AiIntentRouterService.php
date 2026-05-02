@@ -877,19 +877,21 @@ class AiIntentRouterService
             'mcb sering turun',
             'mcb sering jeglek',
             'mcb sering off',
+            'mcb turun terus',
+            'mcb jeglek terus',
             'listrik mati sebagian',
             'listrik turun',
 
             // Cable issues
             'kabel panas',
             'kabel hangat',
+            'kabel panas berlebihan',
             'kabel meleleh',
             'kabel bau gosong',
 
             // Dangerous electrical signals — these take priority
             'bau gosong',
             'percikan api',
-            'bautang',
             'keluar percikan',
             'kabel meleleh',
             'arus listrik kurang',

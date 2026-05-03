@@ -23,6 +23,11 @@ class FaqAnswerTool
             );
         }
 
+        $electricalTroubleshootingResponse = $this->answerElectricalTroubleshooting($q);
+        if ($electricalTroubleshootingResponse !== null) {
+            return $electricalTroubleshootingResponse;
+        }
+
         // ╔═══════════════════════════════════════════════════════════════╗
         // ║  SPECIFIC MULTI-WORD PATTERNS MUST MATCH BEFORE BROAD ONES  ║
         // ╚═══════════════════════════════════════════════════════════════╝
@@ -1065,6 +1070,132 @@ Yang bisa dilakukan:
                 'Cek status pesanan saya',
             ],
         );
+    }
+
+    /**
+     * Answer high-priority electrical troubleshooting before broad FAQ matches.
+     */
+    private function answerElectricalTroubleshooting(string $question): ?array
+    {
+        if ($this->matches($question, ['bau gosong', 'percikan api', 'keluar percikan', 'kabel meleleh', 'mcb sering turun', 'mcb turun terus', 'mcb jeglek terus', 'kabel panas berlebihan'])) {
+            return $this->response(
+                'Kak, ini sudah masuk tanda bahaya listrik. Segera matikan MCB/listrik dari sumber utama, hentikan pemakaian titik listrik tersebut, dan jauhkan barang mudah terbakar dari area itu.
+
+Jangan membuka panel, stop kontak, saklar, fitting, atau sambungan kabel sendiri. Bau gosong, percikan api, kabel meleleh, kabel panas berlebihan, atau MCB yang sering turun bisa menandakan korsleting, beban berlebih, atau sambungan yang tidak aman.
+
+Langkah paling aman: hubungi teknisi listrik bersertifikat atau admin toko untuk diarahkan pengecekan produk/komponen yang sesuai. Jangan nyalakan kembali sebelum dicek.',
+                'faq.troubleshoot.electrical_danger',
+                0.98,
+                [
+                    'Hubungi admin toko',
+                    'Rekomendasi MCB yang sesuai',
+                    'Cek produk kabel yang aman',
+                ],
+            );
+        }
+
+        if ($this->matches($question, ['lampu mati', 'lampu tidak menyala', 'lampu tidak nyala', 'lampu ga nyala', 'lampu gak nyala', 'bohlam mati', 'bohlam tidak menyala'])) {
+            return $this->response(
+                'Peringatan aman dulu ya kak: matikan saklar sebelum menyentuh bohlam atau fitting. Kalau posisinya lembab, tinggi, atau terasa tidak aman, turunkan MCB area lampu dulu.
+
+Coba cek bertahap:
+1. Pastikan saklar benar-benar ON dan MCB tidak turun.
+2. Tes bohlam di fitting lain yang normal, atau coba bohlam lain yang masih bagus.
+3. Lihat dari luar apakah fitting longgar, gosong, retak, atau berkarat.
+4. Kalau lampu tetap mati, jangan memaksa cek bagian dalam instalasi.
+
+Kalau ada bau gosong, percikan api, fitting panas, atau MCB ikut turun, hentikan pemakaian dan hubungi teknisi listrik atau admin toko.',
+                'faq.troubleshoot.electrical_lamp',
+                0.95,
+                [
+                    'Rekomendasi lampu pengganti',
+                    'Cek fitting lampu',
+                    'Hubungi admin toko',
+                ],
+            );
+        }
+
+        if ($this->matches($question, ['stop kontak mati', 'stopkontak mati', 'stop kontak tidak berfungsi', 'colokan tidak berfungsi', 'colokan mati', 'stop kontak error', 'stopkontak error'])) {
+            return $this->response(
+                'Untuk stop kontak atau colokan yang mati, utamakan aman dulu kak. Jangan dipakai kalau stop kontak terasa panas, longgar, bau gosong, atau muncul percikan.
+
+Cek ringan yang aman:
+1. Tes alat yang sama di stop kontak lain untuk memastikan alatnya tidak rusak.
+2. Cek apakah MCB turun.
+3. Cabut semua beban dari stop kontak yang bermasalah.
+4. Jika tetap mati, jangan membuka stop kontak sendiri.
+
+Kalau stop kontak panas, gosong, longgar, atau sering membuat MCB turun, segera matikan MCB/listrik area itu dan hubungi teknisi listrik atau admin toko.',
+                'faq.troubleshoot.electrical_socket',
+                0.94,
+                [
+                    'Rekomendasi stop kontak',
+                    'Hubungi admin toko',
+                    'Cek MCB yang sesuai',
+                ],
+            );
+        }
+
+        if ($this->matches($question, ['mcb turun', 'mcb jeglek', 'mcb off', 'listrik mati sebagian', 'listrik turun'])) {
+            return $this->response(
+                'Kalau MCB turun atau jeglek, jangan dinaik-turunkan berkali-kali ya kak. Itu biasanya tanda beban berlebih, alat bermasalah, atau ada gangguan di jalur listrik.
+
+Langkah aman:
+1. Cabut dulu alat listrik yang sedang dipakai di area tersebut.
+2. Naikkan MCB satu kali saja setelah beban dilepas.
+3. Kalau MCB langsung turun lagi, matikan MCB/listrik dan hentikan percobaan.
+4. Jangan membuka panel atau sambungan listrik sendiri.
+
+Jika MCB sering turun, turun terus, ada bau gosong, atau kabel terasa panas, segera panggil teknisi listrik. Admin toko juga bisa bantu arahkan pilihan MCB/kabel yang sesuai dari katalog.',
+                'faq.troubleshoot.electrical_mcb',
+                0.95,
+                [
+                    'Hubungi admin toko',
+                    'Rekomendasi MCB',
+                    'Cek kabel yang sesuai',
+                ],
+            );
+        }
+
+        if ($this->matches($question, ['kabel panas', 'kabel hangat'])) {
+            return $this->response(
+                'Kabel yang panas perlu dianggap serius ya kak. Matikan beban listrik di jalur itu dulu, lalu cabut perangkat yang tersambung jika aman dilakukan.
+
+Kemungkinan penyebabnya: beban terlalu besar, ukuran kabel tidak sesuai, sambungan kurang baik, atau kualitas kabel tidak cocok untuk arus yang lewat.
+
+Jangan lanjut dipakai kalau panasnya berlebihan, muncul bau gosong, warna kabel berubah, atau isolasi mulai melunak. Untuk kondisi seperti itu, matikan MCB/listrik dan minta teknisi listrik mengecek jalurnya. Admin toko bisa bantu rekomendasikan kabel yang sesuai kebutuhan.',
+                'faq.troubleshoot.electrical_hot_cable',
+                0.94,
+                [
+                    'Rekomendasi kabel yang sesuai',
+                    'Hubungi admin toko',
+                    'Cek MCB yang sesuai',
+                ],
+            );
+        }
+
+        if ($this->matches($question, ['saklar rusak', 'saklar macet', 'saklar tidak berfungsi', 'saklar tidak nyala', 'saklar ga berfungsi', 'saklar tidak bisa', 'fitting lampu rusak', 'fitting longgar', 'fitting tidak nyala', 'fitting mati', 'fitting rusak'])) {
+            return $this->response(
+                'Kalau saklar macet/rusak atau fitting lampu longgar, matikan saklar dan turunkan MCB area itu sebelum menyentuh lampu atau fitting.
+
+Yang aman dicek dari luar:
+1. Pastikan bohlam tidak longgar.
+2. Jangan paksa saklar yang macet.
+3. Jangan pakai fitting yang retak, gosong, atau longgar.
+4. Jika ada panas, bau gosong, atau percikan, hentikan pemakaian.
+
+Untuk penggantian saklar/fitting atau pengecekan jalur, sebaiknya gunakan teknisi listrik. Admin toko bisa bantu arahkan produk saklar, fitting, atau lampu pengganti yang cocok.',
+                'faq.troubleshoot.electrical_switch_fitting',
+                0.94,
+                [
+                    'Rekomendasi saklar',
+                    'Rekomendasi fitting lampu',
+                    'Hubungi admin toko',
+                ],
+            );
+        }
+
+        return null;
     }
 
     /**

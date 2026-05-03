@@ -221,6 +221,59 @@ class AiAssistantChatEndpointTest extends TestCase
         $response->assertJsonPath('intent', 'troubleshooting');
     }
 
+    public function test_ai_chat_routes_lampu_mati_to_troubleshooting_with_safety_warning(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-electrical-lamp-001',
+            'message' => 'Lampu mati di kamar, harus cek apa?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+        $response->assertJsonPath('used_tools.0', 'FaqAnswerTool');
+        $response->assertJsonPath('data.source_key', 'faq.troubleshoot.electrical_lamp');
+
+        $reply = strtolower((string) $response->json('reply'));
+        $this->assertStringContainsString('peringatan aman', $reply);
+        $this->assertStringContainsString('matikan', $reply);
+        $this->assertStringContainsString('saklar', $reply);
+    }
+
+    public function test_ai_chat_routes_repeated_mcb_trips_to_technician_or_admin(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-electrical-mcb-001',
+            'message' => 'MCB turun terus, gimana ya?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+        $response->assertJsonPath('data.source_key', 'faq.troubleshoot.electrical_danger');
+
+        $reply = strtolower((string) $response->json('reply'));
+        $this->assertStringContainsString('matikan mcb', $reply);
+        $this->assertStringContainsString('teknisi listrik', $reply);
+        $this->assertStringContainsString('admin toko', $reply);
+    }
+
+    public function test_ai_chat_escalates_hot_cable_and_burning_smell_without_internal_repair_steps(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-electrical-danger-001',
+            'message' => 'Kabel panas dan bau gosong dekat stop kontak.',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+        $response->assertJsonPath('data.source_key', 'faq.troubleshoot.electrical_danger');
+
+        $reply = strtolower((string) $response->json('reply'));
+        $this->assertStringContainsString('matikan mcb/listrik', $reply);
+        $this->assertStringContainsString('teknisi listrik', $reply);
+        $this->assertStringContainsString('admin toko', $reply);
+        $this->assertStringNotContainsString('bongkar', $reply);
+    }
+
     public function test_ai_chat_handles_after_hours_purchase_policy_as_website_help(): void
     {
         $response = $this->postJson(route('api.ai.chat'), [
@@ -378,6 +431,50 @@ class AiAssistantChatEndpointTest extends TestCase
             $this->assertIsArray($products);
             $this->assertNotEmpty($products);
         }
+    }
+
+    public function test_ai_chat_does_not_hallucinate_unknown_product_price_or_stock(): void
+    {
+        $this->createProductFixtures();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-product-missing-001',
+            'message' => 'Berapa harga kabel Narnia 9x9? Stoknya ada?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+        $response->assertJsonPath('data.recommendation_meta.match_strategy', 'none');
+        $response->assertJsonPath('data.recommendation_meta.catalog_guard', 'unmatched_specific_product');
+
+        $this->assertSame([], $response->json('data.products'));
+
+        $reply = strtolower((string) $response->json('reply'));
+        $this->assertStringContainsString('belum ditemukan', $reply);
+        $this->assertStringContainsString('katalog/database', $reply);
+        $this->assertStringContainsString('admin toko', $reply);
+        $this->assertStringNotContainsString('rp ', $reply);
+        $this->assertStringNotContainsString('kabel nya', $reply);
+        $this->assertStringNotContainsString('lampu led', $reply);
+    }
+
+    public function test_ai_chat_keeps_specific_product_query_database_backed(): void
+    {
+        $this->createProductFixtures();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-product-specific-db-001',
+            'message' => 'Berapa harga Kabel NYA 2.5mm?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+        $response->assertJsonPath('data.products.0.name', 'Kabel NYA 2.5mm');
+        $response->assertJsonPath('data.products.0.price', 35000);
+
+        $reply = (string) $response->json('reply');
+        $this->assertStringContainsString('Kabel NYA 2.5mm', $reply);
+        $this->assertStringContainsString('Rp 35.000', $reply);
     }
 
     public function test_ai_chat_understands_natural_budget_phrase_for_lampu_kamar_tidur(): void

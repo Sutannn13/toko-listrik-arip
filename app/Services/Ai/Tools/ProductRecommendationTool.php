@@ -48,6 +48,11 @@ class ProductRecommendationTool
 
         $rankedProducts = $this->rankProducts($candidates, $userContext, $budgetMax);
         $matchStrategy = 'ranked';
+        $specificLookupTerms = $this->extractSpecificLookupTerms($userContext);
+
+        if ($this->isSpecificCatalogLookup($message, $userContext, $specificLookupTerms) && ! $this->hasSpecificCatalogMatch($candidates, $specificLookupTerms)) {
+            return $this->buildCatalogMissingResponse($userContext);
+        }
 
         if ($rankedProducts->isEmpty()) {
             $rankedProducts = (clone $baseProductQuery)
@@ -129,6 +134,112 @@ class ProductRecommendationTool
         }
 
         return $scoredProducts->map(static fn(array $entry): Product => $entry['product']);
+    }
+
+    private function extractSpecificLookupTerms(array $userContext): array
+    {
+        $ignoredLookupTerms = [
+            'ada',
+            'apakah',
+            'berapa',
+            'brp',
+            'cari',
+            'cek',
+            'harga',
+            'jual',
+            'katalog',
+            'produk',
+            'ready',
+            'stock',
+            'stok',
+            'tersedia',
+        ];
+
+        $productTerms = is_array($userContext['product_terms'] ?? null)
+            ? $userContext['product_terms']
+            : [];
+
+        $terms = [];
+
+        foreach (($userContext['search_terms'] ?? []) as $searchTerm) {
+            $normalizedTerm = strtolower(trim((string) $searchTerm));
+
+            if ($normalizedTerm === '') {
+                continue;
+            }
+
+            if (in_array($normalizedTerm, $ignoredLookupTerms, true) || in_array($normalizedTerm, $productTerms, true)) {
+                continue;
+            }
+
+            $terms[] = $normalizedTerm;
+        }
+
+        return array_values(array_unique($terms));
+    }
+
+    private function isSpecificCatalogLookup(string $message, array $userContext, array $specificLookupTerms): bool
+    {
+        if (count($specificLookupTerms) === 0) {
+            return false;
+        }
+
+        $normalizedMessage = strtolower($message);
+        $hasProductContext = count($userContext['product_terms'] ?? []) > 0
+            || count($userContext['category_terms'] ?? []) > 0
+            || preg_match('/\b(?:produk|product)\s+[a-z0-9]{1,20}\b/i', $normalizedMessage) === 1;
+
+        if (! $hasProductContext) {
+            return false;
+        }
+
+        return preg_match('/\b(?:berapa|brp|harga|stok|stock|ready|tersedia|ada|jual|punya|cari|search)\b/i', $normalizedMessage) === 1;
+    }
+
+    private function hasSpecificCatalogMatch(Collection $candidates, array $specificLookupTerms): bool
+    {
+        if (count($specificLookupTerms) === 0) {
+            return true;
+        }
+
+        foreach ($candidates as $product) {
+            if (! $product instanceof Product) {
+                continue;
+            }
+
+            $name = strtolower((string) $product->name);
+            $categoryName = strtolower((string) ($product->category?->name ?? ''));
+            $description = strtolower((string) ($product->description ?? ''));
+            $specificationText = $this->flattenSpecificationText($product->specifications);
+            $combinedText = trim($name . ' ' . $categoryName . ' ' . $description . ' ' . $specificationText);
+
+            foreach ($specificLookupTerms as $specificLookupTerm) {
+                if (str_contains($combinedText, $specificLookupTerm)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function buildCatalogMissingResponse(array $userContext): array
+    {
+        return [
+            'reply' => 'Produk yang kakak cari belum ditemukan di katalog/database toko. Supaya aman, saya tidak akan mengarang nama produk, harga, stok, atau garansi. Silakan hubungi admin toko untuk konfirmasi ketersediaan terbaru.',
+            'products' => [],
+            'suggestions' => [
+                'Hubungi admin toko',
+                'Coba kata kunci produk lain',
+                'Lihat katalog produk tersedia',
+            ],
+            'meta' => [
+                'match_strategy' => 'none',
+                'search_terms' => $userContext['search_terms'],
+                'description_driven' => $userContext['is_description_driven'],
+                'catalog_guard' => 'unmatched_specific_product',
+            ],
+        ];
     }
 
     private function calculateRelevanceScore(Product $product, array $userContext, ?int $budgetMax): int
@@ -463,7 +574,7 @@ class ProductRecommendationTool
             }
         }
 
-        if (preg_match('/(?:rp|idr)?\s*([0-9][0-9\.]{2,})/i', $message, $matches) === 1) {
+        if (preg_match('/\b(?:rp|idr)\s*([0-9][0-9\.]{2,})/i', $message, $matches) === 1) {
             $normalized = preg_replace('/[^0-9]/', '', (string) $matches[1]);
             if ($normalized !== null && $normalized !== '') {
                 return max(0, (int) $normalized);

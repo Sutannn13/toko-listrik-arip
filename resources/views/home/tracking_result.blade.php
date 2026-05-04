@@ -91,8 +91,24 @@
             ['label' => 'Pesanan Dibuat', 'icon' => 'clipboard'],
             ['label' => 'Pembayaran', 'icon' => 'credit-card'],
             ['label' => 'Verifikasi', 'icon' => 'shield-check'],
+            ['label' => 'Diproses', 'icon' => 'cog'],
+            ['label' => 'Dikirim', 'icon' => 'truck'],
             ['label' => 'Selesai', 'icon' => 'check-circle'],
         ];
+
+        $fulfillmentStep = 1; // 1=created, 2=lunas, 3=diproses, 4=dikirim, 5=selesai
+        if ($order->status === 'completed') {
+            $fulfillmentStep = 5;
+        } elseif ($order->status === 'shipped') {
+            $fulfillmentStep = 4;
+        } elseif ($order->status === 'processing') {
+            $fulfillmentStep = 3;
+        } elseif ($order->payment_status === 'paid' || $isWaitingAdminApproval) {
+            $fulfillmentStep = 2;
+        }
+        if ($isCancelled) {
+            $fulfillmentStep = 0;
+        }
     @endphp
 
     {{-- Flash Messages --}}
@@ -171,20 +187,20 @@
             </div>
         </div>
 
-        {{-- Payment Progress Stepper --}}
+        {{-- Fulfillment Progress Stepper --}}
         @unless ($isCancelled)
             <div class="border-t border-gray-100 bg-gray-50/50 px-6 py-4">
-                <div class="flex items-center">
+                <div class="flex items-center overflow-x-auto pb-1 -mx-1">
                     @foreach ($stepperSteps as $i => $step)
                         @php
                             $stepNum = $i + 1;
-                            $isActive = $stepNum <= $paymentStep;
-                            $isCurrent = $stepNum === $paymentStep;
+                            $isActive = $stepNum <= $fulfillmentStep;
+                            $isCurrent = $stepNum === $fulfillmentStep;
                         @endphp
-                        <div class="flex items-center {{ !$loop->last ? 'flex-1' : '' }}">
+                        <div class="flex items-center shrink-0 {{ !$loop->last ? 'flex-1 min-w-[60px]' : 'min-w-[60px]' }}">
                             <div class="flex flex-col items-center">
                                 <div
-                                    class="flex h-8 w-8 items-center justify-center rounded-full transition-colors
+                                    class="flex h-8 w-8 items-center justify-center rounded-full transition-colors shrink-0
                                     {{ $isActive ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500' }}
                                     {{ $isCurrent ? 'ring-4 ring-primary-100' : '' }}">
                                     @if ($isActive && !$isCurrent)
@@ -197,12 +213,12 @@
                                     @endif
                                 </div>
                                 <p
-                                    class="mt-1.5 text-[10px] font-semibold text-center {{ $isActive ? 'text-primary-700' : 'text-gray-400' }}">
+                                    class="mt-1.5 text-[10px] font-semibold text-center leading-tight {{ $isActive ? 'text-primary-700' : 'text-gray-400' }}">
                                     {{ $step['label'] }}</p>
                             </div>
                             @unless ($loop->last)
                                 <div
-                                    class="mx-2 flex-1 h-0.5 rounded {{ $stepNum < $paymentStep ? 'bg-primary-500' : 'bg-gray-200' }}">
+                                    class="mx-1 h-0.5 flex-1 min-w-[8px] rounded {{ $stepNum < $fulfillmentStep ? 'bg-primary-500' : 'bg-gray-200' }}">
                                 </div>
                             @endunless
                         </div>
@@ -217,8 +233,14 @@
         <div
             class="mb-6 flex items-center justify-between rounded-xl border border-primary-200 bg-primary-50 p-4 shadow-sm">
             <div>
-                <p class="text-xs font-bold text-primary-700 uppercase tracking-wider">Nomor Resi Pengiriman</p>
-                <p class="mt-1 text-lg font-mono font-bold text-gray-900">{{ $order->tracking_number }}</p>
+                @if ($order->status === 'processing')
+                    <p class="text-xs font-bold text-primary-700 uppercase tracking-wider">Nomor Resi Disiapkan</p>
+                    <p class="mt-1 text-lg font-mono font-bold text-gray-900">{{ $order->tracking_number }}</p>
+                    <p class="mt-1 text-xs text-primary-600">Pesanan masih diproses admin dan belum ditandai dikirim.</p>
+                @else
+                    <p class="text-xs font-bold text-primary-700 uppercase tracking-wider">Nomor Resi Pengiriman</p>
+                    <p class="mt-1 text-lg font-mono font-bold text-gray-900">{{ $order->tracking_number }}</p>
+                @endif
             </div>
             <button onclick="navigator.clipboard.writeText('{{ $order->tracking_number }}')" type="button"
                 class="inline-flex items-center gap-1.5 rounded-lg border border-primary-300 bg-white px-3 py-2 text-xs font-semibold text-primary-700 transition hover:bg-primary-100">

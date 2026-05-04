@@ -69,16 +69,28 @@
                     $currentStep = 4;
                 } elseif ($order->status === 'shipped') {
                     $currentStep = 3;
-                } elseif ($order->status === 'processing' || $order->payment_status === 'paid') {
+                } elseif ($order->status === 'processing') {
                     $currentStep = 2;
                 }
 
-                $steps = [
-                    ['label' => 'Menunggu Bayar', 'hint' => 'Transfer/COD'],
-                    ['label' => 'Diproses', 'hint' => 'Admin menyiapkan'],
-                    ['label' => 'Dikirim', 'hint' => $order->tracking_number ?: 'Menunggu resi'],
-                    ['label' => 'Selesai', 'hint' => 'Pesanan tuntas'],
+                $stepLabels = [
+                    1 => ['label' => 'Menunggu Bayar', 'hint' => 'Transfer/COD'],
+                    2 => ['label' => 'Diproses', 'hint' => 'Admin menyiapkan'],
+                    3 => ['label' => 'Dikirim', 'hint' => $order->tracking_number ?: 'Menunggu resi'],
+                    4 => ['label' => 'Selesai', 'hint' => 'Pesanan tuntas'],
                 ];
+
+                if ($order->payment_status === 'paid') {
+                    $stepLabels[1] = ['label' => 'Pembayaran Lunas', 'hint' => 'Terverifikasi'];
+                }
+
+                if ($isCancelled) {
+                    $stepLabels[1] = ['label' => 'Dibatalkan', 'hint' => 'Pesanan dibatalkan'];
+                    $stepLabels[2] = ['label' => '-', 'hint' => ''];
+                    $stepLabels[3] = ['label' => '-', 'hint' => ''];
+                    $stepLabels[4] = ['label' => '-', 'hint' => ''];
+                    $currentStep = 1;
+                }
             @endphp
 
             <article class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -119,18 +131,18 @@
                     </div>
                 @else
                     <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        @foreach ($steps as $index => $step)
+                        @foreach ($stepLabels as $index => $step)
                             @php
-                                $stepNumber = $index + 1;
+                                $stepNumber = $index;
                                 $isReached = $stepNumber <= $currentStep;
                             @endphp
                             <div
-                                class="rounded-lg border px-3 py-2 {{ $isReached ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-gray-50' }}">
+                                class="rounded-lg border px-3 py-2 {{ $isReached && $step['label'] !== '-' ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-gray-50' }}">
                                 <p
-                                    class="text-[11px] font-bold uppercase tracking-wide {{ $isReached ? 'text-emerald-700' : 'text-gray-500' }}">
+                                    class="text-[11px] font-bold uppercase tracking-wide {{ $isReached && $step['label'] !== '-' ? 'text-emerald-700' : 'text-gray-500' }}">
                                     {{ $step['label'] }}
                                 </p>
-                                <p class="mt-1 text-xs {{ $isReached ? 'text-emerald-700' : 'text-gray-500' }}">
+                                <p class="mt-1 text-xs {{ $isReached && $step['label'] !== '-' ? 'text-emerald-700' : 'text-gray-500' }}">
                                     {{ $step['hint'] }}
                                 </p>
                             </div>

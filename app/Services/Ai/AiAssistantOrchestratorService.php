@@ -46,7 +46,7 @@ class AiAssistantOrchestratorService
 
     private function buildFaqResponse(string $message, string $resolvedIntent = 'faq', array $payload = []): array
     {
-        $faqResult = $this->faqAnswerTool->answer($message);
+        $faqResult = $this->faqAnswerTool->answer($message, $resolvedIntent);
         $sharedContextData = $this->buildSharedContextData($payload, $resolvedIntent, $message);
 
         $response = [

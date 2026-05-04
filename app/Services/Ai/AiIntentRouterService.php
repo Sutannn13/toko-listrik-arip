@@ -41,6 +41,8 @@ class AiIntentRouterService
         // ── Conversational / greeting messages should go to FAQ ──
         // "halo jualan kabel ga?" is a greeting, NOT a product search.
         // Without this check, "kabel" would trigger product_recommendation.
+        // NOTE: This is checked AFTER troubleshooting so that problem indicators
+        // like "halo bukti saya ditolak" correctly route to troubleshooting.
         if ($this->isConversationalMessage($normalizedMessage)) {
             return 'faq';
         }
@@ -86,6 +88,52 @@ class AiIntentRouterService
             return false;
         }
 
+        // CRITICAL: If greeting is combined with problem/troubleshooting indicators,
+        // this is NOT a conversational message - it's a complaint/problem report.
+        // Priority: troubleshooting > conversational.
+        $problemIndicators = [
+            'ditolak',
+            'gagal',
+            'error',
+            'rusak',
+            'masalah',
+            'kendala',
+            'belum',
+            'tidak bisa',
+            'ga bisa',
+            'gak bisa',
+            'kesal',
+            'kecewa',
+            'kesel',
+            'marah',
+            'kesel',
+            'frustasi',
+            'parah',
+            'bingung',
+            'belum dikirim',
+            'belum diproses',
+            'belum sampai',
+            'ditolak',
+            'bukti',
+            'bayar',
+            'pembayaran',
+            'pesanan',
+            'barang',
+            'garansi',
+            'klaim',
+        ];
+
+        $problemIndicatorCount = 0;
+        foreach ($problemIndicators as $indicator) {
+            if (str_contains($message, $indicator)) {
+                $problemIndicatorCount++;
+                if ($problemIndicatorCount >= 2) {
+                    // Has greeting + 2+ problem indicators = likely a complaint, not casual chat
+                    return false;
+                }
+            }
+        }
+
         // If the message contains specific product/pricing terms alongside
         // a greeting, do NOT treat it as conversational — it's a product query.
         // e.g. "halo, berapa harga kabel eterna 3x4?" should go to product_recommendation.
@@ -101,6 +149,21 @@ class AiIntentRouterService
             'broco',
             'watt',
             'budget',
+            'paket',
+            'hemat',
+            'bundle',
+            'promo',
+            'diskon',
+            'murah',
+            'produk',
+            'barang',
+            'ada',
+            'lampu',
+            'kabel',
+            'saklar',
+            'stop kontak',
+            'mcb',
+            'fitting',
         ];
 
         foreach ($productQueryTerms as $term) {
@@ -708,12 +771,47 @@ class AiIntentRouterService
      */
     private function containsTroubleshootingHint(string $message): bool
     {
+        // Payment/proof specific issues
+        if (str_contains($message, 'bukti') && str_contains($message, 'ditolak')) {
+            return true;
+        }
+        if (str_contains($message, 'bukti') && str_contains($message, 'gagal')) {
+            return true;
+        }
+        if (str_contains($message, 'bukti') && str_contains($message, 'masalah')) {
+            return true;
+        }
+
+        // QRIS/payment gateway issues
+        if (str_contains($message, 'qris') && str_contains($message, 'tidak')) {
+            return true;
+        }
+        if (str_contains($message, 'qris') && str_contains($message, 'gagal')) {
+            return true;
+        }
+        if (str_contains($message, 'qris') && str_contains($message, 'muncul')) {
+            return true;
+        }
+        if (str_contains($message, 'bayar.gg') && str_contains($message, 'tidak')) {
+            return true;
+        }
+        if (str_contains($message, 'bayargg') && str_contains($message, 'gagal')) {
+            return true;
+        }
+
+        // Order delivery delays
+        if (str_contains($message, 'belum dikirim') || str_contains($message, 'belum diproses')) {
+            return true;
+        }
+
         $hasUploadProofFlow = str_contains($message, 'upload bukti') || str_contains($message, 'bukti bayar') || str_contains($message, 'bukti pembayaran');
         $hasFailureSignal = str_contains($message, 'gagal')
             || str_contains($message, 'error')
             || str_contains($message, 'tidak bisa')
             || str_contains($message, 'ga bisa')
-            || str_contains($message, 'gak bisa');
+            || str_contains($message, 'gak bisa')
+            || str_contains($message, 'ditolak')
+            || str_contains($message, 'rusak');
 
         if ($hasUploadProofFlow && $hasFailureSignal) {
             return true;
@@ -753,6 +851,7 @@ class AiIntentRouterService
             'salah alamat',
             'belum dikirim',
             'belum diproses',
+            'belum sampai',
             'lama sekali',
             'lama banget',
             'tidak direspon',
@@ -765,9 +864,12 @@ class AiIntentRouterService
             // Product issues
             'barang rusak',
             'produk rusak',
+            'rusak bisa',
             'cacat',
             'pecah',
             'retak',
+            'garansi',
+            'rusak garansi',
             'tidak sesuai',
             'ga sesuai',
             'gak sesuai',

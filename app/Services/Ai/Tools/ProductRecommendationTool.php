@@ -14,12 +14,26 @@ class ProductRecommendationTool
     public function recommend(array $payload): array
     {
         $message = (string) ($payload['message'] ?? '');
+        $userContext = $this->extractUserContext($message);
+
+        // CRITICAL: Check if user explicitly asks for a different product type than the page context
+        // If so, IGNORE the page context to prevent cross-contamination (e.g., user on kabel page asks "lampu")
+        $explicitProductType = $this->getExplicitProductType($message);
         $contextProductText = $this->extractContextProductText($payload);
-        $query = trim($message . ' ' . $contextProductText);
+        $contextProductType = $this->getExplicitProductType($contextProductText);
+
+        // If user explicitly asks for a product AND it differs from page context, use only user message
+        $query = $message;
+        if ($explicitProductType !== null && $contextProductType !== null && $explicitProductType !== $contextProductType) {
+            // User wants different product than page - ignore page context
+            $query = $message;
+        } else {
+            // Use combined context only when aligned or user hasn't specified a product type
+            $query = trim($message . ' ' . $contextProductText);
+        }
 
         $budgetMax = $this->extractBudget($payload, $message);
         $categoryHint = trim((string) ($payload['category'] ?? ''));
-        $userContext = $this->extractUserContext($query);
 
         if ($categoryHint !== '') {
             $userContext['category_terms'][] = strtolower($categoryHint);
@@ -140,6 +154,55 @@ class ProductRecommendationTool
         $specificationText = $this->flattenSpecificationText($product->specifications);
         $combinedText = trim($name . ' ' . $categoryName . ' ' . $description . ' ' . $specificationText);
 
+        // CRITICAL: Get user's explicit product type - if set, STRICTLY filter by it
+        $explicitProductTypes = $userContext['product_terms'] ?? [];
+        if (count($explicitProductTypes) > 0) {
+            $hasExplicitProductMatch = false;
+            foreach ($explicitProductTypes as $explicitType) {
+                // Check if product name or category matches the explicit type
+                if (str_contains($name, $explicitType) || ($categoryName !== '' && str_contains($categoryName, $explicitType))) {
+                    $hasExplicitProductMatch = true;
+                    break;
+                }
+            }
+
+            // If user explicitly asked for a product type (e.g., "lampu") but this product doesn't match,
+            // heavily penalize it - don't recommend kabel when user asks for lampu
+            if (!$hasExplicitProductMatch) {
+                // Check if any of the search terms match other product types
+                foreach ($userContext['search_terms'] as $term) {
+                    if (in_array($term, ['lampu', 'bohlam', 'led', 'downlight'], true)) {
+                        // User asked for lampu - reject non-lampu products
+                        return 0;
+                    }
+                    if (in_array($term, ['kabel', 'nya', 'nym', 'nyy'], true)) {
+                        // User asked for kabel - reject non-kabel products
+                        return 0;
+                    }
+                    if (in_array($term, ['mcb', 'breaker'], true)) {
+                        // User asked for MCB - reject non-MCB products
+                        return 0;
+                    }
+                    if (in_array($term, ['saklar', 'switch'], true)) {
+                        // User asked for saklar - reject non-saklar products
+                        return 0;
+                    }
+                    if (in_array($term, ['stop kontak', 'stopkontak', 'colokan', 'socket'], true)) {
+                        // User asked for stop kontak - reject non-stop-kontak products
+                        return 0;
+                    }
+                    if (in_array($term, ['fitting', 'holder'], true)) {
+                        // User asked for fitting - reject non-fitting products
+                        return 0;
+                    }
+                }
+
+                // If no specific terms found but explicit product type exists,
+                // require the product to match at least one of the explicit types
+                return 0;
+            }
+        }
+
         foreach ($userContext['search_terms'] as $term) {
             if ($term === '') {
                 continue;
@@ -249,16 +312,22 @@ class ProductRecommendationTool
 
     private function buildRecommendationReply(array $products, ?int $budgetMax, array $userContext): string
     {
-        $topProductSnippets = array_map(
-            static function (array $product): string {
-                $snippet = '• ' . $product['name'] . ' - Rp ' . number_format((int) $product['price'], 0, ',', '.');
-                $desc = trim((string) $product['description']);
-                if ($desc !== '') {
-                    $snippet .= "\n  (" . mb_strimwidth($desc, 0, 80, '...') . ")";
-                }
+        // Build clean, structured product list without ugly truncated descriptions
+        $productSnippets = array_map(
+            static function (array $product, int $index): string {
+                $num = $index + 1;
+                $name = $product['name'];
+                $price = 'Rp ' . number_format((int) $product['price'], 0, ',', '.');
+                $stock = (int) $product['stock'];
+                $unit = strtoupper((string) ($product['unit'] ?? 'pcs'));
+                $stockLabel = $stock > 0 ? "stok {$stock} {$unit}" : 'stok habis';
+                $category = trim((string) ($product['category'] ?? ''));
+
+                $snippet = "{$num}. {$name} — {$price}\n   Cocok untuk {$category}, {$stockLabel}.";
                 return $snippet;
             },
-            array_slice($products, 0, 5),
+            $products,
+            array_keys($products),
         );
 
         $focusSegments = [];
@@ -268,21 +337,69 @@ class ProductRecommendationTool
         }
 
         if (count($userContext['product_terms']) > 0) {
-            $focusSegments[] = 'kebutuhan ' . implode(', ', $userContext['product_terms']);
+            $focusSegments[] = 'kebutuhan ' . implode('/', $userContext['product_terms']);
         }
 
         if (count($userContext['room_terms']) > 0) {
-            $focusSegments[] = 'area ' . implode(', ', $userContext['room_terms']);
+            $focusSegments[] = 'area ' . implode('/', $userContext['room_terms']);
         }
 
-        $intro = 'Wah ada nih kak! Aku nemu beberapa produk yang pas banget';
-        if (count($focusSegments) > 0) {
-            $intro .= ' buat ' . implode(' dan ', $focusSegments);
+        // Handle "paket hemat" query - check if products actually have package/bundle keywords
+        $isPaketHematQuery = $this->isPaketHematQuery($userContext);
+        $productTypeMention = count($userContext['product_terms']) > 0 ? implode('/', $userContext['product_terms']) : 'produk';
+
+        if ($isPaketHematQuery) {
+            // Check if any product has package/bundle keywords in name/category/description
+            $hasPackageProducts = $this->productsHavePackageKeywords($products);
+
+            if ($hasPackageProducts) {
+                // Products with package keywords exist - confirm directly
+                $intro = "Ada kak, ini beberapa paket hemat yang tersedia:";
+            } else {
+                // No package products found
+                $intro = "Hmm kak, untuk paket hemat {$productTypeMention} belum ada yang aktif saat ini.";
+                $fallbackNote = "Tapi ada beberapa {$productTypeMention} terjangkau yang bisa jadi alternatif:\n\n";
+                $reply = $intro . "\n\n" . $fallbackNote . implode("\n", $productSnippets);
+                return $this->appendRoomAdvice($reply, $userContext);
+            }
+        } else {
+            $intro = 'Wah ada nih kak! Aku nemu beberapa produk yang pas banget';
+            if (count($focusSegments) > 0) {
+                $intro .= ' buat ' . implode(' dan ', $focusSegments);
+            }
         }
 
-        $reply = $intro . " ya:\n\n" . implode("\n", $topProductSnippets);
+        $reply = $intro . "\n\n" . implode("\n", $productSnippets);
 
         // Room-specific advice
+        return $this->appendRoomAdvice($reply, $userContext);
+    }
+
+    private function productsHavePackageKeywords(array $products): bool
+    {
+        $packageKeywords = ['paket', 'hemat', 'bundle', 'bundling', 'promo', 'komplit', 'set'];
+
+        foreach ($products as $product) {
+            $name = strtolower((string) ($product['name'] ?? ''));
+            $category = strtolower((string) ($product['category'] ?? ''));
+            $description = strtolower((string) ($product['description'] ?? ''));
+
+            foreach ($packageKeywords as $keyword) {
+                if (
+                    str_contains($name, $keyword) ||
+                    str_contains($category, $keyword) ||
+                    str_contains($description, $keyword)
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function appendRoomAdvice(string $reply, array $userContext): string
+    {
         $productTerms = $userContext['product_terms'] ?? [];
         $roomTerms = $userContext['room_terms'] ?? [];
 
@@ -303,6 +420,42 @@ class ProductRecommendationTool
         }
 
         return $reply;
+    }
+
+    private function isPaketHematQuery(array $userContext): bool
+    {
+        $bundleTerms = ['paket', 'hemat', 'bundle', 'bundling', 'promo', 'diskon', 'murah'];
+        foreach ($bundleTerms as $term) {
+            // Check if the term appears in product or search terms
+            if (in_array($term, $userContext['search_terms'] ?? [], true)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function getExplicitProductType(string $text): ?string
+    {
+        $normalizedText = strtolower($text);
+
+        $productTypeMap = [
+            'lampu' => ['lampu', 'bohlam', 'led', 'downlight', 'down light'],
+            'kabel' => ['kabel', 'nya', 'nym', 'nyy'],
+            'saklar' => ['saklar', 'switch'],
+            'stop kontak' => ['stop kontak', 'stopkontak', 'colokan', 'socket'],
+            'fitting' => ['fitting', 'holder lampu'],
+            'mcb' => ['mcb', 'breaker'],
+        ];
+
+        foreach ($productTypeMap as $canonicalType => $patterns) {
+            foreach ($patterns as $pattern) {
+                if (str_contains($normalizedText, $pattern)) {
+                    return $canonicalType;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function buildSuggestions(array $userContext, ?int $budgetMax): array

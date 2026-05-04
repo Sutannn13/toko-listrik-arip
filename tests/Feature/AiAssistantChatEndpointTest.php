@@ -745,4 +745,486 @@ class AiAssistantChatEndpointTest extends TestCase
             config()->set('services.ai.' . $key, $value);
         }
     }
+
+    public function test_ai_identity_transparency_not_human_claim(): void
+    {
+        $this->configureExternalAiProviderForTest([
+            'provider' => 'gemini',
+            'gemini_api_key' => 'test-gemini-key',
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'parts' => [
+                                ['text' => 'Saya adalah asisten virtual resmi Toko HS Electric, siap bantu kakak!'],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-identity-001',
+            'message' => 'Apakah kamu manusia?',
+        ]);
+
+        $response->assertOk();
+        $reply = (string) $response->json('reply');
+
+        $this->assertStringNotContainsStringIgnoringCase('kamu manusia', $reply);
+        $this->assertStringNotContainsStringIgnoringCase('saya manusia', $reply);
+    }
+
+    public function test_ai_response_does_not_use_100_percent_aman_absolute_claim(): void
+    {
+        $this->configureExternalAiProviderForTest([
+            'provider' => 'gemini',
+            'gemini_api_key' => 'test-gemini-key',
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'parts' => [
+                                ['text' => 'Sistem kami menerapkan kontrol keamanan untuk melindungi data kakak.'],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-privacy-safe-001',
+            'message' => 'Apakah data saya aman?',
+        ]);
+
+        $response->assertOk();
+        $reply = (string) $response->json('reply');
+
+        $this->assertStringNotContainsString('100% aman', $reply);
+        $this->assertStringNotContainsString('100%', $reply);
+    }
+
+    public function test_ai_chat_understands_budget_phrase_rp_format(): void
+    {
+        $this->createProductFixtures();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-budget-rp-001',
+            'message' => 'Rekomendasi lampu untuk kamar tidur budget Rp 50.000',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+
+        $products = $response->json('data.products');
+        $this->assertIsArray($products);
+        $this->assertNotEmpty($products);
+
+        foreach ($products as $product) {
+            $this->assertLessThanOrEqual(50000, (int) $product['price']);
+        }
+    }
+
+    public function test_ai_chat_understands_budget_phrase_di_bawah_format(): void
+    {
+        $this->createProductFixtures();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-budget-below-001',
+            'message' => 'Cari kabel di bawah 100k',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+
+        $products = $response->json('data.products');
+        $this->assertIsArray($products);
+
+        foreach ($products as $product) {
+            $this->assertLessThanOrEqual(100000, (int) $product['price']);
+        }
+    }
+
+    public function test_ai_chat_supports_follow_up_with_history_context(): void
+    {
+        $this->createProductFixtures();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-followup-001',
+            'message' => 'yang paling hemat listrik yang mana?',
+            'history' => [
+                [
+                    'role' => 'user',
+                    'text' => 'lampu buat kamar 40rb',
+                ],
+                [
+                    'role' => 'assistant',
+                    'text' => 'Wah ada nih kak! Aku nemu beberapa produk yang pas banget buat kebutuhan lampu dan budget sekitar Rp 40.000 ya:',
+                ],
+            ],
+            'context' => [
+                'channel' => 'storefront_widget',
+                'page_title' => 'Katalog Produk',
+                'page_path' => '/katalog',
+            ],
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+
+        $conversationHistory = (array) $response->json('data.conversation_history');
+        $this->assertNotEmpty($conversationHistory);
+    }
+
+    public function test_ai_chat_handles_troubleshooting_angry_customer(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-angry-001',
+            'message' => 'Parah banget deh, pesanan saya belum dikirim sudah 3 hari! Saya kesel banget!',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+
+        $reply = (string) $response->json('reply');
+        // Should contain empathetic response (maaf, waduh, aduh, etc.) and call user "kak"
+        $this->assertTrue(
+            stripos($reply, 'maaf') !== false ||
+            stripos($reply, 'waduh') !== false ||
+            stripos($reply, 'aduh') !== false ||
+            stripos($reply, 'nggak enak') !== false,
+            'Expected empathetic response in troubleshooting'
+        );
+        $this->assertStringContainsStringIgnoringCase('kak', $reply);
+    }
+
+    public function test_ai_chat_handles_payment_proof_privacy_concern(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-privacy-001',
+            'message' => 'Saya takut bukti transfer saya disebarkan. Apakah aman upload bukti pembayaran di website ini?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+
+        $reply = (string) $response->json('reply');
+
+        $this->assertStringNotContainsStringIgnoringCase('100% aman', $reply);
+        $this->assertStringNotContainsStringIgnoringCase('kami tidak bisa menjamin', $reply);
+
+        $this->assertStringContainsStringIgnoringCase('admin', $reply);
+    }
+
+    public function test_ai_chat_guest_order_tracking_requires_verification(): void
+    {
+        [, $order] = $this->createOrderFixture();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-guest-track-002',
+            'message' => 'Cek status pesanan saya: ' . $order->order_code,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'order_tracking');
+        $response->assertJsonPath('data.requires_verification', true);
+        $response->assertJsonPath('data.order', null);
+    }
+
+    public function test_ai_chat_authenticated_order_owner_can_view_order(): void
+    {
+        [$customer, $order] = $this->createOrderFixture();
+        Sanctum::actingAs($customer);
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-owner-track-002',
+            'message' => 'Tolong cek pesanan ' . $order->order_code,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'order_tracking');
+        $response->assertJsonPath('data.requires_verification', false);
+        $response->assertJsonPath('data.order.order_code', $order->order_code);
+    }
+
+    public function test_ai_chat_lampu_paket_hemat_returns_lampu_not_kabel(): void
+    {
+        $this->createProductFixtures();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-lampu-hemat-001',
+            'message' => 'lampu paket hemat ada?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+        $response->assertJsonPath('used_tools.0', 'ProductRecommendationTool');
+
+        $reply = strtolower((string) $response->json('reply'));
+        $this->assertStringContainsString('lampu', $reply);
+        $this->assertStringNotContainsString('kabel', $reply);
+
+        $products = $response->json('data.products');
+        $this->assertIsArray($products);
+        $this->assertNotEmpty($products);
+
+        // All returned products should be lampu-related
+        foreach ($products as $product) {
+            $productName = strtolower((string) ($product['name'] ?? ''));
+            $this->assertStringContainsString('lampu', $productName, 'Expected lampu product but got: ' . $productName);
+        }
+    }
+
+    public function test_ai_chat_halo_produk_paket_hemat_not_generic_welcome(): void
+    {
+        $this->createProductFixtures();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-halo-paket-001',
+            'message' => 'halo, produk apa yang ada paket hemat?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+
+        $reply = strtolower((string) $response->json('reply'));
+        // Should not be a generic welcome
+        $this->assertStringNotContainsString('selamat datang', $reply);
+        $this->assertStringNotContainsString('welcome', $reply);
+    }
+
+    public function test_ai_chat_bukti_pembayaran_ditolak_troubleshooting(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-bukti-ditolak-001',
+            'message' => 'halo kak bukti pembayaran saya ditolak',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+
+        $reply = (string) $response->json('reply');
+        // Should give step-by-step help (either 'step' or 'langkah')
+        $this->assertTrue(
+            stripos($reply, 'step') !== false || stripos($reply, 'langkah') !== false,
+            'Expected troubleshooting response to contain step-by-step help'
+        );
+    }
+
+    public function test_ai_chat_pesanan_belum_dikirim_walau_sudah_bayar(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-belum-kirim-001',
+            'message' => 'pesanan saya belum dikirim padahal sudah bayar',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+
+        $reply = (string) $response->json('reply');
+        // Should give diagnostic steps, not just escalate
+        $this->assertStringContainsStringIgnoringCase('status', $reply);
+        $this->assertStringContainsStringIgnoringCase('pembayaran', $reply);
+    }
+
+    public function test_ai_chat_qris_bayar_gg_tidak_muncul(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-qris-001',
+            'message' => 'qris bayar.gg tidak muncul',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+
+        $reply = strtolower((string) $response->json('reply'));
+        $this->assertStringContainsString('qris', $reply);
+        $this->assertStringContainsString('refresh', $reply);
+    }
+
+    public function test_ai_chat_barang_rusak_garansi(): void
+    {
+        $this->createProductFixtures();
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-garansi-001',
+            'message' => 'barang saya rusak bisa garansi?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'troubleshooting');
+
+        $reply = (string) $response->json('reply');
+        $this->assertStringContainsStringIgnoringCase('garansi', $reply);
+        $this->assertStringContainsStringIgnoringCase('klaim', $reply);
+    }
+
+    public function test_no_conflict_markers_in_blade_files(): void
+    {
+        $bladeFiles = glob(database_path('../resources/views/**/*.blade.php'));
+
+        $conflicts = [];
+        foreach ($bladeFiles as $file) {
+            $content = file_get_contents($file);
+            if (
+                strpos($content, '<<<<<<<') !== false ||
+                strpos($content, '=======') !== false ||
+                strpos($content, '>>>>>>>') !== false
+            ) {
+                $conflicts[] = $file;
+            }
+        }
+
+        $this->assertEmpty($conflicts, 'Found conflict markers in: ' . implode(', ', $conflicts));
+    }
+
+    public function test_ai_chat_paket_hemat_says_ada_kak_ini_beberapa_paket_hemat_yang_tersedia(): void
+    {
+        $category = Category::create([
+            'name' => 'Paket Hemat',
+            'slug' => 'paket-hemat',
+        ]);
+
+        Product::create([
+            'category_id' => $category->id,
+            'name' => 'Ligera Type 14 PAKET HEMAT',
+            'slug' => 'ligera-type-14-paket-hemat',
+            'description' => 'Paket lengkap hemat untuk kamar tidur.',
+            'price' => 75000,
+            'stock' => 10,
+            'unit' => 'pcs',
+            'is_active' => true,
+            'is_electronic' => true,
+        ]);
+
+        Product::create([
+            'category_id' => $category->id,
+            'name' => 'Paket Bohlam LED Hemat Energi',
+            'slug' => 'paket-bohlam-led-hemat',
+            'description' => 'Bundle bohlam LED hemat energi untuk rumah.',
+            'price' => 45000,
+            'stock' => 15,
+            'unit' => 'pcs',
+            'is_active' => true,
+            'is_electronic' => true,
+        ]);
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-paket-hemat-confirm-001',
+            'message' => 'lampu paket hemat ada?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+
+        $reply = strtolower((string) $response->json('reply'));
+        $this->assertStringContainsString('ada kak, ini beberapa paket hemat yang', $reply);
+
+        $products = $response->json('data.products');
+        $this->assertIsArray($products);
+        $this->assertNotEmpty($products);
+    }
+
+    public function test_ai_chat_no_active_bundle_when_no_package_keywords(): void
+    {
+        $category = Category::create([
+            'name' => 'Lampu LED',
+            'slug' => 'lampu-led',
+        ]);
+
+        Product::create([
+            'category_id' => $category->id,
+            'name' => 'Lampu LED Warm White 9W',
+            'slug' => 'lampu-led-warm-white-9w',
+            'description' => 'Lampu LED untuk kamar tidur dengan warna warm white yang nyaman.',
+            'price' => 38000,
+            'stock' => 12,
+            'unit' => 'pcs',
+            'is_active' => true,
+            'is_electronic' => true,
+        ]);
+
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-no-paket-001',
+            'message' => 'paket hemat ada?',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('intent', 'product_recommendation');
+
+        $reply = strtolower((string) $response->json('reply'));
+        $this->assertStringContainsString('belum ada yang aktif', $reply);
+    }
+
+    public function test_ai_identity_not_claiming_human(): void
+    {
+        // This test ensures the AI doesn't claim to be human
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-identity-002',
+            'message' => 'Apakah kamu manusia?',
+        ]);
+
+        $response->assertOk();
+        $reply = (string) $response->json('reply');
+
+        $this->assertStringNotContainsStringIgnoringCase('saya manusia', $reply);
+        $this->assertStringNotContainsStringIgnoringCase('kamu manusia', $reply);
+        $this->assertStringNotContainsStringIgnoringCase('aku manusia', $reply);
+    }
+
+    public function test_ai_no_absolute_100_percent_aman_claim(): void
+    {
+        $response = $this->postJson(route('api.ai.chat'), [
+            'session_id' => 'sess-aman-001',
+            'message' => 'Apakah data dan bukti pembayaran saya aman?',
+        ]);
+
+        $response->assertOk();
+        $reply = (string) $response->json('reply');
+
+        $this->assertStringNotContainsString('100% aman', $reply);
+        $this->assertStringNotContainsString('100%', $reply);
+    }
+
+    public function test_ai_chat_intent_routing_product_terms_priority(): void
+    {
+        $this->createProductFixtures();
+
+        $testCases = [
+            [
+                'message' => 'lampu paket hemat ada?',
+                'expected_intent' => 'product_recommendation',
+            ],
+            [
+                'message' => 'halo, produk apa yang ada paket hemat?',
+                'expected_intent' => 'product_recommendation',
+            ],
+            [
+                'message' => 'halo kak bukti pembayaran saya ditolak',
+                'expected_intent' => 'troubleshooting',
+            ],
+            [
+                'message' => 'pesanan saya belum dikirim padahal sudah bayar',
+                'expected_intent' => 'troubleshooting',
+            ],
+        ];
+
+        foreach ($testCases as $index => $testCase) {
+            $response = $this->postJson(route('api.ai.chat'), [
+                'session_id' => 'sess-intent-routing-' . $index,
+                'message' => $testCase['message'],
+            ]);
+
+            $response->assertOk();
+            $response->assertJsonPath('intent', $testCase['expected_intent'], 'Failed for: ' . $testCase['message']);
+        }
+    }
 }

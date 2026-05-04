@@ -181,13 +181,7 @@
                                 Tambah ke Keranjang
                             @endif
                         </button>
-<<<<<<< HEAD
-                        @if ($product->stock > 0)
-                            <p class="text-xs text-center text-blue-600 font-medium">Stok mengikuti ketersediaan toko</p>
-                        @endif
-=======
->>>>>>> 611828a (feat(ui): polish product detail page)
-                        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-xl bg-gray-50 px-3 py-2.5 text-xs font-medium text-gray-500">
+<div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-xl bg-gray-50 px-3 py-2.5 text-xs font-medium text-gray-500">
                             <span class="flex items-center gap-1.5">
                                 <svg class="h-3.5 w-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Transaksi aman
@@ -265,10 +259,6 @@
                         </a>
 
                         <h3 class="text-sm font-bold text-gray-900 group-hover:text-primary-600 transition line-clamp-2">{{ $related->name }}</h3>
-<<<<<<< HEAD
-=======
-
->>>>>>> 611828a (feat(ui): polish product detail page)
                         <p class="mt-1 text-[11px] text-gray-400 font-medium">
                             @if ($related->reviews_total > 0)
                                 ⭐ {{ number_format($related->average_rating, 1) }} ({{ $related->reviews_total }})

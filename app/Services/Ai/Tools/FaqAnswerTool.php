@@ -9,8 +9,11 @@ class FaqAnswerTool
     /**
      * Answer a FAQ question with comprehensive store knowledge.
      * Covers 25+ topic areas — store info, website features, policies, and more.
+     *
+     * @param string $question The user's question/message
+     * @param string $resolvedIntent Optional intent to guide response (e.g., 'troubleshooting', 'faq')
      */
-    public function answer(string $question): array
+    public function answer(string $question, string $resolvedIntent = 'faq'): array
     {
         $q = strtolower(trim($question));
 
@@ -21,6 +24,12 @@ class FaqAnswerTool
                 0.5,
                 ['Alamat toko dimana?', 'Cara belanja di website ini', 'Rekomendasi lampu LED'],
             );
+        }
+
+        // If the resolved intent is troubleshooting, skip generic FAQ matching
+        // and go directly to the troubleshooting section for problem-solving
+        if ($resolvedIntent === 'troubleshooting') {
+            return $this->buildTroubleshootingResponse($q);
         }
 
         // ╔═══════════════════════════════════════════════════════════════╗
@@ -263,6 +272,27 @@ Status klaim bisa dipantau di menu "Klaim Garansi".',
 
         // ── METODE PEMBAYARAN ──
         if ($this->matches($q, ['bayar', 'pembayaran', 'payment', 'qris', 'bayargg', 'bayar.gg', 'transfer', 'e-wallet', 'ewallet', 'gopay', 'ovo', 'dana', 'shopeepay', 'metode bayar'])) {
+            // Check for privacy concern first
+            if ($this->matches($q, ['takut', 'khawatir', 'ragu', 'bocor', 'disebarkan', 'keamanan', 'aman', 'privasi', 'aman ga', 'aman gak', 'aman nggak'])) {
+                $phone = (string) Setting::get('store_phone', '');
+                $waLink = $phone !== '' ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $phone) : '';
+
+                $answer = 'Wajar banget kak kalau concern soal privasi 🙏 ';
+                $answer .= 'Bukti pembayaran kakak digunakan hanya untuk verifikasi pesanan oleh admin internal toko. ';
+                $answer .= 'Sistem kami menerapkan kontrol akses terbatas untuk melindungi data kakak. ';
+                $answer .= 'Bukti tidak akan disebarluaskan ke pihak manapun.\n\n';
+                $answer .= 'Tapi kalau kakak tetap lebih nyaman tanpa upload bukti, ';
+                $answer .= 'ada solusi praktis nih! Pilih metode Bayar.gg (Otomatis) saat checkout. ';
+                $answer .= 'Kakak tinggal scan QRIS, pembayaran langsung terverifikasi otomatis ';
+                $answer .= 'tanpa perlu upload bukti apapun. Lebih cepat dan praktis! 😊';
+
+                return $this->response($answer, 'faq.payment.privacy_concern', 0.95, [
+                    'Apakah bisa COD?',
+                    'Cara upload bukti bayar',
+                    'Nomor WhatsApp admin',
+                ]);
+            }
+
             $bank1 = (string) Setting::get('bank_1_name', '');
             $bank1Account = (string) Setting::get('bank_1_account', '');
             $bank1Holder = (string) Setting::get('bank_1_holder', '');
@@ -330,7 +360,7 @@ Setelah diverifikasi, status pembayaran berubah menjadi "Paid" dan pesanan akan 
         }
 
         // ── TRACKING PESANAN / RESI ──
-        if ($this->matches($q, ['resi', 'lacak', 'tracking', 'cek pesanan', 'status pesanan', 'order saya', 'pesanan saya', 'belum sampai', 'kapan sampai', 'dimana pesanan'])) {
+        if ($this->matches($q, ['resi', 'lacak', 'tracking', 'status order'])) {
             return $this->response(
                 'Untuk mengecek status pesanan Anda:
 1. Login ke akun Anda.
@@ -349,8 +379,27 @@ Atau kirimkan kode order Anda ke sini dengan format: ORD-ARIP-YYYYMMDD-XXXXXX, d
             );
         }
 
+        // ── CEK STATUS / STATUS PESANAN (neutral, not complaint) ──
+        if ($this->matches($q, ['cek pesanan', 'status pesanan', 'order saya', 'pesanan saya', 'kapan sampai', 'dimana pesanan'])) {
+            $phone = (string) Setting::get('store_phone', '');
+            $waLink = $phone !== '' ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $phone) : '';
+
+            $answer = 'Mohon maaf kak, saya paham Anda pasti cemas soal pesanan Anda 🙏 ';
+            $answer .= 'Untuk cek status pesanan:
+1. Login ke akun Anda.
+2. Buka menu "Cek Pesanan".
+3. Klik pesanan untuk lihat detail status, nomor resi, dan upload bukti bayar.
+
+Atau kirimkan kode order (ORD-ARIP-...) ke sini, saya bantu cek.';
+
+            return $this->response($answer, 'faq.order.status_check', 0.85, [
+                'Cara upload bukti bayar',
+                'Nomor WhatsApp admin',
+            ]);
+        }
+
         // ── PESANAN BELUM SAMPAI / KOMPLAIN ──
-        if ($this->matches($q, ['belum sampai', 'belum diterima', 'lama pengiriman', 'kapan sampai', 'komplain', 'keluhan', 'masalah pengiriman', 'paket hilang'])) {
+        if ($this->matches($q, ['belum sampai', 'belum diterima', 'lama pengiriman', 'komplain', 'keluhan', 'masalah pengiriman', 'paket hilang'])) {
             $phone = (string) Setting::get('store_phone', '');
             $waLink = $phone !== '' ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $phone) : '';
 
@@ -1063,6 +1112,201 @@ Yang bisa dilakukan:
                 'Rekomendasi produk',
                 'Alamat dan kontak toko',
                 'Cek status pesanan saya',
+            ],
+        );
+    }
+
+    /**
+     * Build a troubleshooting response for problem-solving intents.
+     * This is called when the resolved intent is 'troubleshooting'.
+     */
+    private function buildTroubleshootingResponse(string $q): array
+    {
+        $phone = (string) Setting::get('store_phone', '');
+        $waLink = $phone !== '' ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $phone) : '';
+
+        // ── PAYMENT PROOF REJECTED ──
+        if ($this->matches($q, ['bukti', 'pembayaran', 'ditolak', 'bayar ditolak'])) {
+            return $this->response(
+                'Waduh, nggak enak banget ya kak 😔 Tenang, biasanya bukti pembayaran ditolak karena salah satu alasan ini:
+
+1. **Foto bukti transfer blur atau terpotong** — Pastikan seluruh bukti transfer terlihat jelas, termasuk nominal, tanggal, dan nama pengirim.
+2. **Nominal tidak sesuai** — Pastikan jumlah transfer sama persis dengan total pesanan.
+3. **Format file tidak sesuai** — Upload hanya menerima JPG atau PNG, maksimal 2MB.
+
+Coba langkah ini ya kak:
+1. Buka menu **Cek Pesanan** → cari pesanan kakak.
+2. Klik **Ganti Bukti Pembayaran**.
+3. Upload ulang screenshot yang jelas dan lengkap.
+4. Tunggu admin memverifikasi (biasanya 1-3 jam).
+
+Kalau sudah upload ulang tapi masih ditolak, langsung chat admin ya biar dicek manual.' . ($waLink !== '' ? ' WhatsApp: ' . $waLink : ''),
+                'faq.troubleshoot.payment_rejected',
+                0.95,
+                [
+                    'Nomor WhatsApp admin',
+                    'Cara upload bukti bayar',
+                    'Rekening bank toko',
+                ],
+            );
+        }
+
+        // ── ORDER NOT SHIPPED DESPITE PAYMENT ──
+        if ($this->matches($q, ['belum dikirim', 'belum diproses', 'sudah bayar', 'udah bayar', 'lama'])) {
+            return $this->response(
+                'Waduh pasti nunggu nggak enak ya kak 😔 Coba kita cek bareng:
+
+1. **Cek status pembayaran** — Buka menu Cek Pesanan. Pesanan baru diproses SETELAH pembayaran dikonfirmasi lunas.
+2. **Jika status sudah "Lunas/Paid"** — Pesanan biasanya diproses 1-2 hari kerja (tidak termasuk weekend/libur).
+3. **Jika status masih "Belum Bayar"** — Upload bukti pembayaran terlebih dahulu agar admin bisa memverifikasi.
+
+Kalau sudah lunas lebih dari 2 hari kerja dan belum diproses, langsung hubungi admin ya kak:' . ($waLink !== '' ? "\nWhatsApp: {$waLink}" : '') . '
+
+Sampaikan kode pesanan (ORD-ARIP-...) biar langsung dicek.',
+                'faq.troubleshoot.order_delayed',
+                0.94,
+                [
+                    'Cek status pesanan',
+                    'Cara upload bukti bayar',
+                    'Nomor WhatsApp admin',
+                ],
+            );
+        }
+
+        // ── QRIS / BAYAR.GG NOT APPEARING ──
+        if ($this->matches($q, ['qris', 'bayar.gg', 'bayargg']) && $this->matches($q, ['tidak', 'gagal', 'muncul', 'error'])) {
+            return $this->response(
+                'Kalau QRIS atau Bayar.gg tidak muncul, coba langkah ini ya kak:
+
+1. **Refresh halaman** — Tekan F5 atau Ctrl+R untuk refresh browser.
+2. **Pastikan browser mendukung** — Gunakan Chrome, Firefox, atau Safari versi terbaru.
+3. **Coba browser lain** — Jika masih error, coba buka di browser berbeda.
+4. **Pastikan koneksi internet stabil** — Koneksi lambat bisa membuat QRIS gagal load.
+
+Kalau sudah coba semua tapi masih tidak bisa, pilih metode bayar alternatif (transfer bank atau COD) ya kak.' . ($waLink !== '' ? ' Atau hubungi admin: ' . $waLink : ''),
+                'faq.troubleshoot.qris_not_appearing',
+                0.93,
+                [
+                    'Metode pembayaran lainnya',
+                    'Nomor WhatsApp admin',
+                ],
+            );
+        }
+
+        // ── PRODUCT DAMAGE / WARRANTY ──
+        if ($this->matches($q, ['rusak', 'cacat', 'garansi', 'klaim'])) {
+            return $this->response(
+                'Aduh, mohon maaf banget ya kak atas ketidaknyamanannya 🙏
+
+Kalau barangnya rusak/tidak sesuai, ini yang bisa dilakukan:
+
+**Jika produk ELEKTRONIK (lampu, MCB, dll):**
+1. Cek apakah masih dalam masa garansi (sesuai pengaturan produk, maksimal 365 hari sejak pesanan selesai).
+2. Buka menu **Garansi** di website.
+3. Pilih produk yang bermasalah → klik **Ajukan Klaim**.
+4. Isi alasan + upload foto/video bukti kerusakan.
+5. Admin akan review dan menghubungi kakak via WhatsApp.
+
+**Jika produk NON-ELEKTRONIK (kabel, fitting, dll):**
+Langsung hubungi admin via WhatsApp dengan foto barang + kode pesanan, biar dibantu pengecekan.' . ($waLink !== '' ? "\n\nWhatsApp admin: {$waLink}" : ''),
+                'faq.troubleshoot.product_defect',
+                0.95,
+                [
+                    'Cara klaim garansi',
+                    'Nomor WhatsApp admin',
+                    'Berapa lama masa garansi?',
+                ],
+            );
+        }
+
+        // ── WRONG ADDRESS ──
+        if ($this->matches($q, ['salah alamat', 'salah kirim'])) {
+            return $this->response(
+                'Oh no kak 😥 Tenang, tergantung status pesanannya:
+
+**Jika pesanan masih Pending / Diproses:**
+✅ Masih bisa diubah! Langsung hubungi admin via WhatsApp sekarang juga dengan info:
+- Kode pesanan (ORD-ARIP-...)
+- Alamat yang benar/terbaru
+
+**Jika pesanan sudah Dikirim:**
+❌ Sayangnya alamat sudah tidak bisa diubah. Hubungi admin agar dibantu koordinasi dengan kurir.' . ($waLink !== '' ? "\n\nChat admin sekarang: {$waLink}" : ''),
+                'faq.troubleshoot.wrong_address',
+                0.93,
+                [
+                    'Nomor WhatsApp admin',
+                    'Cek status pesanan',
+                    'Cara kelola alamat',
+                ],
+            );
+        }
+
+        // ── LOGIN ISSUES ──
+        if ($this->matches($q, ['login', 'masuk']) && $this->matches($q, ['tidak', 'gagal', 'error'])) {
+            return $this->response(
+                'Nggak bisa login ya kak? Coba langkah berikut:
+
+1. **Cek Caps Lock** — Pastikan Caps Lock mati saat mengetik password.
+2. **Cek email** — Pastikan email yang dimasukkan benar dan sama dengan saat daftar.
+3. **Reset password** — Klik "Lupa Password?" di halaman login → masukkan email → cek inbox email untuk link reset.
+4. **Cek spam folder** — Kadang email reset masuk ke folder Spam/Junk.
+
+Kalau tetap tidak bisa setelah reset password, kemungkinan akun kakak perlu dikonfirmasi oleh admin. Hubungi admin via WhatsApp dengan email yang terdaftar.' . ($waLink !== '' ? ' WhatsApp: ' . $waLink : ''),
+                'faq.troubleshoot.login_failed',
+                0.93,
+                [
+                    'Cara reset password',
+                    'Nomor WhatsApp admin',
+                    'Cara daftar akun baru',
+                ],
+            );
+        }
+
+        // ── GENERIC COMPLAINT ──
+        if ($this->matches($q, ['kesal', 'kecewa', 'marah', 'parah', 'frustasi'])) {
+            return $this->response(
+                "Kak, saya benar-benar minta maaf ya 🙏 Saya paham banget perasaan kakak dan itu sangat wajar. Kami ambil ini serius dan mau pastikan masalah kakak terselesaikan.\n\nCeritain aja kak masalahnya apa — pesanan bermasalah? produk tidak sesuai? layanan kurang memuaskan? Apapun itu, saya bakal bantu secepat mungkin." . ($waLink !== '' ? "\n\nUntuk penanganan prioritas, langsung chat admin: {$waLink}" : ''),
+                'faq.emotional.angry',
+                0.92,
+                [
+                    'Cek pesanan saya',
+                    'Klaim garansi produk rusak',
+                    'Hubungi admin sekarang',
+                ],
+            );
+        }
+
+        // ── GENERIC PAYMENT ISSUES ──
+        if ($this->matches($q, ['bayar', 'pembayaran', 'transfer']) && $this->matches($q, ['masalah', 'error', 'gagal', 'tidak'])) {
+            return $this->response(
+                'Tenang ya kak, saya bantu cek 🙏
+
+Kalau ada masalah dengan pembayaran, coba pastikan:
+1. **Bukti transfer jelas** — Foto/Screenshot harus menampilkan nominal, tanggal, dan nama pengirim dengan jelas.
+2. **Nominal sesuai** — Pastikan jumlah transfer sama dengan total pesanan.
+3. **Format benar** — Upload hanya menerima JPG atau PNG, maksimal 2MB.
+
+Coba upload ulang bukti pembayaran melalui menu **Cek Pesanan** ya kak. Kalau masih bermasalah, hubungi admin.' . ($waLink !== '' ? "\nWhatsApp: {$waLink}" : ''),
+                'faq.troubleshoot.payment_issue',
+                0.92,
+                [
+                    'Cara upload bukti bayar',
+                    'Nomor WhatsApp admin',
+                    'Metode pembayaran lainnya',
+                ],
+            );
+        }
+
+        // ── DEFAULT TROUBLESHOOTING ──
+        return $this->response(
+            'Waduh, mohon maaf banget ya kak atas ketidaknyamanannya 🙏 Saya paham pasti frustasi. Biar masalah kakak bisa langsung ditangani sama tim kami, saya sarankan hubungi admin langsung supaya bisa dicek dan dibantu secepatnya.' . ($waLink !== '' ? " Langsung chat admin via WhatsApp ya kak: {$waLink}" : '') . '
+
+Kalau mau, kasih tau juga nomor pesanannya (format: ORD-ARIP-...) biar admin bisa langsung tracking.',
+            'faq.complaint.general',
+            0.85,
+            [
+                'Cek status pesanan',
+                'Nomor WhatsApp toko',
             ],
         );
     }

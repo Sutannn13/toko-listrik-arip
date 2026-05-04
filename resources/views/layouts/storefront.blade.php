@@ -681,10 +681,15 @@
                     this.isLoading = true;
                     this.$nextTick(() => this.scrollToBottom());
 
+                    let controller = null;
                     try {
+                        controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 25000);
+
                         const response = await fetch(this.chatEndpoint, {
                             method: 'POST',
                             headers: this.requestHeaders(),
+                            signal: controller.signal,
                             body: JSON.stringify({
                                 session_id: this.sessionId,
                                 message,
@@ -693,11 +698,14 @@
                             }),
                         });
 
-                        const payload = await response.json();
+                        clearTimeout(timeoutId);
+
                         if (!response.ok) {
+                            const payload = await response.json().catch(() => ({}));
                             throw new Error(payload.message || 'Permintaan AI gagal diproses.');
                         }
 
+                        const payload = await response.json();
                         const replyText = typeof payload.reply === 'string' && payload.reply.trim() !== '' ? payload
                             .reply :
                             'Maaf, saya belum bisa menjawab pertanyaan ini.';
@@ -721,13 +729,20 @@
                             allowFeedback: true,
                         });
                     } catch (error) {
-                        this.pushAssistantMessageWithTyping(
-                            'Maaf, layanan AI sedang sibuk. Silakan coba lagi dalam beberapa saat.', {
-                                suggestions: ['Ongkir berapa?', 'Cara cek status pesanan'],
-                                allowFeedback: true,
-                            }
-                        );
+                        let errorMessage = 'Maaf kak, asisten sedang gangguan sebentar. Coba lagi atau hubungi admin.';
+                        if (error.name === 'AbortError') {
+                            errorMessage = 'Maaf kak, permintaan terlalu lama. Coba lagi dalam beberapa saat.';
+                        } else if (error.message) {
+                            errorMessage = error.message;
+                        }
+                        this.pushAssistantMessageWithTyping(errorMessage, {
+                            suggestions: ['Ongkir berapa?', 'Cara cek status pesanan'],
+                            allowFeedback: false,
+                        });
                     } finally {
+                        if (controller) {
+                            controller.abort();
+                        }
                         this.isLoading = false;
                         this.$nextTick(() => this.scrollToBottom());
                     }

@@ -101,6 +101,18 @@
                 </div>
             </div>
 
+            <div class="mb-6 rounded-lg border border-green-100 bg-green-50 p-4">
+                <label class="inline-flex items-start gap-3 text-sm text-gray-700 cursor-pointer">
+                    <input type="checkbox" name="is_active" value="1" @checked(old('is_active', true))
+                        class="mt-0.5 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                    <span>
+                        <span class="font-semibold text-gray-900">Produk Aktif</span><br>
+                        <span class="text-xs text-gray-600">Aktifkan agar produk tampil di katalog dan bisa dibeli.
+                            Nonaktifkan untuk menyimpan sebagai draft.</span>
+                    </span>
+                </label>
+            </div>
+
             <div class="flex justify-end border-t pt-4">
                 <button type="submit"
                     class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">

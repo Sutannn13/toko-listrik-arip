@@ -409,3 +409,104 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Production Deployment Checklist
+
+Before deploying to production, ensure the following steps are completed:
+
+### Environment Configuration
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://your-domain.com
+```
+
+### Database Setup
+
+```bash
+# Secure database credentials in .env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=toko_listrik_arip
+DB_USERNAME=secure_db_user
+DB_PASSWORD=strong_password_here
+
+# Run pending migrations
+php artisan migrate --force
+
+# Backup database before any schema changes
+```
+
+### Security Checklist
+
+- [ ] HTTPS is enforced (redirect HTTP to HTTPS)
+- [ ] `APP_KEY` is set (run `php artisan key:generate`)
+- [ ] `APP_DEBUG=false` in production
+- [ ] All API keys (Gemini, DeepSeek, Bayar.gg) stored securely in `.env`
+- [ ] Rotate any exposed API keys immediately
+- [ ] CORS origins restricted to production domains only
+- [ ] Sanctum token expiration configured appropriately
+- [ ] Session driver set to `database` or `redis`
+
+### Performance Optimization
+
+```bash
+# Clear and rebuild config cache
+php artisan config:clear
+php artisan config:cache
+
+# Cache routes for faster routing
+php artisan route:cache
+
+# Cache views (Blade templates)
+php artisan view:cache
+
+# Composer optimization
+composer install --no-dev --optimize-autoloader
+
+# Frontend build for production
+npm run build
+```
+
+### Storage & Assets
+
+```bash
+# Create symlink for public storage
+php artisan storage:link
+```
+
+### Queue Worker (Background Jobs)
+
+```bash
+# Run queue worker as a daemon in production
+php artisan queue:work --tries=3 --max-time=3600
+
+# Or use Supervisor for reliable queue handling
+```
+
+### File Permissions
+
+```bash
+# Ensure proper permissions
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
+```
+
+### Monitoring
+
+- [ ] Configure error logging (LOG_CHANNEL=stack, LOG_LEVEL=warning)
+- [ ] Set up monitoring for queue workers
+- [ ] Enable health check endpoint monitoring
+- [ ] Configure backup schedule for database
+
+### Pre-Deployment Testing
+
+```bash
+# Test in staging environment first
+# Verify all payments (Bayar.gg, bank transfer, COD)
+# Test AI assistant responses
+# Verify email notifications
+# Test order flow (cart -> checkout -> payment -> confirmation)
+```

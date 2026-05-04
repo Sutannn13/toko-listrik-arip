@@ -3,12 +3,14 @@
     "brand": "",
     "headings": [
         "Kipas Dinding Pro",
+        "Deskripsi Produk",
         "Pembelian",
         "Produk Terkait",
         "Kipas Meja Turbo",
         "Rating & Ulasan"
     ],
     "primary_actions": [
+        "Tambah ke Keranjang",
         "Lihat Detail"
     ],
     "structure": {
@@ -16,5 +18,5 @@
         "article_count": 2,
         "form_count": 0
     },
-    "main_text_hash": "54a3d64e09f21d0f3eeafdf774df9e9bf761146458ea66c6cfe257bc6b9bab9d"
+    "main_text_hash": "ef5b0a7ee964af5d84a0190c9e83341cc3867983c27fc2293e2cec26293500f9"
 }

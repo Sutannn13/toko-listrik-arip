@@ -796,19 +796,22 @@
                 linkify(text) {
                     if (!text) return '';
 
-                    // Escape HTML to prevent XSS
+                    // Escape HTML to prevent XSS - including single quote
                     const escaped = text
                         .replace(/&/g, '&amp;')
                         .replace(/</g, '&lt;')
                         .replace(/>/g, '&gt;')
-                        .replace(/"/g, '&quot;');
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
 
-                    // Convert URLs to clickable links
-                    const urlPattern = /(https?:\/\/[^\s<>"')\]]+)/g;
+                    // Only allow http/https URLs and validate them
+                    const urlPattern = /^https?:\/\/[^\s<>"')\]]+$/;
 
+                    // Convert valid URLs to safe clickable links with nofollow
                     return escaped.replace(urlPattern, (url) => {
-                        return '<a href="' + url +
-                            '" target="_blank" rel="noopener noreferrer" class="text-primary-600 underline decoration-primary-300 hover:text-primary-800 hover:decoration-primary-500 transition-colors break-all">' +
+                        const safeUrl = url.replace(/"/g, '%22'); // Extra safety for quotes in URL
+                        return '<a href="' + safeUrl +
+                            '" target="_blank" rel="noopener noreferrer nofollow" class="text-primary-600 underline decoration-primary-300 hover:text-primary-800 hover:decoration-primary-500 transition-colors break-all">' +
                             url + '</a>';
                     });
                 },

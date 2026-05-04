@@ -94,6 +94,17 @@
                     Tangani Prioritas
                 </a>
             </article>
+
+            <article class="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Refund Pending</p>
+                <p class="mt-1 text-2xl font-black text-indigo-800">
+                    {{ number_format((int) ($triage['refunds_pending'] ?? 0)) }}</p>
+                <p class="mt-1 text-xs text-indigo-700">Customer sudah minta refund, belum diproses.</p>
+                <a href="{{ route('admin.orders.index', ['refund' => 'pending']) }}"
+                    class="mt-2 inline-flex text-xs font-semibold text-indigo-800 hover:underline">
+                    Proses Refund
+                </a>
+            </article>
         </div>
 
     </div>

@@ -3,7 +3,7 @@
 @section('title', 'Lacak Pesanan - ' . \App\Models\Setting::get('store_name', 'Toko Listrik'))
 @section('header_subtitle', 'Lacak Pesanan')
 @section('show_default_store_actions', 'off')
-@section('main_container_class', 'mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8 flex-1')
+@section('main_container_class', 'mx-auto w-full max-w-5xl px-4 pt-4 pb-28 sm:px-6 lg:px-8 sm:pb-8 sm:pt-8 flex-1')
 @section('footer')
     @include('layouts.partials.flowbite-footer')
 @endsection

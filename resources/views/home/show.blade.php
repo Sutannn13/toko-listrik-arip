@@ -2,31 +2,9 @@
 
 @section('title', $product->name . ' - Toko HS ELECTRIC')
 @section('header_subtitle', 'Detail Produk')
-@section('main_container_class', 'mx-auto w-full max-w-7xl px-4 py-5 pb-16 sm:px-6 sm:py-8 lg:px-8 lg:py-12 lg:pb-12')
+@section('main_container_class', 'mx-auto w-full max-w-7xl px-4 pt-4 pb-28 sm:px-6 sm:py-8 lg:px-8 lg:py-12 lg:pb-12')
 
 @section('content')
-    {{-- Trust badges bar --}}
-    <div class="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
-        <span class="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-xs font-bold text-green-700 border border-green-200">
-            <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            Garansi Resmi
-        </span>
-        <span class="inline-flex items-center gap-1.5 rounded-full {{ $product->stock > 0 ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-red-50 border-red-200 text-red-600' }} px-3 py-1.5 text-xs font-bold border">
-            <span class="h-2 w-2 rounded-full {{ $product->stock > 0 ? 'bg-green-500' : 'bg-red-500' }}"></span>
-            {{ $product->stock > 0 ? 'Stok Tersedia (' . number_format($product->stock) . ' ' . strtoupper($product->unit) . ')' : 'Stok Habis' }}
-        </span>
-        @if ($product->is_electronic)
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1.5 text-xs font-bold text-purple-700">
-                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                Elektronik — Garansi Klaim {{ $product->warranty_days_for_claim }} Hari
-            </span>
-        @endif
-        <a href="#" onclick="document.querySelector('[data-ai-trigger]')?.click(); return false;" class="ml-auto inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-200 transition">
-            <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-            Tanya AI Assistant
-        </a>
-    </div>
-
     @if (session('success'))
         <div class="mb-6 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
             {{ session('success') }}
@@ -39,7 +17,7 @@
         </div>
     @endif
 
-    <div class="mb-4 sm:mb-6 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+    <div class="mb-3 sm:mb-6 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
         <a href="{{ route('home') }}" class="font-medium text-primary-600 transition hover:text-primary-700">Katalog</a>
         <span class="text-gray-400">/</span>
         <span class="font-medium text-gray-500">{{ $product->category->name ?? 'Tanpa Kategori' }}</span>
@@ -123,115 +101,127 @@
 
         <!-- Box Checkout / Cart -->
         <aside class="flex flex-col">
-            <div class="sticky top-24 rounded-3xl border border-gray-200 bg-white p-6 shadow-xl shadow-gray-200/50 sm:p-8">
-                <h2 class="text-xl font-bold text-gray-900">Pembelian</h2>
-                <p class="mt-2 text-sm text-gray-500">Masukkan barang ini ke keranjang belanja Anda untuk
+            <div class="sticky top-24 rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 lg:p-8 shadow-xl shadow-gray-200/50 sm:shadow-xl">
+                <h2 class="text-lg sm:text-xl font-bold text-gray-900">Pembelian</h2>
+                <p class="mt-1.5 text-xs sm:text-sm text-gray-500">Masukkan barang ini ke keranjang belanja Anda untuk
                     diproses lebih lanjut.</p>
+
+                {{-- Compact trust badges integrated into purchase card --}}
+                <div class="mt-4 grid grid-cols-2 gap-2">
+                    <span class="flex items-center gap-1.5 rounded-lg bg-green-50 px-2.5 py-2 text-[10px] sm:text-xs font-bold text-green-700 border border-green-100">
+                        <svg class="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Garansi
+                    </span>
+                    <span class="flex items-center gap-1.5 rounded-lg {{ $product->stock > 0 ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-red-50 border-red-100 text-red-600' }} px-2.5 py-2 text-[10px] sm:text-xs font-bold border">
+                        <span class="h-2 w-2 rounded-full {{ $product->stock > 0 ? 'bg-green-500' : 'bg-red-500' }} shrink-0"></span>
+                        {{ $product->stock > 0 ? 'Stok Ada' : 'Stok Habis' }}
+                    </span>
+                </div>
 
                 @if ($product->is_electronic)
                     <div
-                        class="mt-4 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700">
-                        <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        class="mt-3 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-xs sm:text-sm font-medium text-blue-700">
+                        <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        Produk elektronik: garansi klaim hingga {{ $product->warranty_days_for_claim }} hari.
+                        Elektronik: garansi klaim {{ $product->warranty_days_for_claim }} hari.
                     </div>
                 @else
                     <div
-                        class="mt-4 flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700">
-                        <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        class="mt-3 flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-3 text-xs sm:text-sm font-medium text-gray-700">
+                        <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M13 16h-1v-4h-1m1-4h.01"></path>
                         </svg>
-                        Produk non-elektronik: tidak termasuk klaim garansi.
+                        Non-elektronik: tidak termasuk klaim garansi.
                     </div>
                 @endif
 
                 @auth
-                    <form method="POST" action="{{ route('home.products.buy', $product->slug) }}" class="mt-6 space-y-5">
+                    <form method="POST" action="{{ route('home.products.buy', $product->slug) }}" class="mt-5 space-y-4 sm:space-y-5">
                         @csrf
                         <div>
-                            <label for="qty" class="mb-2 block text-sm font-bold text-gray-700">Kuantitas
+                            <label for="qty" class="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-bold text-gray-700">Kuantitas
                                 ({{ strtoupper($product->unit) }})
                             </label>
                             <div class="flex items-center">
                                 <input id="qty" name="qty" type="number" min="1"
                                     max="{{ max(1, (int) $product->stock) }}" value="1"
-                                    class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition text-center font-bold">
+                                    class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 sm:py-3 text-sm sm:text-base text-gray-900 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition text-center font-bold">
                             </div>
                             @error('qty')
-                                <p class="mt-1.5 text-xs font-semibold text-red-600">{{ $message }}</p>
+                                <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
                         @if ($product->stock > 0)
-                            <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-2.5 text-xs font-medium text-blue-700">
-                                Stok mengikuti ketersediaan toko. Pembelian bisa berbeda jumlah minimal per produk.
+                            <div class="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-[11px] sm:text-xs font-medium text-blue-700">
+                                Stok: {{ number_format($product->stock) }} {{ strtoupper($product->unit) }}. Pembelian bisa berbeda jumlah minimal per produk.
                             </div>
                         @endif
                         <button type="submit" {{ $product->stock < 1 ? 'disabled' : '' }}
-                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-base font-bold shadow-md transition {{ $product->stock < 1 ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-500 shadow-none' : 'bg-primary-600 text-white shadow-primary-500/20 hover:bg-primary-700 hover:shadow-primary-500/40' }}">
+                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 sm:py-3.5 text-sm sm:text-base font-bold shadow-md transition {{ $product->stock < 1 ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-500 shadow-none' : 'bg-primary-600 text-white shadow-primary-500/20 hover:bg-primary-700 hover:shadow-primary-500/40' }}">
                             @if ($product->stock < 1)
                                 Stok Habis
                             @else
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
                                     </path>
                                 </svg>
                                 Tambah ke Keranjang
                             @endif
                         </button>
-<div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-xl bg-gray-50 px-3 py-2.5 text-xs font-medium text-gray-500">
-                            <span class="flex items-center gap-1.5">
-                                <svg class="h-3.5 w-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div class="flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 gap-y-1 rounded-xl bg-gray-50 px-2.5 sm:px-3 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium text-gray-500">
+                            <span class="flex items-center gap-1">
+                                <svg class="h-3 w-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Transaksi aman
                             </span>
-                            <span class="flex items-center gap-1.5">
-                                <svg class="h-3.5 w-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                                Bantuan AI/Admin tersedia
-                            </span>
+                            <button type="button" onclick="document.querySelector('[data-ai-trigger]')?.click()" class="flex items-center gap-1 hover:text-primary-600 transition">
+                                <svg class="h-3 w-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                                Tanya AI
+                            </button>
                         </div>
                     </form>
                 @endauth
 
                 @guest
-                    <div class="mt-6 space-y-4">
-                        <p class="text-xs text-center text-gray-400 font-medium">Stok mengikuti ketersediaan toko</p>
+                    <div class="mt-5 space-y-3 sm:space-y-4">
+                        <p class="text-[11px] sm:text-xs text-center text-gray-400 font-medium">Stok: {{ number_format($product->stock) }} {{ strtoupper($product->unit) }}</p>
                         <div>
-                            <label for="qty-guest" class="mb-2 block text-sm font-bold text-gray-700">Kuantitas
+                            <label for="qty-guest" class="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-bold text-gray-700">Kuantitas
                                 ({{ strtoupper($product->unit) }})
                             </label>
                             <input id="qty-guest" type="number" value="1" disabled
-                                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-500 shadow-sm transition text-center font-bold cursor-not-allowed">
+                                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 sm:py-3 text-sm sm:text-base text-gray-500 shadow-sm transition text-center font-bold cursor-not-allowed">
                         </div>
                         <button type="button"
                             onclick="showStorefrontNotice({ title: 'Login Diperlukan', message: 'Anda harus masuk ke sistem terlebih dahulu sebelum dapat menambahkan barang ke keranjang belanja.', actionUrl: '{{ route('login') }}', actionLabel: 'Masuk Sekarang' })"
                             aria-haspopup="dialog"
-                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-base font-bold shadow-md transition bg-primary-600 text-white shadow-primary-500/20 hover:bg-primary-700 hover:shadow-primary-500/40">
+                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 sm:py-3.5 text-sm sm:text-base font-bold shadow-md transition bg-primary-600 text-white shadow-primary-500/20 hover:bg-primary-700 hover:shadow-primary-500/40">
                             Tambah ke Keranjang
                         </button>
                         <div class="text-center">
-                            <p class="text-sm font-medium text-gray-500">Atau <a href="{{ route('login') }}"
+                            <p class="text-xs sm:text-sm font-medium text-gray-500">Atau <a href="{{ route('login') }}"
                                     class="text-primary-600 hover:underline">Masuk</a> sekarang</p>
                         </div>
-                        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-xl bg-gray-50 px-3 py-2.5 text-xs font-medium text-gray-500">
-                            <span class="flex items-center gap-1.5">
-                                <svg class="h-3.5 w-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div class="flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 gap-y-1 rounded-xl bg-gray-50 px-2.5 sm:px-3 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium text-gray-500">
+                            <span class="flex items-center gap-1">
+                                <svg class="h-3 w-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Transaksi aman
                             </span>
-                            <span class="flex items-center gap-1.5">
-                                <svg class="h-3.5 w-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                                Bantuan AI/Admin tersedia
-                            </span>
+                            <button type="button" onclick="document.querySelector('[data-ai-trigger]')?.click()" class="flex items-center gap-1 hover:text-primary-600 transition">
+                                <svg class="h-3 w-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                                Tanya AI
+                            </button>
                         </div>
                     </div>
                 @endguest
 
                 <a href="{{ route('home') }}"
-                    class="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                    class="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
                     Kembali Belanja
                 </a>
-                <p class="mt-2 text-center text-xs text-gray-400 font-medium">
+                <p class="mt-1.5 text-center text-[11px] sm:text-xs text-gray-400 font-medium">
                     Pastikan spesifikasi sesuai kebutuhan listrik Anda.
                 </p>
             </div>

@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\WarrantyClaim;
 use App\Notifications\PaymentProofStatusUpdatedNotification;
+use App\Notifications\RefundProcessedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -1005,5 +1006,328 @@ class OrderSecurityAndLifecycleTest extends TestCase
     {
         Storage::fake('local');
         Storage::fake('public');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // REFUND WORKFLOW TESTS
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    public function test_user_can_submit_refund_request_for_own_eligible_paid_order(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'Lampu LED Refund Test',
+            'slug' => 'lampu-led-refund-test',
+            'price' => 95000,
+            'stock' => 10,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($user, $product, 1, now()->subHours(2));
+
+        // Mark order as paid
+        $order->update([
+            'status' => 'completed',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+        $payment->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from(route('home.tracking.show', $order->order_code))
+            ->post(route('home.tracking.refund', $order->order_code), [
+                'reason' => 'wrong_item',
+                'details' => 'Barang yang dikirim tidak sesuai pesanan.',
+            ]);
+
+        $response->assertRedirect(route('home.tracking.show', $order->order_code));
+        $response->assertSessionHas('success');
+
+        $payment->refresh();
+        $this->assertStringContainsString('[REFUND_REQUEST_PENDING]', (string) $payment->notes);
+        $this->assertStringContainsString('Barang tidak sesuai pesanan', (string) $payment->notes);
+    }
+
+    public function test_user_cannot_submit_refund_for_unpaid_order(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'Kabel Refund Unpaid',
+            'slug' => 'kabel-refund-unpaid',
+            'price' => 45000,
+            'stock' => 8,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($user, $product, 1, now()->subMinutes(30));
+
+        $response = $this->actingAs($user)
+            ->from(route('home.tracking.show', $order->order_code))
+            ->post(route('home.tracking.refund', $order->order_code), [
+                'reason' => 'wrong_item',
+            ]);
+
+        $response->assertRedirect(route('home.tracking.show', $order->order_code));
+        $response->assertSessionHas('error', 'Refund hanya dapat diajukan setelah pembayaran lunas.');
+    }
+
+    public function test_user_cannot_submit_refund_twice_for_same_order(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'Stop Kontak Double Refund',
+            'slug' => 'stop-kontak-double-refund',
+            'price' => 75000,
+            'stock' => 6,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($user, $product, 1, now()->subHours(3));
+
+        $order->update([
+            'status' => 'completed',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+        $payment->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+            'notes' => '[REFUND_REQUEST_PENDING] First refund request.',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from(route('home.tracking.show', $order->order_code))
+            ->post(route('home.tracking.refund', $order->order_code), [
+                'reason' => 'damaged_item',
+            ]);
+
+        $response->assertRedirect(route('home.tracking.show', $order->order_code));
+        $response->assertSessionHas('error', 'Pengajuan refund untuk pesanan ini sudah terkirim dan sedang diproses admin.');
+    }
+
+    public function test_user_cannot_submit_refund_for_another_users_order(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'MCB Refund Another User',
+            'slug' => 'mcb-refund-another-user',
+            'price' => 55000,
+            'stock' => 10,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($owner, $product, 1, now()->subHours(2));
+
+        $order->update([
+            'status' => 'completed',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+        $payment->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        $response = $this->actingAs($otherUser)
+            ->post(route('home.tracking.refund', $order->order_code), [
+                'reason' => 'wrong_item',
+            ]);
+
+        $response->assertNotFound();
+    }
+
+    public function test_admin_cannot_mark_order_refunded_without_pending_refund_request(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'Kabel Refund No Pending',
+            'slug' => 'kabel-refund-no-pending',
+            'price' => 85000,
+            'stock' => 7,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($customer, $product, 1, now()->subHours(2));
+
+        $order->update([
+            'status' => 'processing',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+        $payment->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->from(route('admin.orders.show', $order))
+            ->patch(route('admin.orders.update-status', $order), [
+                'status' => 'processing',
+                'payment_status' => 'refunded',
+                'tracking_number' => '',
+            ]);
+
+        $response->assertRedirect(route('admin.orders.show', $order));
+        $response->assertSessionHas('error', 'Status refunded hanya boleh diproses jika pelanggan sudah mengajukan refund.');
+
+        $order->refresh();
+        $this->assertSame('paid', $order->payment_status);
+    }
+
+    public function test_admin_can_mark_order_refunded_when_pending_refund_request_exists(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'Lampu Refund Valid',
+            'slug' => 'lampu-refund-valid',
+            'price' => 120000,
+            'stock' => 5,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($customer, $product, 1, now()->subHours(4));
+
+        $order->update([
+            'status' => 'processing',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+        $payment->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+            'notes' => '[REFUND_REQUEST_PENDING] Refund karena barang tidak sesuai.',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->from(route('admin.orders.show', $order))
+            ->patch(route('admin.orders.update-status', $order), [
+                'status' => 'processing',
+                'payment_status' => 'refunded',
+                'tracking_number' => '',
+            ]);
+
+        $response->assertRedirect(route('admin.orders.show', $order));
+        $response->assertSessionHas('success');
+
+        $order->refresh();
+        $payment->refresh();
+
+        $this->assertSame('refunded', $order->payment_status);
+        $this->assertSame('refunded', $payment->status);
+    }
+
+    public function test_user_receives_notification_when_admin_processes_refund(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'Kabel Refund Notification',
+            'slug' => 'kabel-refund-notification',
+            'price' => 99000,
+            'stock' => 6,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($customer, $product, 1, now()->subHours(3));
+
+        $order->update([
+            'status' => 'processing',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+        $payment->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+            'notes' => '[REFUND_REQUEST_PENDING] Customer minta refund.',
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.orders.update-status', $order), [
+                'status' => 'processing',
+                'payment_status' => 'refunded',
+                'tracking_number' => '',
+            ]);
+
+        $notification = $customer->fresh()->notifications()->latest()->first();
+        $this->assertNotNull($notification);
+        $this->assertSame(RefundProcessedNotification::class, $notification->type);
+        $this->assertSame('refunded', $notification->data['refund_status'] ?? null);
+        $this->assertSame($order->order_code, $notification->data['order_code'] ?? null);
+    }
+
+    public function test_admin_order_list_shows_refund_pending_badge(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+        $product = $this->createProduct([
+            'name' => 'MCB Refund Badge',
+            'slug' => 'mcb-refund-badge',
+            'price' => 68000,
+            'stock' => 9,
+        ]);
+
+        [$order, $payment] = $this->createPendingOrder($customer, $product, 1, now()->subHours(5));
+
+        $order->update([
+            'status' => 'completed',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+        $payment->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+            'notes' => '[REFUND_REQUEST_PENDING] Refund requested by customer.',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.orders.index'));
+
+        $response->assertOk();
+        $response->assertSee('REFUND PENDING');
+    }
+
+    public function test_admin_order_list_filter_refund_pending(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = User::factory()->create();
+
+        // Order with pending refund
+        $productWithRefund = $this->createProduct([
+            'name' => 'Lampu Filter Refund',
+            'slug' => 'lampu-filter-refund',
+            'price' => 55000,
+            'stock' => 8,
+        ]);
+        [$orderWithRefund, $paymentWithRefund] = $this->createPendingOrder($customer, $productWithRefund, 1, now()->subHours(6));
+        $orderWithRefund->update([
+            'status' => 'completed',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+        $paymentWithRefund->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+            'notes' => '[REFUND_REQUEST_PENDING] Refund request.',
+        ]);
+
+        // Order without pending refund
+        $productWithoutRefund = $this->createProduct([
+            'name' => 'Kabel No Refund',
+            'slug' => 'kabel-no-refund',
+            'price' => 33000,
+            'stock' => 12,
+        ]);
+        [$orderWithoutRefund] = $this->createPendingOrder($customer, $productWithoutRefund, 1, now()->subHours(4));
+        $orderWithoutRefund->update([
+            'status' => 'completed',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.orders.index', ['refund' => 'pending']));
+
+        $response->assertOk();
+        $response->assertSee($orderWithRefund->order_code);
+        $response->assertDontSee($orderWithoutRefund->order_code);
     }
 }

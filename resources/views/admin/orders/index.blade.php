@@ -82,6 +82,10 @@
                 class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
                 Reset
             </a>
+            <a href="{{ route('admin.orders.index', array_filter(array_merge($filters, ['refund' => 'pending']))) }}"
+                class="rounded-lg border {{ ($filters['refund'] ?? '') === 'pending' ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-indigo-200 bg-white text-indigo-600' }} px-4 py-2 text-sm font-semibold transition hover:bg-indigo-50">
+                Refund Pending
+            </a>
         </div>
     </form>
 
@@ -127,10 +131,20 @@
                                 {{ number_format($order->total_amount, 0, ',', '.') }}
                             </td>
                             <td class="p-4">
+                                @php
+                                    $latestPayment = $order->latestPayment;
+                                    $hasLatestProof = filled($latestPayment?->proof_url);
+                                    $hasPendingRefund = $latestPayment && str_contains((string) ($latestPayment->notes ?? ''), '[REFUND_REQUEST_PENDING]');
+                                @endphp
                                 <span
                                     class="rounded-full px-2 py-1 text-xs font-bold uppercase {{ $order->payment_status === 'paid' ? 'bg-emerald-100 text-emerald-700' : ($order->payment_status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">
                                     {{ $order->payment_status }}
                                 </span>
+                                @if ($hasPendingRefund)
+                                    <span class="mt-1 inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase text-indigo-700">
+                                        REFUND PENDING
+                                    </span>
+                                @endif
                                 <p
                                     class="mt-1 text-[11px] font-semibold {{ $hasLatestProof ? 'text-cyan-700' : 'text-gray-500' }}">
                                     Proof terbaru: {{ $hasLatestProof ? 'uploaded' : 'missing' }}

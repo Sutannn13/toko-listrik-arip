@@ -69,6 +69,13 @@ class DashboardController extends Controller
                 ->whereIn('status', ['submitted', 'reviewing'])
                 ->whereRaw('COALESCE(requested_at, created_at) < ?', [$now->copy()->subHours(48)])
                 ->count(),
+            'refunds_pending' => Order::query()
+                ->where('payment_status', 'paid')
+                ->whereHas('latestPayment', fn($query) => $query
+                    ->where('status', 'paid')
+                    ->whereNotNull('notes')
+                    ->whereRaw("notes LIKE '%[REFUND_REQUEST_PENDING]%'"))
+                ->count(),
         ];
 
         $ordersLast30Days = Order::query()->where('created_at', '>=', $period30Days);

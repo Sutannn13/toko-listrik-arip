@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Notifications\OrderCompletedNotification;
 use App\Notifications\PaymentProofStatusUpdatedNotification;
+use App\Notifications\RefundProcessedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -26,6 +27,7 @@ class OrderController extends Controller
             'proof' => ['nullable', 'in:all,uploaded,missing'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'refund' => ['nullable', 'in:pending'],
         ]);
 
         $orders = Order::query()
@@ -65,6 +67,15 @@ class OrderController extends Controller
             })
             ->when($filters['date_from'] ?? null, fn($query, $dateFrom) => $query->whereDate('created_at', '>=', $dateFrom))
             ->when($filters['date_to'] ?? null, fn($query, $dateTo) => $query->whereDate('created_at', '<=', $dateTo))
+            ->when(($filters['refund'] ?? null) === 'pending', function ($query) {
+                $query->where(function ($q) {
+                    $q->where('payment_status', 'paid')
+                        ->whereHas('latestPayment', fn($payment) => $payment
+                            ->where('status', 'paid')
+                            ->whereNotNull('notes')
+                            ->whereRaw("notes LIKE '%[REFUND_REQUEST_PENDING]%'"));
+                });
+            })
             ->latest()
             ->paginate(15)
             ->withQueryString();
@@ -267,6 +278,11 @@ class OrderController extends Controller
         $order->refresh();
         if ($previousStatus !== 'completed' && $order->status === 'completed' && $order->user) {
             $order->user->notify(new OrderCompletedNotification($order));
+        }
+
+        $latestPayment = $order->payments()->latest('id')->first();
+        if ($validated['payment_status'] === 'refunded' && $order->user && $latestPayment) {
+            $order->user->notify(new RefundProcessedNotification($order, $latestPayment, 'refunded'));
         }
 
         return redirect()->route('admin.orders.show', $order)

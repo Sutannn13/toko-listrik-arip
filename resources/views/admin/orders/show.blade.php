@@ -43,6 +43,7 @@
                     filled($latestPayment->proof_url) &&
                     in_array($latestPayment->status, ['pending', 'failed'], true) &&
                     $order->status !== 'cancelled';
+                $hasPendingRefund = $latestPayment && str_contains((string) ($latestPayment->notes ?? ''), '[REFUND_REQUEST_PENDING]');
             @endphp
             <form action="{{ route('admin.orders.update-status', $order) }}" method="POST" class="space-y-3">
                 @csrf
@@ -246,6 +247,68 @@
             </table>
         </div>
     </div>
+
+    @if ($hasPendingRefund && $latestPayment)
+        @php
+            $refundNote = $latestPayment->notes ?? '';
+            $refundReason = 'Tidak указана';
+            if (preg_match('/Alasan: ([^|]+)/', $refundNote, $matches)) {
+                $refundReason = trim($matches[1]);
+            } elseif (preg_match('/\[REFUND_REQUEST_PENDING\](.*?)(?:\z|$)/s', $refundNote, $matches)) {
+                $refundReason = trim($matches[1]) ?: 'Refund diminta pelanggan';
+            }
+            $refundDetails = '';
+            if (preg_match('/Detail: ([^|]+)/', $refundNote, $matches)) {
+                $refundDetails = trim($matches[1]);
+            }
+        @endphp
+        <div class="mb-6 rounded-lg border-2 border-indigo-200 bg-indigo-50 p-5 shadow">
+            <div class="flex items-start gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 1.343-3 3v1H8a2 2 0 00-2 2v1a2 2 0 002 2h8a2 2 0 002-2v-1a2 2 0 00-2-2h-1v-1c0-1.657-1.343-3-3-3z" />
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-base font-bold text-indigo-900">Pengajuan Refund</h4>
+                    <p class="mt-1 text-xs text-indigo-700">Customer telah mengajukan permintaan refund yang menunggu proses admin.</p>
+                </div>
+            </div>
+
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
+                <div class="rounded-lg border border-indigo-200 bg-white p-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Alasan Refund</p>
+                    <p class="mt-1 text-sm font-bold text-gray-900">{{ $refundReason }}</p>
+                    @if ($refundDetails)
+                        <p class="mt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Detail</p>
+                        <p class="mt-1 text-sm text-gray-700">{{ $refundDetails }}</p>
+                    @endif
+                </div>
+                <div class="rounded-lg border border-indigo-200 bg-white p-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Payment Ref</p>
+                    <p class="mt-1 text-sm font-bold text-gray-900">{{ $latestPayment->payment_code }}</p>
+                    <p class="mt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Status Payment Saat Ini</p>
+                    <p class="mt-1 text-sm font-bold text-amber-700 uppercase">{{ $order->payment_status }}</p>
+                    <p class="mt-2 rounded bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700">
+                        Untuk memproses refund, ubah Payment Status ke "Refunded" di panel Status Pesanan.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-4 rounded-lg border border-indigo-200 bg-white p-4">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Panduan Proses Refund</p>
+                <ol class="mt-2 space-y-1.5 text-sm text-gray-700 list-decimal list-inside">
+                    <li>Verifikasi bahwa alasan refund valid dan customer memang berhak.</li>
+                    <li>Jika disetujui: ubah Payment Status ke <strong>"Refunded"</strong> di panel Status Pesanan.</li>
+                    <li>System akan otomatis menandai payment sebagai refunded.</li>
+                    <li>Customer akan melihat status refunded di halaman tracking mereka.</li>
+                </ol>
+                <p class="mt-3 rounded bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">
+                    <strong>Catatan:</strong> Pastikan funds sudah dikembalikan ke customer sebelum mengubah status menjadi refunded.
+                </p>
+            </div>
+        </div>
+    @endif
 
     <div class="grid gap-6 lg:grid-cols-2">
         <div class="rounded-lg bg-white p-5 shadow">

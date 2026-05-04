@@ -6,7 +6,7 @@
     $bodyClass =
         $bodyClass !== ''
             ? $bodyClass
-            : 'min-h-screen bg-gray-50 font-sans text-gray-800 antialiased selection:bg-primary-500 selection:text-white';
+            : 'min-h-screen bg-gray-50 font-sans text-gray-800 antialiased selection:bg-primary-500 selection:text-white overflow-x-hidden';
 
     $headerClass = trim($__env->yieldContent('header_class'));
     $headerClass = $headerClass !== '' ? $headerClass : 'sticky top-0 z-30 border-b border-gray-200 bg-white shadow-sm';

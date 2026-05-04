@@ -58,7 +58,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
+          cache: npm
 
       - name: Install npm dependencies
         run: npm ci
@@ -67,11 +67,11 @@ jobs:
         run: npm run build
 
       - name: Check conflict markers in source files
-  run: |
-    if git grep "<<<<<<<\|=======\|>>>>>>>" -- resources app routes config; then
-      echo "Conflict markers found!"
-      exit 1
-    fi
+        run: |
+          if git grep "<<<<<<<\|=======\|>>>>>>>" -- resources app routes config; then
+            echo "Conflict markers found!"
+            exit 1
+          fi
 
       - name: Run full Laravel test suite
         run: php artisan test
